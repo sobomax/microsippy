@@ -25,6 +25,11 @@ node('microsippy') {
       // Flash the board
       sh "IDF_PATH=${IDF_PATH} IDF_TOOLCHAIN=${IDF_TOOLCHAIN} ${builderHome}/microsippy/scripts/do-build.sh flash"
     }
+
+    stage('Test') {
+      // Test
+      sh "IDF_PATH=${IDF_PATH} ${builderHome}/microsippy/scripts/do-test.sh"
+    }
   }
 }
 
