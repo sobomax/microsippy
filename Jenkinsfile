@@ -1,11 +1,14 @@
 node('microsippy') {
   timestamps {
     def builderHome = env.WORKSPACE
-    def IDF_PATH = env.IDF_PATH
+    def IDF_PATH = "${builderHome}/ESP8266_RTOS_SDK"
     def IDF_TOOLCHAIN = env.IDF_TOOLCHAIN
     stage('Prepare/Checkout') { // for display purposes
       dir('microsippy') {
         git branch: 'master', url: 'https://github.com/sobomax/microsippy.git'
+      }
+      dir('ESP8266_RTOS_SDK') {
+        git branch: 'master', url: 'https://github.com/espressif/ESP8266_RTOS_SDK.git'
       }
     }
 
