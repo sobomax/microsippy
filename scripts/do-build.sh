@@ -11,5 +11,7 @@ fi
 TOOLSPATH=`realpath ${0}`
 TOOLSDIR=`dirname ${TOOLSPATH}`
 
+IDF_TGT=${1:-"build"}
+
 cd ${TOOLSDIR}/../src
-PATH="${PATH}:${IDF_TOOLCHAIN}/bin" python ${IDF_PATH}/tools/idf.py build
+PATH="${PATH}:${IDF_TOOLCHAIN}/bin" python ${IDF_PATH}/tools/idf.py ${IDF_TGT}
