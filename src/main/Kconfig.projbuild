@@ -27,10 +27,10 @@ config EXAMPLE_IPV6
 
 endchoice
 
-config EXAMPLE_PORT
+config EXAMPLE_SIP_PORT
     int "Port"
     range 0 65535
-    default 3333
+    default 5060
     help
         Local port the example server will listen on.
 

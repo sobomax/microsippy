@@ -28,10 +28,16 @@
    If you'd rather not, just change the below entries to strings with
    the config you want - ie #define EXAMPLE_WIFI_SSID "mywifissid"
 */
-#define EXAMPLE_WIFI_SSID CONFIG_WIFI_SSID
-#define EXAMPLE_WIFI_PASS CONFIG_WIFI_PASSWORD
+#ifndef (EXAMPLE_WIFI_SSID)
+# define EXAMPLE_WIFI_SSID CONFIG_WIFI_SSID
+#endif
+#ifndef (EXAMPLE_WIFI_PASS)
+# define EXAMPLE_WIFI_PASS CONFIG_WIFI_PASSWORD
+#endif
 
-#define PORT CONFIG_EXAMPLE_PORT
+#ifndef (EXAMPLE_SIP_PORT)
+# define EXAMPLE_SIP_PORT CONFIG_EXAMPLE_SIP_PORT
+#endif
 
 /* FreeRTOS event group to signal when we are connected & ready to make a request */
 static EventGroupHandle_t wifi_event_group;
@@ -135,7 +141,7 @@ static void udp_server_task(void *pvParameters)
         struct sockaddr_in destAddr;
         destAddr.sin_addr.s_addr = htonl(INADDR_ANY);
         destAddr.sin_family = AF_INET;
-        destAddr.sin_port = htons(PORT);
+        destAddr.sin_port = htons(EXAMPLE_SIP_PORT);
         addr_family = AF_INET;
         ip_protocol = IPPROTO_IP;
         inet_ntoa_r(destAddr.sin_addr, addr_str, sizeof(addr_str) - 1);
@@ -143,7 +149,7 @@ static void udp_server_task(void *pvParameters)
         struct sockaddr_in6 destAddr;
         bzero(&destAddr.sin6_addr.un, sizeof(destAddr.sin6_addr.un));
         destAddr.sin6_family = AF_INET6;
-        destAddr.sin6_port = htons(PORT);
+        destAddr.sin6_port = htons(EXAMPLE_SIP_PORT);
         addr_family = AF_INET6;
         ip_protocol = IPPROTO_IPV6;
         inet6_ntoa_r(destAddr.sin6_addr, addr_str, sizeof(addr_str) - 1);
