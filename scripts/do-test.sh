@@ -21,7 +21,7 @@ sleep 5
 BRD_IP=`grep 'sta ip: ' monitor.log | sed 's|.*sta ip: ||; s|,.*||'`
 if [ ! -z "${BRD_IP}" ]
 then
-  echo foo | nc -w 1 -u "${BRD_IP}" 5060
+  sed "s|%%BRD_IP%%|${BRD_IP}|g" ${TOOLSDIR}/100trying.raw | nc -w 1 -u "${BRD_IP}" 5060
   sleep 15
 fi
 kill -TERM ${MON_PID}
