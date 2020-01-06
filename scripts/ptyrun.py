@@ -5,3 +5,4 @@ pp = PtyProcessUnicode.spawn(argv[1:])
 while True:
     line = pp.readline()
     stdout.write(line)
+    stdout.flush()
