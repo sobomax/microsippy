@@ -12,7 +12,7 @@ TOOLSPATH=`realpath ${0}`
 TOOLSDIR=`dirname ${TOOLSPATH}`
 
 cd ${TOOLSDIR}/../src
-python ${IDF_PATH}/tools/idf.py monitor > monitor.log&
+python "${TOOLSDIR}/ptyprocess.py" ${IDF_PATH}/tools/idf.py monitor > monitor.log&
 MON_RC=${?}
 MON_PID=${!}
 sleep 20
