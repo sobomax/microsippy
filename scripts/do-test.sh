@@ -18,8 +18,16 @@ PATH="${PATH}:${IDF_TOOLCHAIN}/bin" python "${TOOLSDIR}/ptyrun.py" -o monitor.lo
 MON_RC=${?}
 MON_PID=${!}
 sleep 5
-BRD_ID=`grep 'sta ip: ' monitor.log | sed 's|.*sta ip: ||; s|,.*||'`
-sleep 15
+BRD_IP=`grep 'sta ip: ' monitor.log | sed 's|.*sta ip: ||; s|,.*||'`
+if [ ! -z "${BRD_IP}" ]
+then
+  echo foo | nc -w 1 -u "${BRD_IP}" 5060
+  sleep 15
+fi
 kill -TERM ${MON_PID}
 wait ${MON_PID} || true
+if [ -z "${BRD_IP}" ]
+then
+  exit 1
+fi
 grep -q 'Waiting for data' monitor.log
