@@ -28,14 +28,14 @@
    If you'd rather not, just change the below entries to strings with
    the config you want - ie #define EXAMPLE_WIFI_SSID "mywifissid"
 */
-#ifndef (EXAMPLE_WIFI_SSID)
+#ifndef EXAMPLE_WIFI_SSID
 # define EXAMPLE_WIFI_SSID CONFIG_WIFI_SSID
 #endif
-#ifndef (EXAMPLE_WIFI_PASS)
+#ifndef EXAMPLE_WIFI_PASS
 # define EXAMPLE_WIFI_PASS CONFIG_WIFI_PASSWORD
 #endif
 
-#ifndef (EXAMPLE_SIP_PORT)
+#ifndef EXAMPLE_SIP_PORT
 # define EXAMPLE_SIP_PORT CONFIG_EXAMPLE_SIP_PORT
 #endif
 
