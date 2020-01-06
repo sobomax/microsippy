@@ -13,5 +13,12 @@ TOOLSDIR=`dirname ${TOOLSPATH}`
 
 IDF_TGT=${1:-"build"}
 
-cd ${TOOLSDIR}/../src
-PATH="${PATH}:${IDF_TOOLCHAIN}/bin" python ${IDF_PATH}/tools/idf.py ${IDF_TGT}
+if [ "${IDF_TGT}" = "build" ]
+then
+  mkdir -p ${TOOLSDIR}/../src/build
+  cmake -B${TOOLSDIR}/../src/build -H${TOOLSDIR}/../src
+  make -C ${TOOLSDIR}/../src/build
+else
+  cd ${TOOLSDIR}/../src
+  PATH="${PATH}:${IDF_TOOLCHAIN}/bin" python ${IDF_PATH}/tools/idf.py ${IDF_TGT}
+fi
