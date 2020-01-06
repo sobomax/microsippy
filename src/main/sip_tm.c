@@ -1,3 +1,14 @@
+#include <sys/param.h>
+#include <strings.h>
+#include "freertos/FreeRTOS.h"
+#include "freertos/task.h"
+
+#include "lwip/sockets.h"
+#include "lwip/inet.h"
+#include "esp_log.h"
+
+#include "sip_tm.h"
+
 void
 sip_tm_task(void *pvParameters)
 {
@@ -11,7 +22,9 @@ sip_tm_task(void *pvParameters)
     while (1) {
         union {
             struct sockaddr_in v4;
+#ifdef IPPROTO_IPV6
             struct sockaddr_in6 v6;
+#endif
         } destAddr;
         if (cfp->sip_af == AF_INET) {
             destAddr.v4.sin_addr.s_addr = htonl(INADDR_ANY);
@@ -20,52 +33,63 @@ sip_tm_task(void *pvParameters)
             addr_family = AF_INET;
             ip_protocol = IPPROTO_IP;
             inet_ntoa_r(destAddr.v4.sin_addr, addr_str, sizeof(addr_str) - 1);
-        } else {
+#ifdef IPPROTO_IPV6
+	} else {
             bzero(&destAddr.v6.sin6_addr.un, sizeof(destAddr.v6.sin6_addr.un));
             destAddr.v6.sin6_family = AF_INET6;
             destAddr.v6.sin6_port = htons(cfp->sip_port);
             addr_family = AF_INET6;
             ip_protocol = IPPROTO_IPV6;
             inet6_ntoa_r(destAddr.v6.sin6_addr, addr_str, sizeof(addr_str) - 1);
+#endif
         }
 
         int sock = socket(addr_family, SOCK_DGRAM, ip_protocol);
         if (sock < 0) {
-            ESP_LOGE(TAG, "Unable to create socket: errno %d", errno);
+            ESP_LOGE(cfp->log_tag, "Unable to create socket: errno %d", errno);
             break;
         }
-        ESP_LOGI(TAG, "Socket created");
+        ESP_LOGI(cfp->log_tag, "Socket created");
 
         int err;
         if (cfp->sip_af == AF_INET) {
             err = bind(sock, (struct sockaddr *)&destAddr.v4, sizeof(destAddr.v4));
         } else {
+#ifdef IPPROTO_IPV6
             err = bind(sock, (struct sockaddr *)&destAddr.v6, sizeof(destAddr.v6));
+#else
+	    err = -1;
+	    errno = EAFNOSUPPORT;
+#endif
         }
         if (err < 0) {
-            ESP_LOGE(TAG, "Socket unable to bind: errno %d", errno);
+            ESP_LOGE(cfp->log_tag, "Socket unable to bind: errno %d", errno);
         }
-        ESP_LOGI(TAG, "Socket binded");
+        ESP_LOGI(cfp->log_tag, "Socket binded");
 
         while (1) {
 
-            ESP_LOGI(TAG, "Waiting for data");
+            ESP_LOGI(cfp->log_tag, "Waiting for data");
             union {
                 struct sockaddr_in v4;
+#ifdef IPPROTO_IPV6
                 struct sockaddr_in6 v6;
+#endif
             } sourceAddr;
 
             socklen_t socklen;
             if (cfp->sip_af == AF_INET) {
                 socklen = sizeof(sourceAddr.v4);
+#ifdef IPPROTO_IPV6
             } else {
                 socklen = sizeof(sourceAddr.v6);
+#endif
             }
             int len = recvfrom(sock, rx_buffer, sizeof(rx_buffer) - 1, 0, (struct sockaddr *)&sourceAddr, &socklen);
 
             // Error occured during receiving
             if (len < 0) {
-                ESP_LOGE(TAG, "recvfrom failed: errno %d", errno);
+                ESP_LOGE(cfp->log_tag, "recvfrom failed: errno %d", errno);
                 break;
             }
             // Data received
@@ -73,24 +97,26 @@ sip_tm_task(void *pvParameters)
                 // Get the sender's ip address as string
                 if (sourceAddr.v4.sin_family == AF_INET) {
                     inet_ntoa_r(sourceAddr.v4.sin_addr.s_addr, addr_str, sizeof(addr_str) - 1);
+#ifdef IPPROTO_IPV6
                 } else if (sourceAddr.v6.sin6_family == AF_INET6) {
                     inet6_ntoa_r(sourceAddr.v6.sin6_addr, addr_str, sizeof(addr_str) - 1);
+#endif
                 }
 
                 rx_buffer[len] = 0; // Null-terminate whatever we received and treat like a string...
-                ESP_LOGI(TAG, "Received %d bytes from %s:", len, addr_str);
-                ESP_LOGI(TAG, "%s", rx_buffer);
+                ESP_LOGI(cfp->log_tag, "Received %d bytes from %s:", len, addr_str);
+                ESP_LOGI(cfp->log_tag, "%s", rx_buffer);
 
                 int err = sendto(sock, rx_buffer, len, 0, (struct sockaddr *)&sourceAddr, socklen);
                 if (err < 0) {
-                    ESP_LOGE(TAG, "Error occured during sending: errno %d", errno);
+                    ESP_LOGE(cfp->log_tag, "Error occured during sending: errno %d", errno);
                     break;
                 }
             }
         }
 
         if (sock != -1) {
-            ESP_LOGE(TAG, "Shutting down socket and restarting...");
+            ESP_LOGE(cfp->log_tag, "Shutting down socket and restarting...");
             shutdown(sock, 0);
             close(sock);
         }
