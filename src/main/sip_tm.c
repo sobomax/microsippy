@@ -33,14 +33,17 @@ sip_tm_task(void *pvParameters)
             addr_family = AF_INET;
             ip_protocol = IPPROTO_IP;
             inet_ntoa_r(destAddr.v4.sin_addr, addr_str, sizeof(addr_str) - 1);
-#ifdef IPPROTO_IPV6
 	} else {
+#ifdef IPPROTO_IPV6
             bzero(&destAddr.v6.sin6_addr.un, sizeof(destAddr.v6.sin6_addr.un));
             destAddr.v6.sin6_family = AF_INET6;
             destAddr.v6.sin6_port = htons(cfp->sip_port);
             addr_family = AF_INET6;
             ip_protocol = IPPROTO_IPV6;
             inet6_ntoa_r(destAddr.v6.sin6_addr, addr_str, sizeof(addr_str) - 1);
+#else
+            ESP_LOGE(cfp->log_tag, "IPv6 is not available", EAFNOSUPPORT);
+            break;
 #endif
         }
 
