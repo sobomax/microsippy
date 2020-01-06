@@ -4,10 +4,9 @@ node('microsippy') {
     def bootISOArgs = env.BOOTISO_ARGS
     def bootISOEnv = env.BOOTISO_ENV
     stage('Prepare/Checkout') { // for display purposes
-      //dir('tester') {
-      //  git branch: 'master', credentialsId: '9657a408-4ce0-4930-91cb-c354b5ab0fd4',
-      //   url: 'git@bitbucket.org:sippysoft/tester.git'
-      //}
+      dir('microsippy') {
+        git branch: 'master', url: 'https://github.com/sobomax/microsippy.git'
+      }
     }
 
     stage('Clear Workspace') {
@@ -16,7 +15,7 @@ node('microsippy') {
 
     stage('Build') {
       // Run the  build
-      sh "${builderHome}/scripts/do-build.sh"
+      sh "${builderHome}/microsippy/scripts/do-build.sh"
     }
   }
 }
