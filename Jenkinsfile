@@ -13,7 +13,7 @@ node('microsippy') {
     }
 
     stage('Clear Workspace') {
-      sh "rm -f ${builderHome}/microsippy/src/build"
+      sh "rm -rf ${builderHome}/microsippy/src/build"
     }
 
     stage('Build') {
