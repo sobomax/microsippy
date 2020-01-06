@@ -4,3 +4,10 @@ cmake_minimum_required(VERSION 3.5)
 
 include($ENV{IDF_PATH}/tools/cmake/project.cmake)
 project(udp_server)
+
+OPTION(WIFI_CONFIG "Wi-Fi configutation" OFF)
+
+IF(WIFI_CONFIG)
+  ADD_DEFINITIONS(EXAMPLE_WIFI_SSID=$ENV{WIFI_SSID})
+  ADD_DEFINITIONS(EXAMPLE_WIFI_PASSWORD=$ENV{WIFI_PASSWORD})
+ENDIF(WIFI_CONFIG)
