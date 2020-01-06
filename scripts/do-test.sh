@@ -17,7 +17,9 @@ PATH="${PATH}:${IDF_TOOLCHAIN}/bin" python "${TOOLSDIR}/ptyrun.py" -o monitor.lo
   ${IDF_PATH}/tools/idf.py monitor &
 MON_RC=${?}
 MON_PID=${!}
-sleep 20
+sleep 5
+BRD_ID=`grep 'sta ip: ' monitor.log | sed 's|.*sta ip: ||; s|,.*||'`
+sleep 15
 kill -TERM ${MON_PID}
 wait ${MON_PID} || true
-grep 'Waiting for data' monitor.log
+grep -q 'Waiting for data' monitor.log
