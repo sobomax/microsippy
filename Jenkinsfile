@@ -28,7 +28,7 @@ node('microsippy') {
 
     stage('Test') {
       // Test
-      sh "IDF_PATH=${IDF_PATH} ${builderHome}/microsippy/scripts/do-test.sh"
+      sh "IDF_PATH=${IDF_PATH} IDF_TOOLCHAIN=${IDF_TOOLCHAIN} ${builderHome}/microsippy/scripts/do-test.sh"
     }
   }
 }
