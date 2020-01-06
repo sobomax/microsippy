@@ -1,8 +1,8 @@
 node('microsippy') {
   timestamps {
     def builderHome = env.WORKSPACE
-    def bootISOArgs = env.BOOTISO_ARGS
-    def bootISOEnv = env.BOOTISO_ENV
+    def IDF_PATH = env.IDF_PATH
+    def IDF_TOOLCHAIN = env.IDF_TOOLCHAIN
     stage('Prepare/Checkout') { // for display purposes
       dir('microsippy') {
         git branch: 'master', url: 'https://github.com/sobomax/microsippy.git'
@@ -15,7 +15,7 @@ node('microsippy') {
 
     stage('Build') {
       // Run the  build
-      sh "${builderHome}/microsippy/scripts/do-build.sh"
+      sh "IDF_PATH=${IDF_PATH} IDF_TOOLCHAIN=${IDF_TOOLCHAIN} ${builderHome}/microsippy/scripts/do-build.sh"
     }
   }
 }
