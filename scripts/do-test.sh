@@ -13,7 +13,7 @@ TOOLSPATH=`realpath ${0}`
 TOOLSDIR=`dirname ${TOOLSPATH}`
 
 cd ${TOOLSDIR}/../src
-PATH="${PATH}:${IDF_TOOLCHAIN}/bin" python "${TOOLSDIR}/ptyrun.py" ${IDF_PATH}/tools/idf.py monitor > monitor.log&
+PATH="${PATH}:${IDF_TOOLCHAIN}/bin" python "${TOOLSDIR}/ptyrun.py" ${IDF_PATH}/tools/idf.py monitor | tee monitor.log&
 MON_RC=${?}
 MON_PID=${!}
 sleep 20
