@@ -31,8 +31,8 @@
 #ifndef EXAMPLE_WIFI_SSID
 # define EXAMPLE_WIFI_SSID CONFIG_WIFI_SSID
 #endif
-#ifndef EXAMPLE_WIFI_PASS
-# define EXAMPLE_WIFI_PASS CONFIG_WIFI_PASSWORD
+#ifndef EXAMPLE_WIFI_PASSWORD
+# define EXAMPLE_WIFI_PASSWORD CONFIG_WIFI_PASSWORD
 #endif
 
 #ifndef EXAMPLE_SIP_PORT
@@ -106,7 +106,7 @@ static void initialise_wifi(void)
     wifi_config_t wifi_config = {
         .sta = {
             .ssid = EXAMPLE_WIFI_SSID,
-            .password = EXAMPLE_WIFI_PASS,
+            .password = EXAMPLE_WIFI_PASSWORD,
         },
     };
     ESP_LOGI(TAG, "Setting WiFi configuration SSID %s...", wifi_config.sta.ssid);
