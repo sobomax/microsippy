@@ -31,3 +31,4 @@ then
   exit 1
 fi
 grep -q 'Waiting for data' monitor.log
+grep -q 'SIP/2.0 100 Trying' monitor.log
