@@ -7,7 +7,7 @@ if __name__ == '__main__':
     ofile = None
 
     try:
-        opts, args = getopt.getopt(sys.argv[1:], 'o:')
+        opts, args = getopt.getopt(argv[1:], 'o:')
     except getopt.GetoptError:
         usage()
 
