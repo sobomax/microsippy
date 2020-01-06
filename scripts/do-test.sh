@@ -19,4 +19,4 @@ MON_PID=${!}
 sleep 20
 kill -TERM ${MON_PID}
 wait ${MON_PID} || true
-cat monitor.log
+grep 'example: Waiting for data' monitor.log
