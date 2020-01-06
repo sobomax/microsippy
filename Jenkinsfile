@@ -27,8 +27,9 @@ node('microsippy') {
     }
 
     stage('Test') {
-      // Test
-      sh "IDF_PATH=${IDF_PATH} IDF_TOOLCHAIN=${IDF_TOOLCHAIN} ${builderHome}/microsippy/scripts/do-test.sh"
+      ansiColor('xterm') {
+        sh "IDF_PATH=${IDF_PATH} IDF_TOOLCHAIN=${IDF_TOOLCHAIN} ${builderHome}/microsippy/scripts/do-test.sh"
+      }
     }
   }
 }
