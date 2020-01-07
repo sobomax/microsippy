@@ -9,6 +9,7 @@
 
 #include "usipy_str.h"
 #include "usipy_sip_tm.h"
+#include "usipy_msg_heap.h"
 #include "usipy_msg.h"
 
 #define MAX_UDP_SIZE 1472 /* MTU 1500, no fragmentation */
@@ -114,7 +115,7 @@ usipy_sip_tm_task(void *pvParameters)
                     break;
                 }
                 int cerror;
-                usipy_msg *msg = usipy_msg_ctor_fromwire(rx_buffer, len, &cerror);
+                struct usipy_msg *msg = usipy_msg_ctor_fromwire(rx_buffer, len, &cerror);
 
                 rx_buffer[len] = 0; // Null-terminate whatever we received and treat like a string...
                 ESP_LOGI(cfp->log_tag, "Received %d bytes from %s:", len, addr_str);

@@ -1,6 +1,11 @@
+#include <errno.h>
 #include <stddef.h>
+#include <stdint.h>
 #include <stdlib.h>
+#include <string.h>
 
+#include "usipy_str.h"
+#include "usipy_msg_heap.h"
 #include "usipy_msg.h"
 
 struct usipy_msg *
@@ -18,8 +23,8 @@ usipy_msg_ctor_fromwire(const char *buf, size_t len, int *err)
     }
     memset(rp, '\0', heap_len);
     memcpy(rp->_storage, buf, len);
-    rp->onwire.rw.s = rp->_storage;
-    rp->onwire.len = len;
+    rp->onwire.s.rw = rp->_storage;
+    rp->onwire.l = len;
     rp->heap.free = rp->heap.first = rp->_storage + len;
     rp->heap.size = heap_len - offsetof(struct usipy_msg, _storage);
     return (rp);
