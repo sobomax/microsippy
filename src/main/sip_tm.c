@@ -9,10 +9,12 @@
 
 #include "sip_tm.h"
 
+#define MAX_UDP_SIZE 1472 /* MTU 1500, no fragmentation */
+
 void
 sip_tm_task(void *pvParameters)
 {
-    char rx_buffer[128];
+    char rx_buffer[MAX_UDP_SIZE];
     char addr_str[128];
     int addr_family;
     int ip_protocol;
@@ -42,7 +44,7 @@ sip_tm_task(void *pvParameters)
             ip_protocol = IPPROTO_IPV6;
             inet6_ntoa_r(destAddr.v6.sin6_addr, addr_str, sizeof(addr_str) - 1);
 #else
-            ESP_LOGE(cfp->log_tag, "IPv6 is not available", EAFNOSUPPORT);
+            ESP_LOGE(cfp->log_tag, "IPv6 is compiled in");
             break;
 #endif
         }
@@ -67,6 +69,7 @@ sip_tm_task(void *pvParameters)
         }
         if (err < 0) {
             ESP_LOGE(cfp->log_tag, "Socket unable to bind: errno %d", errno);
+            break;
         }
         ESP_LOGI(cfp->log_tag, "Socket binded");
 
@@ -104,6 +107,9 @@ sip_tm_task(void *pvParameters)
                 } else if (sourceAddr.v6.sin6_family == AF_INET6) {
                     inet6_ntoa_r(sourceAddr.v6.sin6_addr, addr_str, sizeof(addr_str) - 1);
 #endif
+                } else {
+                    ESP_LOGE(cfp->log_tag, "recvfrom unknown AF: %d", sourceAddr.v4.sin_family);
+                    break;
                 }
 
                 rx_buffer[len] = 0; // Null-terminate whatever we received and treat like a string...
