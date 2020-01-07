@@ -9,6 +9,10 @@
 #include "usipy_sip_msg.h"
 #include "usipy_sip_hdr.h"
 
+#define USIPY_CRLF     "\r\n"
+#define USIPY_CRLF_LEN 2
+#define USIPY_ISWS(ch) ((ch) == ' ' || (ch) == '\t')
+
 struct usipy_msg *
 usipy_sip_msg_ctor_fromwire(const char *buf, size_t len, int *err)
 {
@@ -33,25 +37,33 @@ usipy_sip_msg_ctor_fromwire(const char *buf, size_t len, int *err)
     rp->heap.free = rp->heap.first;
     rp->heap.size = USIPY_REALIGN(alloc_len - (rp->heap.first - (void *)rp));
     int nempty = 0;
+    struct usipy_sip_hdr *shp = NULL;
     for (struct usipy_str cp = rp->onwire; cp.l > 0;) {
-        const char *chp = memmem(cp.s.ro, cp.l, "\r\n", 2);
+        const char *chp = memmem(cp.s.ro, cp.l, USIPY_CRLF, USIPY_CRLF_LEN);
         if (chp == NULL)
             break;
-        if (rp->nhdrs > 0 && chp == cp.s.ro) {
-            if (nempty > 0)
-                break;
-            nempty += 1;
-            continue;
+        if (rp->nhdrs > 0) {
+            if (chp == cp.s.ro) {
+                /* End of headers reached */
+                if (nempty > 0)
+                    break;
+                nempty += 1;
+                continue;
+            }
+            if (USIPY_ISWS(cp.s.ro[0])) {
+                /* Continuation */
+                goto multi_line;
+            }
         }
-        struct usipy_sip_hdr *shp = usipy_msg_heap_alloc(&rp->heap,
-          sizeof(struct usipy_sip_hdr));
+        shp = usipy_msg_heap_alloc(&rp->heap, sizeof(struct usipy_sip_hdr));
         if (shp == NULL)
             goto e1;
-        shp->onwire.s.ro = cp.s.ro;
-        shp->onwire.l = chp - cp.s.ro;
         if (rp->nhdrs == 0)
             rp->hdrs = shp;
         rp->nhdrs += 1;
+        shp->onwire.s.ro = cp.s.ro;
+multi_line:
+        shp->onwire.l = chp - shp->onwire.s.ro;
         chp += 2;
         cp.l -= chp - cp.s.ro;
         cp.s.ro = chp;
