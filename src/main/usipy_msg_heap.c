@@ -9,7 +9,7 @@ usipy_msg_heap_alloc(struct usipy_msg_heap *hp, size_t len)
     size_t currfree, alen;
     void *rp;
 
-    alen = len & ~((1 << USIPY_MEM_ALIGNOF) - 1);
+    alen = USIPY_REALIGN(len);
     if (alen != len) {
         len = alen + (1 << USIPY_MEM_ALIGNOF);
     }
