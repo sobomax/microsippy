@@ -7,7 +7,12 @@ struct usipy_msg {
    struct usipy_str onwire;
    struct usipy_sip_hdr *hdrs[];
    struct usipy_msg_heap heap;
+   struct {
+       uint64_t present;
+       uint64_t parsed;
+   } hdr_masks;
+   char _storage[0];
 };
 
-struct usipy_msg *usipy_msg_ctor_fromwire(const char *, size_t);
+struct usipy_msg *usipy_msg_ctor_fromwire(const char *, size_t, int *);
 void usipy_msg_dtor(struct usipy_msg *);
