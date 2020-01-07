@@ -12,21 +12,21 @@ struct usipy_msg *
 usipy_msg_ctor_fromwire(const char *buf, size_t len, int *err)
 {
     struct usipy_msg *rp;
-    size_t heap_len;
+    size_t alloc_len;
 
-    heap_len = sizeof(struct usipy_msg) + (len * 2);
-    rp = malloc(heap_len);
+    alloc_len = sizeof(struct usipy_msg) + (len * 2);
+    rp = malloc(alloc_len);
     if (rp == NULL) {
         if (err != NULL)
             *err = ENOMEM;
         return (NULL);
     }
-    memset(rp, '\0', heap_len);
+    memset(rp, '\0', alloc_len);
     memcpy(rp->_storage, buf, len);
     rp->onwire.s.rw = rp->_storage;
     rp->onwire.l = len;
     rp->heap.free = rp->heap.first = rp->_storage + len;
-    rp->heap.size = heap_len - offsetof(struct usipy_msg, _storage);
+    rp->heap.size = alloc_len - offsetof(struct usipy_msg, _storage);
     return (rp);
 }
 
