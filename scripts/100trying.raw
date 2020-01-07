@@ -6,6 +6,9 @@ CSeq:1 INVITE
 Via:SIP/2.0/UDP %%BRD_IP%%:5060;branch=z9hG4bKF062CDF4ED9DFD9394E1239398761A67;rport=5060;received=%%BRD_IP%%
 Via:SIP/2.0/UDP pc33.atlanta.com:5060;branch=z9hG4bKnashds8
  ;received=192.0.2.1
+Via: SIP/2.0/UDP bigbox3.site3.atlanta.com
+ ;branch=z9hG4bK77ef4c2312983.1
+ ;received=192.0.2.2
 Server: MT-SRV v.1.0.34
 Content-Length: 0
 
