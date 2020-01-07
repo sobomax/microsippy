@@ -7,20 +7,21 @@
 #include "lwip/inet.h"
 #include "esp_log.h"
 
-#include "sip_tm.h"
+#include "usipy_sip_tm.h"
+#include "usipy_msg.h"
 
 #define MAX_UDP_SIZE 1472 /* MTU 1500, no fragmentation */
 
 void
-sip_tm_task(void *pvParameters)
+usipy_sip_tm_task(void *pvParameters)
 {
     char rx_buffer[MAX_UDP_SIZE];
     char addr_str[128];
     int addr_family;
     int ip_protocol;
-    const struct sip_tm_conf *cfp;
+    const struct usipy_sip_tm_conf *cfp;
 
-    cfp = (struct sip_tm_conf *)pvParameters;
+    cfp = (struct usipy_sip_tm_conf *)pvParameters;
     while (1) {
         union {
             struct sockaddr_in v4;
@@ -44,7 +45,7 @@ sip_tm_task(void *pvParameters)
             ip_protocol = IPPROTO_IPV6;
             inet6_ntoa_r(destAddr.v6.sin6_addr, addr_str, sizeof(addr_str) - 1);
 #else
-            ESP_LOGE(cfp->log_tag, "IPv6 is compiled in");
+            ESP_LOGE(cfp->log_tag, "IPv6 is NOT compiled in");
             break;
 #endif
         }

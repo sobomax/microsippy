@@ -22,7 +22,7 @@
 #include "lwip/sys.h"
 #include <lwip/netdb.h>
 
-#include "sip_tm.h"
+#include "usipy_sip_tm.h"
 
 
 /* The examples use simple WiFi configuration that you can set via
@@ -137,10 +137,10 @@ void app_main()
     wait_for_ip();
 
 #ifdef CONFIG_EXAMPLE_IPV6
-    struct sip_tm_conf stc = {.sip_port = EXAMPLE_SIP_PORT, .sip_af = AF_INET6, .log_tag = TAG};
+    struct usipy_sip_tm_conf stc = {.sip_port = EXAMPLE_SIP_PORT, .sip_af = AF_INET6, .log_tag = TAG};
 #else
-    struct sip_tm_conf stc = {.sip_port = EXAMPLE_SIP_PORT, .sip_af = AF_INET, .log_tag = TAG};
+    struct usipy_sip_tm_conf stc = {.sip_port = EXAMPLE_SIP_PORT, .sip_af = AF_INET, .log_tag = TAG};
 #endif
 
-    xTaskCreate(sip_tm_task, "sip_tm", 4096, &stc, 5, NULL);
+    xTaskCreate(usipy_sip_tm_task, "sip_tm", 4096, &stc, 5, NULL);
 }
