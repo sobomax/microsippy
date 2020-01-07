@@ -26,12 +26,12 @@ usipy_msg_ctor_fromwire(const char *buf, size_t len, int *err)
     rp->onwire.s.rw = rp->_storage;
     rp->onwire.l = len;
     rp->heap.first = rp->_storage + len;
-    ralgn = (uintptr_t)rp->heap.first & ~((1 << USIPY_MEM_ALIGNOF) - 1);
+    ralgn = USIPY_REALIGN((uintptr_t)rp->heap.first);
     if ((void *)ralgn != rp->heap.first) {
         rp->heap.first = (void *)(ralgn + (1 << USIPY_MEM_ALIGNOF));
     }
     rp->heap.free = rp->heap.first;
-    rp->heap.size = alloc_len - (rp->heap.first - (void *)rp);
+    rp->heap.size = USIPY_REALIGN(alloc_len - (rp->heap.first - (void *)rp));
     for (struct usipy_str cp = rp->onwire; cp.l > 0;) {
         const char *chp = memmem(cp.s.ro, cp.l, "\r\n", 2);
         if (chp == NULL)
