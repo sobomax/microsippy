@@ -120,7 +120,7 @@ usipy_sip_tm_task(void *pvParameters)
                 ESP_LOGI(cfp->log_tag, "Received %d bytes from %s:", len, addr_str);
 
                 if (msg != NULL) {
-                     ESP_LOGI(cfp->log_tag, "%.*s", msg.onwire.l, msg.onwire.s.ro);
+                     ESP_LOGI(cfp->log_tag, "%.*s", msg->onwire.l, msg->onwire.s.ro);
                      ESP_LOGI(cfp->log_tag, "Constructed SIP MSG: %p", msg);
                      usipy_msg_dtor(msg);
                 }
