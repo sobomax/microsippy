@@ -11,3 +11,4 @@ fi
 
 SRCDIR="${TOOLSDIR}/../src"
 BUILDDIR="${TOOLSDIR}/../src/build"
+DIFF="diff -u"
