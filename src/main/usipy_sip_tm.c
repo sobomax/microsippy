@@ -14,6 +14,8 @@
 
 #define MAX_UDP_SIZE 1472 /* MTU 1500, no fragmentation */
 
+#include "usipy_sip_hdr.h"
+
 void
 usipy_sip_tm_task(void *pvParameters)
 {
@@ -118,9 +120,12 @@ usipy_sip_tm_task(void *pvParameters)
                 struct usipy_msg *msg = usipy_msg_ctor_fromwire(rx_buffer, len, &cerror);
 
                 ESP_LOGI(cfp->log_tag, "Received %d bytes from %s:", len, addr_str);
+		ESP_LOGI(cfp->log_tag, "%.*s", len, rx_buffer);
 
                 if (msg != NULL) {
-                     ESP_LOGI(cfp->log_tag, "%.*s", msg->onwire.l, msg->onwire.s.ro);
+		     for (int i = 0; i < msg->nhdrs; i++) {
+                         ESP_LOGI(cfp->log_tag, "header[%d] = %.*s", i, msg->hdrs[i].onwire.l, msg->hdrs[i].onwire.s.ro);
+	             }
                      ESP_LOGI(cfp->log_tag, "Constructed SIP MSG: %p", msg);
                      usipy_msg_dtor(msg);
                 }
