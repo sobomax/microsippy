@@ -14,6 +14,7 @@ usipy_msg_ctor_fromwire(const char *buf, size_t len, int *err)
 {
     struct usipy_msg *rp;
     size_t alloc_len;
+    void *ralgn;
 
     alloc_len = sizeof(struct usipy_msg) + (len * 2);
     rp = malloc(alloc_len);
@@ -24,8 +25,13 @@ usipy_msg_ctor_fromwire(const char *buf, size_t len, int *err)
     memcpy(rp->_storage, buf, len);
     rp->onwire.s.rw = rp->_storage;
     rp->onwire.l = len;
-    rp->heap.free = rp->heap.first = rp->_storage + len;
-    rp->heap.size = alloc_len - offsetof(struct usipy_msg, _storage);
+    rp->heap.first = rp->_storage + len;
+    ralgn = rp->heap.first & ~((1 << alignof(max_align_t)) - 1);
+    if (ralgn != rp->heap.first) {
+        rp->heap.first = ralgn + (1 << alignof(max_align_t));
+    }
+    rp->heap.free = rp->heap.first;
+    rp->heap.size = alloc_len - (rp->heap.first - rp);
     for (struct usipy_str cp = rp->onwire; cp.l > 0;) {
         const char *chp = memmem(cp.s.ro, cp.l, "\r\n", 2);
         if (chp == NULL)
