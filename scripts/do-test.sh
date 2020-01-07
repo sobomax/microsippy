@@ -8,7 +8,7 @@ TOOLSDIR=`dirname ${TOOLSPATH}`
 
 . "${TOOLSDIR}/test.common.sub"
 
-cd ${TOOLSDIR}/../src
+cd "${SRCDIR}"
 PATH="${PATH}:${IDF_TOOLCHAIN}/bin" python "${TOOLSDIR}/ptyrun.py" -o monitor.log \
   ${IDF_PATH}/tools/idf.py monitor &
 MON_RC=${?}

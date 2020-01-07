@@ -3,3 +3,11 @@ then
   echo "IDF_TOOLCHAIN and IDF_PATH need to be set" >&2
   exit 1
 fi
+if [ -z "${TOOLSDIR}" ]
+then
+  echo "TOOLSDIR needs to be set" >&2
+  exit 1
+fi
+
+SRCDIR="${TOOLSDIR}/../src"
+BUILDDIR="${TOOLSDIR}/../src/build"
