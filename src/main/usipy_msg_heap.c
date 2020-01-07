@@ -13,7 +13,7 @@ usipy_msg_heap_alloc(struct usipy_msg_heap *hp, size_t len)
     if (alen != len) {
         len = alen + (1 << USIPY_MEM_ALIGNOF);
     }
-    currfree = hp->size - (hp->free - hp->first);
+    currfree = usipy_msg_heap_remaining(hp);
     if (currfree < len)
         return (NULL);
     rp = hp->free;
