@@ -32,10 +32,17 @@ usipy_sip_msg_ctor_fromwire(const char *buf, size_t len, int *err)
     }
     rp->heap.free = rp->heap.first;
     rp->heap.size = USIPY_REALIGN(alloc_len - (rp->heap.first - (void *)rp));
+    int nempty = 0;
     for (struct usipy_str cp = rp->onwire; cp.l > 0;) {
         const char *chp = memmem(cp.s.ro, cp.l, "\r\n", 2);
         if (chp == NULL)
             break;
+        if (rp->nhdrs > 0 && chp == cp.s.ro) {
+            if (nempty > 0)
+                break;
+            nempty += 1;
+            continue;
+        }
         struct usipy_sip_hdr *shp = usipy_msg_heap_alloc(&rp->heap,
           sizeof(struct usipy_sip_hdr));
         if (shp == NULL)
