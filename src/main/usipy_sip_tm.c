@@ -7,6 +7,7 @@
 #include "lwip/inet.h"
 #include "esp_log.h"
 
+#include "usipy_str.h"
 #include "usipy_sip_tm.h"
 #include "usipy_msg.h"
 
