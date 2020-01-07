@@ -1,3 +1,3 @@
 struct usipy_sip_hdr {
-    usipy_str onwire;
+    struct usipy_str onwire;
 };
