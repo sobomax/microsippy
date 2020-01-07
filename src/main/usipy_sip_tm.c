@@ -127,7 +127,8 @@ usipy_sip_tm_task(void *pvParameters)
                          ESP_LOGI(cfp->log_tag, "header[%d @ %p] = %.*s", i,
                            &msg->hdrs[i], msg->hdrs[i].onwire.l, msg->hdrs[i].onwire.s.ro);
 	             }
-                     ESP_LOGI(cfp->log_tag, "Constructed SIP MSG: %p", msg);
+                     ESP_LOGI(cfp->log_tag, "Constructed SIP MSG: %p, heap remaining %d",
+                       msg, usipy_msg_heap_remaining(&msg->heap));
                      usipy_sip_msg_dtor(msg);
                 }
 
