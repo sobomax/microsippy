@@ -6,6 +6,7 @@ struct usipy_msg {
    enum usipy_msg_kind kind;
    struct usipy_str onwire;
    struct usipy_sip_hdr *hdrs;
+   unsigned int nhdrs;
    struct usipy_msg_heap heap;
    struct {
        uint64_t present;
