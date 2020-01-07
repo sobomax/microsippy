@@ -3,14 +3,10 @@
 set -e
 set -x
 
-if [ -z "${IDF_TOOLCHAIN}" -o -z "${IDF_PATH}" ]
-then
-  echo "IDF_TOOLCHAIN and IDF_PATH need to be set" >&2
-  exit 1
-fi
-
 TOOLSPATH=`realpath ${0}`
 TOOLSDIR=`dirname ${TOOLSPATH}`
+
+. "${TOOLSDIR}/test.common.sub"
 
 cd ${TOOLSDIR}/../src
 PATH="${PATH}:${IDF_TOOLCHAIN}/bin" python "${TOOLSDIR}/ptyrun.py" -o monitor.log \
