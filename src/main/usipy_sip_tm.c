@@ -117,12 +117,11 @@ usipy_sip_tm_task(void *pvParameters)
                 int cerror;
                 struct usipy_msg *msg = usipy_msg_ctor_fromwire(rx_buffer, len, &cerror);
 
-                rx_buffer[len] = 0; // Null-terminate whatever we received and treat like a string...
                 ESP_LOGI(cfp->log_tag, "Received %d bytes from %s:", len, addr_str);
-                ESP_LOGI(cfp->log_tag, "%s", rx_buffer);
 
                 if (msg != NULL) {
-                     ESP_LOGI(cfp->log_tag, "Consuructed SIP MSG: %p", msg);
+                     ESP_LOGI(cfp->log_tag, "%.*s", msg.onwire.l, msg.onwire.s.ro);
+                     ESP_LOGI(cfp->log_tag, "Constructed SIP MSG: %p", msg);
                      usipy_msg_dtor(msg);
                 }
 
