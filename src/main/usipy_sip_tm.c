@@ -124,7 +124,8 @@ usipy_sip_tm_task(void *pvParameters)
 
                 if (msg != NULL) {
 		     for (int i = 0; i < msg->nhdrs; i++) {
-                         ESP_LOGI(cfp->log_tag, "header[%d] = %.*s", i, msg->hdrs[i].onwire.l, msg->hdrs[i].onwire.s.ro);
+                         ESP_LOGI(cfp->log_tag, "header[%d @ %p] = %.*s", i,
+                           &msg->hdrs[i], msg->hdrs[i].onwire.l, msg->hdrs[i].onwire.s.ro);
 	             }
                      ESP_LOGI(cfp->log_tag, "Constructed SIP MSG: %p", msg);
                      usipy_msg_dtor(msg);
