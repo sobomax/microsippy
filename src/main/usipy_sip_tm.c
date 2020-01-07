@@ -117,7 +117,7 @@ usipy_sip_tm_task(void *pvParameters)
                     break;
                 }
                 int cerror;
-                struct usipy_msg *msg = usipy_msg_ctor_fromwire(rx_buffer, len, &cerror);
+                struct usipy_msg *msg = usipy_sip_msg_ctor_fromwire(rx_buffer, len, &cerror);
 
                 ESP_LOGI(cfp->log_tag, "Received %d bytes from %s:", len, addr_str);
 		ESP_LOGI(cfp->log_tag, "%.*s", len, rx_buffer);
@@ -128,7 +128,7 @@ usipy_sip_tm_task(void *pvParameters)
                            &msg->hdrs[i], msg->hdrs[i].onwire.l, msg->hdrs[i].onwire.s.ro);
 	             }
                      ESP_LOGI(cfp->log_tag, "Constructed SIP MSG: %p", msg);
-                     usipy_msg_dtor(msg);
+                     usipy_sip_msg_dtor(msg);
                 }
 
                 int err = sendto(sock, rx_buffer, len, 0, (struct sockaddr *)&sourceAddr, socklen);

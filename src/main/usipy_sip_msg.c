@@ -10,7 +10,7 @@
 #include "usipy_sip_hdr.h"
 
 struct usipy_msg *
-usipy_msg_ctor_fromwire(const char *buf, size_t len, int *err)
+usipy_sip_msg_ctor_fromwire(const char *buf, size_t len, int *err)
 {
     struct usipy_msg *rp;
     size_t alloc_len;
@@ -59,7 +59,7 @@ e0:
 }
 
 void
-usipy_msg_dtor(struct usipy_msg *msg)
+usipy_sip_msg_dtor(struct usipy_msg *msg)
 {
 
     free(msg);

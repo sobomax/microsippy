@@ -1,9 +1,9 @@
 struct usipy_sip_hdr;
 
-enum usipy_msg_kind {SIP_REQ, SIP_RES};
+enum usipy_sip_msg_kind {SIP_REQ, SIP_RES};
 
 struct usipy_msg {
-   enum usipy_msg_kind kind;
+   enum usipy_sip_msg_kind kind;
    struct usipy_str onwire;
    struct usipy_sip_hdr *hdrs;
    unsigned int nhdrs;
@@ -15,5 +15,5 @@ struct usipy_msg {
    char _storage[0];
 };
 
-struct usipy_msg *usipy_msg_ctor_fromwire(const char *, size_t, int *);
-void usipy_msg_dtor(struct usipy_msg *);
+struct usipy_msg *usipy_sip_msg_ctor_fromwire(const char *, size_t, int *);
+void usipy_sip_msg_dtor(struct usipy_msg *);
