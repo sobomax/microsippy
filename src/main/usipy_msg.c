@@ -9,14 +9,14 @@
 #include "usipy_msg.h"
 #include "usipy_sip_hdr.h"
 
-#define MEM_ALIGNOF 4 /* alignof(max_align_t) ? */
+#define MEM_ALIGNOF 3 /* alignof(max_align_t) ? */
 
 struct usipy_msg *
 usipy_msg_ctor_fromwire(const char *buf, size_t len, int *err)
 {
     struct usipy_msg *rp;
     size_t alloc_len;
-    intptr_t ralgn;
+    uintptr_t ralgn;
 
     alloc_len = sizeof(struct usipy_msg) + (len * 2);
     rp = malloc(alloc_len);
@@ -28,7 +28,7 @@ usipy_msg_ctor_fromwire(const char *buf, size_t len, int *err)
     rp->onwire.s.rw = rp->_storage;
     rp->onwire.l = len;
     rp->heap.first = rp->_storage + len;
-    ralgn = (intptr_t)rp->heap.first & ~((1 << MEM_ALIGNOF) - 1);
+    ralgn = (uintptr_t)rp->heap.first & ~((1 << MEM_ALIGNOF) - 1);
     if ((void *)ralgn != rp->heap.first) {
         rp->heap.first = (void *)(ralgn + (1 << MEM_ALIGNOF));
     }
