@@ -142,5 +142,8 @@ void app_main()
     struct usipy_sip_tm_conf stc = {.sip_port = EXAMPLE_SIP_PORT, .sip_af = AF_INET, .log_tag = TAG};
 #endif
 
+    for (int i = 0; i < 16; i++) {
+        ESP_LOGI(TAG, "mtest: %p", malloc(1));
+    }
     xTaskCreate(usipy_sip_tm_task, "sip_tm", 4096, &stc, 5, NULL);
 }
