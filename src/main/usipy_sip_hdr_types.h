@@ -1,0 +1,4 @@
+enum usipy_sip_hdr_types {
+    USIP_VIA, USIP_FROM, USIP_TO, USIP_CONTACT, USIP_CALLID, USIP_CSEQ,
+    USIP_CON_LEN, USIP_GENERIC
+};
