@@ -9,12 +9,14 @@
 #include "usipy_msg.h"
 #include "usipy_sip_hdr.h"
 
+#define MEM_ALIGNOF 4 /* alignof(max_align_t) ? */
+
 struct usipy_msg *
 usipy_msg_ctor_fromwire(const char *buf, size_t len, int *err)
 {
     struct usipy_msg *rp;
     size_t alloc_len;
-    void *ralgn;
+    intptr_t ralgn;
 
     alloc_len = sizeof(struct usipy_msg) + (len * 2);
     rp = malloc(alloc_len);
@@ -26,12 +28,12 @@ usipy_msg_ctor_fromwire(const char *buf, size_t len, int *err)
     rp->onwire.s.rw = rp->_storage;
     rp->onwire.l = len;
     rp->heap.first = rp->_storage + len;
-    ralgn = rp->heap.first & ~((1 << alignof(max_align_t)) - 1);
-    if (ralgn != rp->heap.first) {
-        rp->heap.first = ralgn + (1 << alignof(max_align_t));
+    ralgn = (intptr_t)rp->heap.first & ~((1 << MEM_ALIGNOF) - 1);
+    if ((void *)ralgn != rp->heap.first) {
+        rp->heap.first = (void *)(ralgn + (1 << MEM_ALIGNOF));
     }
     rp->heap.free = rp->heap.first;
-    rp->heap.size = alloc_len - (rp->heap.first - rp);
+    rp->heap.size = alloc_len - (rp->heap.first - (void *)rp);
     for (struct usipy_str cp = rp->onwire; cp.l > 0;) {
         const char *chp = memmem(cp.s.ro, cp.l, "\r\n", 2);
         if (chp == NULL)
