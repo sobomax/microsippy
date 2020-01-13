@@ -1,5 +1,7 @@
 #include <string.h>
 
+#include "usipy_str.h"
+
 int usipy_str_split(const struct usipy_str *x, unsigned char dlm,
   struct usipy_str *y, struct usipy_str *z)
 {
