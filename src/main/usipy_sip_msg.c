@@ -66,9 +66,9 @@ usipy_sip_msg_ctor_fromwire(const char *buf, size_t len, int *err)
         if (rp->nhdrs == 0)
             rp->hdrs = shp;
         rp->nhdrs += 1;
-        shp->onwire.s.ro = cp.s.ro;
+        shp->onwire.full.s.ro = cp.s.ro;
 multi_line:
-        shp->onwire.l = chp - shp->onwire.s.ro;
+        shp->onwire.full.l = chp - shp->onwire.full.s.ro;
 next_line:
         chp += 2;
         cp.l -= chp - cp.s.ro;
