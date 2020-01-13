@@ -127,8 +127,9 @@ usipy_sip_tm_task(void *pvParameters)
                      ESP_LOGI(cfp->log_tag, "start line = \"%.*s\"", msg->sline.onwire.l,
                        msg->sline.onwire.s.ro);
 		     for (int i = 0; i < msg->nhdrs; i++) {
-                         ESP_LOGI(cfp->log_tag, "header[%d @ %p] = \"%.*s\"", i,
-                           &msg->hdrs[i], msg->hdrs[i].onwire.full.l, msg->hdrs[i].onwire.full.s.ro);
+                         ESP_LOGI(cfp->log_tag, "header[%d @ %p], .name = \"%.*s\", .value = \"%.*s\"", i,
+                           &msg->hdrs[i], msg->hdrs[i].onwire.name.l, msg->hdrs[i].onwire.name.s.ro,
+                           msg->hdrs[i].onwire.value.l, msg->hdrs[i].onwire.value.s.ro);
 	             }
                      ESP_LOGI(cfp->log_tag, "Constructed SIP MSG: %p, heap remaining %d",
                        msg, usipy_msg_heap_remaining(&msg->heap));
