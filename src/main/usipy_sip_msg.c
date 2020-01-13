@@ -21,6 +21,8 @@ header_parse(struct usipy_sip_hdr *shp)
      if (usipy_str_split(&shp->onwire.full, ':', &shp->onwire.name,
        &shp->onwire.value) != 0)
          return (-1);
+     usipy_str_trm_e(&shp->onwire.name);
+     usipy_str_trm_b(&shp->onwire.value);
      return (0);
 }
 

@@ -15,3 +15,14 @@ struct usipy_str_ro {
 
 int usipy_str_split(const struct usipy_str *, unsigned char,
   struct usipy_str *, struct usipy_str *);
+
+#define usipy_str_trm_e(sp) \
+    while ((sp)->l > 0 && USIPY_ISWS((sp)->s.ro[(sp)->l - 1])) { \
+        (sp)->l -= 1; \
+    }
+
+#define usipy_str_trm_b(sp) \
+    while ((sp)->l > 0 && USIPY_ISWS((sp)->s.ro[0])) { \
+        (sp)->s.ro += 1; \
+        (sp)->l -= 1; \
+    }
