@@ -13,6 +13,7 @@
 #define USIPY_CRLF     "\r\n"
 #define USIPY_CRLF_LEN 2
 #define USIPY_ISWS(ch) ((ch) == ' ' || (ch) == '\t')
+#define USIPY_ISLWS(ch) ((ch) == ' ' || (ch) == '\t' || (ch) == '\r' || (ch) == '\n')
 
 static int
 header_parse(struct usipy_sip_hdr *shp)
@@ -22,7 +23,8 @@ header_parse(struct usipy_sip_hdr *shp)
        &shp->onwire.value) != 0)
          return (-1);
      usipy_str_trm_e(&shp->onwire.name);
-     usipy_str_trm_b(&shp->onwire.value);
+     usipy_str_ltrm_b(&shp->onwire.value);
+     usipy_str_ltrm_e(&shp->onwire.value);
      return (0);
 }
 
