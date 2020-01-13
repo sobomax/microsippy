@@ -10,8 +10,8 @@
 #include "usipy_str.h"
 #include "usipy_sip_tm.h"
 #include "usipy_msg_heap.h"
-#include "usipy_sip_msg.h"
 #include "usipy_sip_sline.h"
+#include "usipy_sip_msg.h"
 
 #define MAX_UDP_SIZE 1472 /* MTU 1500, no fragmentation */
 

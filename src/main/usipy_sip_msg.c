@@ -6,9 +6,9 @@
 
 #include "usipy_str.h"
 #include "usipy_msg_heap.h"
+#include "usipy_sip_sline.h"
 #include "usipy_sip_msg.h"
 #include "usipy_sip_hdr.h"
-#include "usipy_sip_sline.h"
 
 #define USIPY_CRLF     "\r\n"
 #define USIPY_CRLF_LEN 2

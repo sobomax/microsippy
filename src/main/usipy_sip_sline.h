@@ -1,3 +1,3 @@
 struct usipy_sip_sline {
-    usipy_str onwire;
+    struct usipy_str onwire;
 };
