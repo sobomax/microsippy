@@ -13,7 +13,7 @@
 #define USIPY_CRLF     "\r\n"
 #define USIPY_CRLF_LEN 2
 #define USIPY_ISWS(ch) ((ch) == ' ' || (ch) == '\t')
-#define USIPY_ISLWS(ch) ((ch) == ' ' || (ch) == '\t' || (ch) == '\r' || (ch) == '\n')
+#define USIPY_ISLWS(ch) (USIPY_ISWS(ch) || (ch) == '\r' || (ch) == '\n')
 
 static int
 header_parse(struct usipy_sip_hdr *shp)
