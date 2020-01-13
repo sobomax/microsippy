@@ -1,3 +1,5 @@
+#include <stddef.h>
+
 #include "usipy_str.h"
 #include "usipy_sip_hdr.h"
 

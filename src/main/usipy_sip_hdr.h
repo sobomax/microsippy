@@ -6,4 +6,4 @@ struct usipy_sip_hdr {
     } onwire;
 };
 
-static int usipy_sip_hdr_preparse(struct usipy_sip_hdr *);
+int usipy_sip_hdr_preparse(struct usipy_sip_hdr *);
