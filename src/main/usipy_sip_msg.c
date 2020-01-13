@@ -10,24 +10,6 @@
 #include "usipy_sip_msg.h"
 #include "usipy_sip_hdr.h"
 
-#define USIPY_CRLF     "\r\n"
-#define USIPY_CRLF_LEN 2
-#define USIPY_ISWS(ch) ((ch) == ' ' || (ch) == '\t')
-#define USIPY_ISLWS(ch) (USIPY_ISWS(ch) || (ch) == '\r' || (ch) == '\n')
-
-static int
-header_parse(struct usipy_sip_hdr *shp)
-{
-
-     if (usipy_str_split(&shp->onwire.full, ':', &shp->onwire.name,
-       &shp->onwire.value) != 0)
-         return (-1);
-     usipy_str_trm_e(&shp->onwire.name);
-     usipy_str_ltrm_b(&shp->onwire.value);
-     usipy_str_ltrm_e(&shp->onwire.value);
-     return (0);
-}
-
 struct usipy_msg *
 usipy_sip_msg_ctor_fromwire(const char *buf, size_t len, int *err)
 {
@@ -75,7 +57,7 @@ usipy_sip_msg_ctor_fromwire(const char *buf, size_t len, int *err)
             goto next_line;
         }
         if (shp != NULL) {
-            if (header_parse(shp) != 0)
+            if (usipy_sip_hdr_preparse(shp) != 0)
                 goto e1;
         }
         shp = usipy_msg_heap_alloc(&rp->heap, sizeof(struct usipy_sip_hdr));
@@ -93,7 +75,7 @@ next_line:
         cp.s.ro = chp;
     }
     if (shp != NULL) {
-        if (header_parse(shp) != 0)
+        if (usipy_sip_hdr_preparse(shp) != 0)
             goto e1;
     }
     return (rp);

@@ -16,6 +16,11 @@ struct usipy_str_ro {
 int usipy_str_split(const struct usipy_str *, unsigned char,
   struct usipy_str *, struct usipy_str *);
 
+#define USIPY_CRLF     "\r\n"
+#define USIPY_CRLF_LEN 2
+#define USIPY_ISWS(ch) ((ch) == ' ' || (ch) == '\t')
+#define USIPY_ISLWS(ch) (USIPY_ISWS(ch) || (ch) == '\r' || (ch) == '\n')
+
 #define usipy_str_trm_e(sp) \
     while ((sp)->l > 0 && USIPY_ISWS((sp)->s.ro[(sp)->l - 1])) { \
         (sp)->l -= 1; \
