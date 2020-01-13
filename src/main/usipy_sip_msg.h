@@ -3,8 +3,9 @@ struct usipy_sip_hdr;
 enum usipy_sip_msg_kind {SIP_REQ, SIP_RES};
 
 struct usipy_msg {
-   enum usipy_sip_msg_kind kind;
    struct usipy_str onwire;
+   enum usipy_sip_msg_kind kind;
+   struct usipy_sip_sline sline;
    struct usipy_sip_hdr *hdrs;
    unsigned int nhdrs;
    struct usipy_msg_heap heap;

@@ -8,6 +8,7 @@
 #include "usipy_msg_heap.h"
 #include "usipy_sip_msg.h"
 #include "usipy_sip_hdr.h"
+#include "usipy_sip_sline.h"
 
 #define USIPY_CRLF     "\r\n"
 #define USIPY_CRLF_LEN 2
@@ -54,6 +55,10 @@ usipy_sip_msg_ctor_fromwire(const char *buf, size_t len, int *err)
                 /* Continuation */
                 goto multi_line;
             }
+        } else if (rp->sline.onwire.l == 0) {
+            rp->sline.onwire.s.ro = cp.s.ro;
+            rp->sline.onwire.l = chp - cp.s.ro;
+            goto next_line;
         }
         shp = usipy_msg_heap_alloc(&rp->heap, sizeof(struct usipy_sip_hdr));
         if (shp == NULL)
@@ -64,6 +69,7 @@ usipy_sip_msg_ctor_fromwire(const char *buf, size_t len, int *err)
         shp->onwire.s.ro = cp.s.ro;
 multi_line:
         shp->onwire.l = chp - shp->onwire.s.ro;
+next_line:
         chp += 2;
         cp.l -= chp - cp.s.ro;
         cp.s.ro = chp;

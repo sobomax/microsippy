@@ -11,6 +11,7 @@
 #include "usipy_sip_tm.h"
 #include "usipy_msg_heap.h"
 #include "usipy_sip_msg.h"
+#include "usipy_sip_sline.h"
 
 #define MAX_UDP_SIZE 1472 /* MTU 1500, no fragmentation */
 
@@ -123,8 +124,10 @@ usipy_sip_tm_task(void *pvParameters)
 		ESP_LOGI(cfp->log_tag, "%.*s", len, rx_buffer);
 
                 if (msg != NULL) {
+                     ESP_LOGI(cfp->log_tag, "start line = \"%.*s\"", msg->sline.onwire.l,
+                       msg->sline.onwire.s.ro);
 		     for (int i = 0; i < msg->nhdrs; i++) {
-                         ESP_LOGI(cfp->log_tag, "header[%d @ %p] = %.*s", i,
+                         ESP_LOGI(cfp->log_tag, "header[%d @ %p] = \"%.*s\"", i,
                            &msg->hdrs[i], msg->hdrs[i].onwire.l, msg->hdrs[i].onwire.s.ro);
 	             }
                      ESP_LOGI(cfp->log_tag, "Constructed SIP MSG: %p, heap remaining %d",
