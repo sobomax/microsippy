@@ -14,6 +14,16 @@
 #define USIPY_CRLF_LEN 2
 #define USIPY_ISWS(ch) ((ch) == ' ' || (ch) == '\t')
 
+static int
+header_parse(struct usipy_sip_hdr *shp)
+{
+
+     if (usipy_str_split(&shp->onwire.full, ':', &shp->onwire.name,
+       &shp->onwire.value) != 0)
+         return (-1);
+     return (0);
+}
+
 struct usipy_msg *
 usipy_sip_msg_ctor_fromwire(const char *buf, size_t len, int *err)
 {
@@ -60,6 +70,10 @@ usipy_sip_msg_ctor_fromwire(const char *buf, size_t len, int *err)
             rp->sline.onwire.l = chp - cp.s.ro;
             goto next_line;
         }
+        if (shp != NULL) {
+            if (header_parse(shp) != 0)
+                goto e1;
+        }
         shp = usipy_msg_heap_alloc(&rp->heap, sizeof(struct usipy_sip_hdr));
         if (shp == NULL)
             goto e1;
@@ -73,6 +87,10 @@ next_line:
         chp += 2;
         cp.l -= chp - cp.s.ro;
         cp.s.ro = chp;
+    }
+    if (shp != NULL) {
+        if (header_parse(shp) != 0)
+            goto e1;
     }
     return (rp);
 e1:
