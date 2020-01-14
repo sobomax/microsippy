@@ -9,6 +9,7 @@
 #include "usipy_sip_sline.h"
 #include "usipy_sip_msg.h"
 #include "usipy_sip_hdr.h"
+#include "usipy_sip_hdr_db.h"
 
 struct usipy_msg *
 usipy_sip_msg_ctor_fromwire(const char *buf, size_t len, int *err)
