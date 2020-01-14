@@ -106,3 +106,10 @@ usipy_hdr_db_lookup(const struct usipy_str *hname)
     }
     return (&usipy_hdr_db[hid]);
 }
+
+const struct usipy_hdr_db_entr *
+usipy_hdr_db_byid(int hid)
+{
+
+    return (&usipy_hdr_db[hid]);
+}
