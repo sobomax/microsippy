@@ -18,7 +18,7 @@ PATH="${PATH}:${IDF_TOOLCHAIN}/bin" python "${TOOLSDIR}/ptyrun.py" -o "${MLOG}" 
 MON_RC=${?}
 MON_PID=${!}
 i=0
-while [ ${i} -gt 10 ]
+while [ ${i} -lt 10 ]
 do
   BRD_IP=`grep 'sta ip: ' "${MLOG}" | sed 's|.*sta ip: ||; s|,.*||'`
   if [ ! -z "${BRD_IP}" ]
