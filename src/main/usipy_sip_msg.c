@@ -55,6 +55,8 @@ usipy_sip_msg_ctor_fromwire(const char *buf, size_t len, int *err)
         } else if (rp->sline.onwire.l == 0) {
             rp->sline.onwire.s.ro = cp.s.ro;
             rp->sline.onwire.l = chp - cp.s.ro;
+            if (usipy_sip_sline_parse(&rp->sline) != 0)
+                goto e1;
             goto next_line;
         }
         if (shp != NULL) {
