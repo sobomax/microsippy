@@ -15,7 +15,7 @@ static const char *sip_version = "SIP/2.0";
 )
 
 int
-usipy_verify_sip_version(const usipy_str *vp)
+usipy_verify_sip_version(const struct usipy_str *vp)
 {
 
     return (vp->l == 7 && chk_sip_version(vp->s.ro));
