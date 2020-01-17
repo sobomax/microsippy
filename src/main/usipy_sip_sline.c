@@ -17,14 +17,14 @@ usipy_sip_sline_parse(struct usipy_sip_sline *slp)
         return (-1);
     if (usipy_str_split(&s2, USIPY_SP, &s3, &s4) != 0)
         return (-1);
-    if (usipy_verify_sip_version(&s1) == 0) {
+    if (usipy_verify_sip_version(&s1)) {
         if (usipy_str_atoui_range(&s3, &slp->parsed.sl.status_code,
           USIPY_SIP_SCODE_MIN, USIPY_SIP_SCODE_MAX) != 0)
             return (-1);
         slp->parsed.sl.version = s1;
         slp->parsed.sl.reason_phrase = s4;
         r = USIPY_SIP_RES;
-    } else if (usipy_verify_sip_version(&s4) == 0) {
+    } else if (usipy_verify_sip_version(&s4)) {
         slp->parsed.rl.method = s1;
         slp->parsed.rl.ruri = s3;
         slp->parsed.rl.version = s4;
