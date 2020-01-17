@@ -1,3 +1,5 @@
+#include <stdlib.h>
+
 #include "usipy_str.h"
 
 static const char *sip_version = "SIP/2.0";
