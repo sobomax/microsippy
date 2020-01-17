@@ -4,6 +4,8 @@
 #include <stdlib.h>
 #include <string.h>
 
+#include "esp_log.h"
+
 #include "usipy_str.h"
 #include "usipy_msg_heap.h"
 #include "usipy_sip_sline.h"
@@ -106,12 +108,12 @@ usipy_sip_msg_dump(const struct usipy_msg *msg, const char *log_tag)
 
     switch (msg->kind) {
     case USIPY_SIP_RES:
-        ESP_LOGI(cfp->log_tag, "Message[%p] is SIP RESPONSE, heap remaining %d",
+        ESP_LOGI(log_tag, "Message[%p] is SIP RESPONSE, heap remaining %d",
           msg, usipy_msg_heap_remaining(&msg->heap));
         break;
 
     case USIPY_SIP_REQ:
-        ESP_LOGI(cfp->log_tag, "Message[%p] is SIP REQUEST, heap remaining %d",
+        ESP_LOGI(log_tag, "Message[%p] is SIP REQUEST, heap remaining %d",
           msg, usipy_msg_heap_remaining(&msg->heap));
         break;
 
@@ -119,10 +121,10 @@ usipy_sip_msg_dump(const struct usipy_msg *msg, const char *log_tag)
         abort();
     }
 
-    ESP_LOGI(cfp->log_tag, "start line = \"%.*s\"", msg->sline.onwire.l,
+    ESP_LOGI(log_tag, "start line = \"%.*s\"", msg->sline.onwire.l,
       msg->sline.onwire.s.ro);
     for (int i = 0; i < msg->nhdrs; i++) {
-        ESP_LOGI(cfp->log_tag, "header[%d @ %p], .onwire.type = %d, .name = \"%.*s\", .value = \"%.*s\"", i,
+        ESP_LOGI(log_tag, "header[%d @ %p], .onwire.type = %d, .name = \"%.*s\", .value = \"%.*s\"", i,
           &msg->hdrs[i], msg->hdrs[i].onwire.hf_type->cantype, msg->hdrs[i].onwire.name.l, msg->hdrs[i].onwire.name.s.ro,
           msg->hdrs[i].onwire.value.l, msg->hdrs[i].onwire.value.s.ro);
     }
