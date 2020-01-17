@@ -1,0 +1,9 @@
+ACK sip:bob@%%BRD_IP%% SIP/2.0
+Via: SIP/2.0/UDP pc33.atlanta.com;branch=z9hG4bKkjshdyff
+To: Bob <sip:bob@%%BRD_IP%%>;tag=99sa0xk
+From: Alice <sip:alice@atlanta.com>;tag=88sja8x
+Max-Forwards: 70
+Call-ID: 987asjd97y7atg
+CSeq: 986759 ACK
+
+

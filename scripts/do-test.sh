@@ -9,8 +9,7 @@ TOOLSDIR=`dirname ${TOOLSPATH}`
 . "${TOOLSDIR}/test.common.sub"
 
 MLOG="${BUILDDIR}/monitor.log"
-REQFILE="${BUILDDIR}/100trying.req"
-RESFILE="${BUILDDIR}/100trying.res"
+TESTS="100trying ACK"
 
 cd "${SRCDIR}"
 PATH="${PATH}:${IDF_TOOLCHAIN}/bin" python "${TOOLSDIR}/ptyrun.py" -o "${MLOG}" \
@@ -30,8 +29,13 @@ do
 done
 if [ ! -z "${BRD_IP}" ]
 then
-  sed "s|%%BRD_IP%%|${BRD_IP}|g" "${TOOLSDIR}/100trying.raw" > "${REQFILE}"
-  nc -w 1 -u "${BRD_IP}" 5060 < "${REQFILE}" > "${RESFILE}"
+  for tst in ${TESTS}
+  do
+    REQFILE="${BUILDDIR}/${tst}.req"
+    RESFILE="${BUILDDIR}/${tst}.res"
+    sed "s|%%BRD_IP%%|${BRD_IP}|g" "${TOOLSDIR}/100trying.raw" > "${REQFILE}"
+    nc -w 1 -u "${BRD_IP}" 5060 < "${REQFILE}" > "${RESFILE}"
+  done
   sleep 3
 fi
 kill -TERM ${MON_PID}
@@ -42,4 +46,9 @@ then
 fi
 grep -q 'Waiting for data' "${MLOG}"
 grep -q 'SIP/2.0 100 Trying' "${MLOG}"
-${DIFF} "${REQFILE}" "${RESFILE}"
+for tst in ${TESTS}
+do
+  REQFILE="${BUILDDIR}/${tst}.req"
+  RESFILE="${BUILDDIR}/${tst}.res"
+  ${DIFF} "${REQFILE}" "${RESFILE}"
+done
