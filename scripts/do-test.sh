@@ -17,8 +17,17 @@ PATH="${PATH}:${IDF_TOOLCHAIN}/bin" python "${TOOLSDIR}/ptyrun.py" -o "${MLOG}" 
   ${IDF_PATH}/tools/idf.py monitor &
 MON_RC=${?}
 MON_PID=${!}
-sleep 5
-BRD_IP=`grep 'sta ip: ' "${MLOG}" | sed 's|.*sta ip: ||; s|,.*||'`
+i=0
+while [ ${i} -gt 10 ]
+do
+  BRD_IP=`grep 'sta ip: ' "${MLOG}" | sed 's|.*sta ip: ||; s|,.*||'`
+  if [ ! -z "${BRD_IP}" ]
+  then
+    break
+  fi
+  sleep 1
+  i=$((${i} + 1))
+done
 if [ ! -z "${BRD_IP}" ]
 then
   sed "s|%%BRD_IP%%|${BRD_IP}|g" "${TOOLSDIR}/100trying.raw" > "${REQFILE}"
