@@ -5,6 +5,7 @@
 #include "usipy_str.h"
 #include "usipy_sip_sline.h"
 #include "usipy_sip_msg.h"
+#include "usipy_msg_heap.h"
 
 int
 usipy_sip_sline_parse(struct usipy_sip_sline *slp)
