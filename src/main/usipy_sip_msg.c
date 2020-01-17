@@ -58,7 +58,7 @@ usipy_sip_msg_ctor_fromwire(const char *buf, size_t len, int *err)
             rp->sline.onwire.s.ro = cp.s.ro;
             rp->sline.onwire.l = chp - cp.s.ro;
             rp->kind = usipy_sip_sline_parse(&rp->sline);
-            if (rp->kind < 0)
+            if (rp->kind == USIPY_SIP_MSG_UNKN)
                 goto e1;
             goto next_line;
         }
@@ -107,12 +107,12 @@ usipy_sip_msg_dump(const struct usipy_msg *msg, const char *log_tag)
 {
 
     switch (msg->kind) {
-    case USIPY_SIP_RES:
+    case USIPY_SIP_MSG_RES:
         ESP_LOGI(log_tag, "Message[%p] is SIP RESPONSE, heap remaining %d",
           msg, usipy_msg_heap_remaining(&msg->heap));
         break;
 
-    case USIPY_SIP_REQ:
+    case USIPY_SIP_MSG_REQ:
         ESP_LOGI(log_tag, "Message[%p] is SIP REQUEST, heap remaining %d",
           msg, usipy_msg_heap_remaining(&msg->heap));
         break;

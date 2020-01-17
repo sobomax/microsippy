@@ -118,12 +118,11 @@ usipy_sip_tm_task(void *pvParameters)
                     ESP_LOGE(cfp->log_tag, "recvfrom unknown AF: %d", sourceAddr.v4.sin_family);
                     break;
                 }
-                int cerror;
-                struct usipy_msg *msg = usipy_sip_msg_ctor_fromwire(rx_buffer, len, &cerror);
-
                 ESP_LOGI(cfp->log_tag, "Received %d bytes from %s:", len, addr_str);
 		ESP_LOGI(cfp->log_tag, "%.*s", len, rx_buffer);
 
+                int cerror;
+                struct usipy_msg *msg = usipy_sip_msg_ctor_fromwire(rx_buffer, len, &cerror);
                 if (msg != NULL) {
                      usipy_sip_msg_dump(msg, cfp->log_tag);
                      usipy_sip_msg_dtor(msg);

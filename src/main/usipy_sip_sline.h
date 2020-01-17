@@ -18,7 +18,7 @@ struct usipy_sip_sline {
     } parsed;
 };
 
-int usipy_sip_sline_parse(struct usipy_sip_sline *);
+enum usipy_sip_msg_kind usipy_sip_sline_parse(struct usipy_sip_sline *);
 
 #define USIPY_SIP_SCODE_MIN 100
 #define USIPY_SIP_SCODE_MAX 999
