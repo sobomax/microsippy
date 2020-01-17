@@ -108,8 +108,10 @@ usipy_sip_msg_dump(const struct usipy_msg *msg, const char *log_tag)
 
     switch (msg->kind) {
     case USIPY_SIP_MSG_RES:
-        ESP_LOGI(log_tag, "Message[%p] is SIP RESPONSE, heap remaining %d",
-          msg, usipy_msg_heap_remaining(&msg->heap));
+        ESP_LOGI(log_tag, "Message[%p] is SIP RESPONSE: status_code = %u, "
+          "reason_phrase = \"%.*s\", heap remaining %d", msg,
+          msg->sline.parsed.sl.status_code, msg->sline.parsed.sl.reason_phrase.l,
+          msg->sline.parsed.sl.reason_phrase.s.ro, usipy_msg_heap_remaining(&msg->heap));
         break;
 
     case USIPY_SIP_MSG_REQ:
