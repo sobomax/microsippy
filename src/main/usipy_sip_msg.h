@@ -1,6 +1,6 @@
 struct usipy_sip_hdr;
 
-enum usipy_sip_msg_kind {SIP_REQ, SIP_RES};
+enum usipy_sip_msg_kind {USIPY_SIP_REQ = 0, USIPY_SIP_RES = 1};
 
 struct usipy_msg {
    struct usipy_str onwire;
