@@ -4,8 +4,8 @@
 #include "usipy_misc.h"
 #include "usipy_str.h"
 #include "usipy_sip_sline.h"
-#include "usipy_sip_msg.h"
 #include "usipy_msg_heap.h"
+#include "usipy_sip_msg.h"
 
 int
 usipy_sip_sline_parse(struct usipy_sip_sline *slp)
@@ -29,6 +29,8 @@ usipy_sip_sline_parse(struct usipy_sip_sline *slp)
         slp->parsed.rl.ruri = s3;
         slp->parsed.rl.version = s4;
         r = USIPY_SIP_REQ;
+    } else {
+	return (-1);
     }
     return (r);
 }
