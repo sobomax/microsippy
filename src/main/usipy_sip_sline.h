@@ -19,3 +19,6 @@ struct usipy_sip_sline {
 };
 
 int usipy_sip_sline_parse(struct usipy_sip_sline *);
+
+#define USIPY_SIP_SCODE_MIN 100
+#define USIPY_SIP_SCODE_MAX 999
