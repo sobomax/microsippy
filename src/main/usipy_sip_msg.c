@@ -116,9 +116,9 @@ usipy_sip_msg_dump(const struct usipy_msg *msg, const char *log_tag)
 
     case USIPY_SIP_MSG_REQ:
         ESP_LOGI(log_tag, "Message[%p] is SIP REQUEST: method = \"%.*s\", "
-          ruri = \"%.*s\", heap remaining %d", msg->sline.parsed.rl.method.l,
+          "ruri = \"%.*s\", heap remaining %d", msg, msg->sline.parsed.rl.method.l,
           msg->sline.parsed.rl.method.s.ro, msg->sline.parsed.rl.ruri.l,
-          sg->sline.parsed.rl.ruri.s.ro, msg, usipy_msg_heap_remaining(&msg->heap));
+          msg->sline.parsed.rl.ruri.s.ro, usipy_msg_heap_remaining(&msg->heap));
         break;
 
     default:
