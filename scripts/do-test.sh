@@ -33,7 +33,7 @@ then
   do
     REQFILE="${BUILDDIR}/${tst}.req"
     RESFILE="${BUILDDIR}/${tst}.res"
-    sed "s|%%BRD_IP%%|${BRD_IP}|g" "${TOOLSDIR}/100trying.raw" > "${REQFILE}"
+    sed "s|%%BRD_IP%%|${BRD_IP}|g" "${TOOLSDIR}/${tst}.raw" > "${REQFILE}"
     nc -w 1 -u "${BRD_IP}" 5060 < "${REQFILE}" > "${RESFILE}"
   done
   sleep 3
