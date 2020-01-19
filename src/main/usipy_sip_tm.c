@@ -6,6 +6,7 @@
 #include "lwip/sockets.h"
 #include "lwip/inet.h"
 #include "esp_log.h"
+#include "xtensa/hal.h"
 
 #include "usipy_str.h"
 #include "usipy_sip_tm.h"
@@ -122,7 +123,11 @@ usipy_sip_tm_task(void *pvParameters)
 		ESP_LOGI(cfp->log_tag, "%.*s", len, rx_buffer);
 
                 int cerror;
+                unsigred int bts, ets;
+                bts = xthal_get_ccount();
                 struct usipy_msg *msg = usipy_sip_msg_ctor_fromwire(rx_buffer, len, &cerror);
+                ets = xthal_get_ccount();
+                ESP_LOGI(cfp->log_tag, "usipy_sip_msg_ctor_fromwire: took %d cycles", ets - bts);
                 if (msg != NULL) {
                      usipy_sip_msg_dump(msg, cfp->log_tag);
                      usipy_sip_msg_dtor(msg);
