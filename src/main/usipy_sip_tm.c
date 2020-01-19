@@ -123,7 +123,7 @@ usipy_sip_tm_task(void *pvParameters)
 		ESP_LOGI(cfp->log_tag, "%.*s", len, rx_buffer);
 
                 int cerror;
-                unsigred int bts, ets;
+                unsigned int bts, ets;
                 bts = xthal_get_ccount();
                 struct usipy_msg *msg = usipy_sip_msg_ctor_fromwire(rx_buffer, len, &cerror);
                 ets = xthal_get_ccount();
