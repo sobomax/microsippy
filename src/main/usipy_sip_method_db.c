@@ -1,3 +1,5 @@
+#include <stdlib.h>
+
 #include "usipy_sip_method_types.h"
 #include "usipy_sip_method_db.h"
 
