@@ -11,6 +11,7 @@
 #include "usipy_sip_sline.h"
 #include "usipy_sip_msg.h"
 #include "usipy_sip_hdr.h"
+#include "usipy_sip_hdr_types.h"
 #include "usipy_sip_hdr_db.h"
 #include "usipy_sip_method_db.h"
 #include "usipy_sip_hdr_cseq.h"
@@ -138,35 +139,35 @@ usipy_sip_msg_dump(const struct usipy_msg *msg, const char *log_tag)
     }
 }
 
-#define USIPY_HF_ISMSET(msk, h) ((msk) & USIPY_HF_MASK(h))
+#define USIPY_HF_ISMSET(msk, h) ((msk) & USIPY_HFT_MASK(h))
 #define USIPY_MSG_HDR_PARSED(msp, h) (USIPY_HF_ISMSET(msp->hdr_masks.parsed, (h)))
 #define USIPY_MSG_HDR_PRESENT(msp, h) (USIPY_HF_ISMSET(msp->hdr_masks.present, (h)))
 
 int
 usipy_sip_msg_parse_hdrs(struct usipy_msg *mp, uint64_t parsemask)
 {
-    rval = 0;
 
     if ((mp->hdr_masks.present & parsemask) != parsemask)
         return(-1);
-    parsemask &= ~msp->hdr_masks.parsed;
-    for (int i = 0; i < msg->nhdrs; i++) {
-        struct usipy_sip_hdr *shp = &msg->hdrs[i];
+    parsemask &= ~(mp->hdr_masks.parsed);
+    for (int i = 0; i < mp->nhdrs; i++) {
+        struct usipy_sip_hdr *shp = &mp->hdrs[i];
         if (!USIPY_HF_ISMSET(parsemask, shp->hf_type->cantype))
             continue;
-        switch (shp->hf_type->cantype):
+        switch (shp->hf_type->cantype) {
         case USIPY_HF_CSEQ:
-            shp->parsed.cseq = usipy_sip_hdr_cseq_parse(&msg->heap, &shp->onwire.value);
+            shp->parsed.cseq = usipy_sip_hdr_cseq_parse(&mp->heap, &shp->onwire.value);
             if (shp->parsed.cseq == NULL)
                 return (-1);
             break;
 
-        USIPY_HF_CALLID:
+        case USIPY_HF_CALLID:
             shp->parsed.generic = &shp->onwire.value;
             break;
 
         default:
             return (-1);
+	}
     }
     mp->hdr_masks.parsed |= parsemask;
     return (0);

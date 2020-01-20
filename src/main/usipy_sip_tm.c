@@ -17,6 +17,7 @@
 #define MAX_UDP_SIZE 1472 /* MTU 1500, no fragmentation */
 
 #include "usipy_sip_hdr.h"
+#include "usipy_sip_hdr_types.h"
 #include "usipy_sip_hdr_db.h"
 
 static unsigned int
@@ -140,7 +141,7 @@ usipy_sip_tm_task(void *pvParameters)
                 ets = xthal_get_ccount();
                 ESP_LOGI(cfp->log_tag, "usipy_sip_msg_ctor_fromwire: took %u cycles", tsdiff(bts, ets));
                 if (msg != NULL) {
-#define USIPY_HF_TID_MASK (USIPY_HF_MASK(USIPY_HF_CSEQ) | USIPY_HF_MASK(USIPY_HF_CALLID))
+#define USIPY_HF_TID_MASK (USIPY_HFT_MASK(USIPY_HF_CSEQ) | USIPY_HFT_MASK(USIPY_HF_CALLID))
                      bts = xthal_get_ccount();
                      int rval = usipy_sip_msg_parse_hdrs(msg, USIPY_HF_TID_MASK);
                      ets = xthal_get_ccount();
