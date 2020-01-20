@@ -19,6 +19,17 @@
 #include "usipy_sip_hdr.h"
 #include "usipy_sip_hdr_db.h"
 
+static unsigned int
+tsdiff(int bts, int ets)
+{
+    unsigned int r;
+
+    if (bts <= ets)
+        return (ets - bts);
+    r = (unsigned int)0x80000000 - bts;
+    return (r + ets);
+}
+
 void
 usipy_sip_tm_task(void *pvParameters)
 {
@@ -127,7 +138,7 @@ usipy_sip_tm_task(void *pvParameters)
                 bts = xthal_get_ccount();
                 struct usipy_msg *msg = usipy_sip_msg_ctor_fromwire(rx_buffer, len, &cerror);
                 ets = xthal_get_ccount();
-                ESP_LOGI(cfp->log_tag, "usipy_sip_msg_ctor_fromwire: took %d cycles", ets - bts);
+                ESP_LOGI(cfp->log_tag, "usipy_sip_msg_ctor_fromwire: took %u cycles", tsdiff(bts, ets));
                 if (msg != NULL) {
                      usipy_sip_msg_dump(msg, cfp->log_tag);
                      usipy_sip_msg_dtor(msg);
