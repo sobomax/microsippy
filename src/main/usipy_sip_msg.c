@@ -134,9 +134,10 @@ usipy_sip_msg_dump(const struct usipy_msg *msg, const char *log_tag)
     ESP_LOGI(log_tag, "start line = \"%.*s\"", msg->sline.onwire.l,
       msg->sline.onwire.s.ro);
     for (int i = 0; i < msg->nhdrs; i++) {
-        ESP_LOGI(log_tag, "header[%d @ %p], .onwire.type = %d, .name = \"%.*s\", .value = \"%.*s\"", i,
-          &msg->hdrs[i], msg->hdrs[i].onwire.hf_type->cantype, msg->hdrs[i].onwire.name.l, msg->hdrs[i].onwire.name.s.ro,
-          msg->hdrs[i].onwire.value.l, msg->hdrs[i].onwire.value.s.ro);
+        const struct usipy_sip_hdr *shp = &msg->hdrs[i];
+        ESP_LOGI(log_tag, "header[%d @ %p], .hf_type = %p, .onwire.type = %d, .name = \"%.*s\", .value = \"%.*s\"", i,
+          shp, shp->hf_type, shp->onwire.hf_type->cantype, shp->onwire.name.l, shp->onwire.name.s.ro,
+          shp->onwire.value.l, shp->onwire.value.s.ro);
     }
 }
 
