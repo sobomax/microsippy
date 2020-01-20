@@ -164,8 +164,10 @@ usipy_sip_msg_parse_hdrs(struct usipy_msg *mp, uint64_t parsemask)
             break;
 
         case USIPY_HF_CALLID:
+#if 0
             shp->parsed.generic = &shp->onwire.value;
-            break;
+#endif
+	    break;
 
         default:
             return (-1);
