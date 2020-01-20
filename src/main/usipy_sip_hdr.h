@@ -3,6 +3,7 @@ struct usipy_sip_hdr_cseq;
 
 union usipy_sip_hdr_parsed {
     struct usipy_sip_hdr_cseq *cseq;
+    const struct usipy_str *generic;
 };
 
 struct usipy_sip_hdr {

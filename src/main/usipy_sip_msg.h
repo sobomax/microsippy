@@ -23,6 +23,6 @@ struct usipy_msg {
 struct usipy_msg *usipy_sip_msg_ctor_fromwire(const char *, size_t, int *);
 void usipy_sip_msg_dtor(struct usipy_msg *);
 void usipy_sip_msg_dump(const struct usipy_msg *, const char *);
-
+int +usipy_sip_msg_parse_hdrs(struct usipy_msg *, uint64_t);
 
 #define USIPY_HF_MASK(shp) ((uint64_t)1 << (shp)->hf_type->cantype);

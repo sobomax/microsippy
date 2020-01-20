@@ -140,6 +140,12 @@ usipy_sip_tm_task(void *pvParameters)
                 ets = xthal_get_ccount();
                 ESP_LOGI(cfp->log_tag, "usipy_sip_msg_ctor_fromwire: took %u cycles", tsdiff(bts, ets));
                 if (msg != NULL) {
+#define USIPY_HF_TID_MASK (USIPY_HF_MASK(USIPY_HF_CSEQ) | USIPY_HF_MASK(USIPY_HF_CALLID))
+                     bts = xthal_get_ccount();
+                     int rval = usipy_sip_msg_parse_hdrs(msg, USIPY_HF_TID_MASK);
+                     ets = xthal_get_ccount();
+                     ESP_LOGI(cfp->log_tag, "usipy_sip_msg_parse_hdrs(USIPY_HF_TID_MASK) = %d: took %u cycles", rval,
+                       tsdiff(bts, ets));
                      usipy_sip_msg_dump(msg, cfp->log_tag);
                      usipy_sip_msg_dtor(msg);
                 }
