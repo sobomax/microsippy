@@ -21,14 +21,14 @@
 #include "usipy_sip_hdr_db.h"
 
 static unsigned int
-tsdiff(int bts, int ets)
+tsdiff(unsigned int bts, unsigned int ets)
 {
     unsigned int r;
 
     if (bts <= ets)
         return (ets - bts);
-    r = (unsigned int)0x80000000 - bts;
-    return (r + ets);
+    r = (unsigned int)0xffffffff - bts;
+    return (r + ets + 1);
 }
 
 void
