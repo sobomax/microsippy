@@ -41,3 +41,23 @@ usipy_str_atoui_range(const struct usipy_str *x, unsigned int *res,
     *res = r;
     return (0);
 }
+
+int
+usipy_str_splitlws(const struct usipy_str *ivp, struct usipy_str *ovp1,
+  struct usipy_str *ovp2)
+{
+    const char *cp;
+
+    for (cp = ivp->s.ro; cp < (ivp->s.ro + ivp->l); cp++) {
+        if (USIPY_ISLWS(*cp))
+            goto lws_found;
+    }
+    return (-1);
+lws_found:
+    ovp1->s.ro = ivp->s.ro;
+    ovp1->l = cp - ivp->s.ro;
+    ovp2->s.ro = cp;
+    ovp2->l = ivp->l - ovp1->l - 1;
+    usipy_str_ltrm_b(ovp2);
+    return (0);
+}
