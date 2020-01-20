@@ -17,6 +17,8 @@ int usipy_str_split(const struct usipy_str *, unsigned char,
   struct usipy_str *, struct usipy_str *);
 int usipy_str_atoui_range(const struct usipy_str *, unsigned int *,
   unsigned int, unsigned int);
+int usipy_str_splitlws(const struct usipy_str *, struct usipy_str *,
+  struct usipy_str *);
 
 #define USIPY_SP       ' '
 #define USIPY_CRLF     "\r\n"
