@@ -135,10 +135,10 @@ usipy_sip_msg_dump(const struct usipy_msg *msg, const char *log_tag)
       msg->sline.onwire.s.ro);
     for (int i = 0; i < msg->nhdrs; i++) {
         const struct usipy_sip_hdr *shp = &msg->hdrs[i];
-        ESP_LOGI(log_tag, "header[%p], .hf_type = %p", shp, shp->hf_type);
-        ESP_LOGI(log_tag, "header[%d @ %p], .hf_type = %p, .onwire.type = %d, .name = \"%.*s\", .value = \"%.*s\"", i,
-          shp, shp->hf_type, shp->onwire.hf_type->cantype, shp->onwire.name.l, shp->onwire.name.s.ro,
-          shp->onwire.value.l, shp->onwire.value.s.ro);
+        ESP_LOGI(log_tag, "header[%d @ %p], .hf_type = %p", i, shp, shp->hf_type);
+        ESP_LOGI(log_tag, "  .onwire.type = %d", shp->onwire.hf_type->cantype);
+	ESP_LOGI(log_tag, "  .name = \"%.*s\"", shp->onwire.name.l, shp->onwire.name.s.ro);
+	ESP_LOGI(log_tag, "  .value = \"%.*s\"", shp->onwire.value.l, shp->onwire.value.s.ro);
     }
 }
 
