@@ -71,8 +71,6 @@ usipy_sip_msg_ctor_fromwire(const char *buf, size_t len, int *err)
             ESP_LOGI("foobar0", "shp = %p, shp->hf_type = %p, shp->onwire.hf_type = %p",
               shp, shp->hf_type, shp->onwire.hf_type);
             rp->hdr_masks.present |= USIPY_HF_MASK(shp);
-	    ESP_LOGI("foobar0", "shp = %p, shp->hf_type = %p, shp->onwire.hf_type = %p",
-              shp, shp->hf_type, shp->onwire.hf_type);
         }
         shp = usipy_msg_heap_alloc(&rp->heap, sizeof(struct usipy_sip_hdr));
         if (shp == NULL)
@@ -93,6 +91,7 @@ next_line:
             goto e1;
         rp->hdr_masks.present |= USIPY_HF_MASK(shp);
     }
+    usipy_sip_msg_dump(rp, "foobar2");
     return (rp);
 e1:
     free(rp);
