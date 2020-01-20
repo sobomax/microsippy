@@ -152,6 +152,7 @@ usipy_sip_msg_parse_hdrs(struct usipy_msg *mp, uint64_t parsemask)
     parsemask &= ~(mp->hdr_masks.parsed);
     for (int i = 0; i < mp->nhdrs; i++) {
         struct usipy_sip_hdr *shp = &mp->hdrs[i];
+        ESP_LOGI("foobar", "shp->hf_type = %p", shp->hf_type);
         if (!USIPY_HF_ISMSET(parsemask, shp->hf_type->cantype))
             continue;
         switch (shp->hf_type->cantype) {
