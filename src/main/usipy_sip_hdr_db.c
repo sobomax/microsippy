@@ -1,11 +1,13 @@
 #include <string.h>
 
+#include "esp_attr.h"
+
 #include "usipy_str.h"
 #include "usipy_fast_parser.h"
 #include "usipy_sip_hdr_types.h"
 #include "usipy_sip_hdr_db.h"
 
-static const struct usipy_fast_parser hdr_pdata = {
+static const struct usipy_fast_parser hdr_pdata ICACHE_RODATA_ATTR = {
     .to5bit = {
       128, 128, 128, 128, 128, 128, 128, 128, 128, 128, 128, 128, 128, 128,
       128, 128, 128, 128, 128, 128, 128, 128, 128, 128, 128, 128, 128, 128,
@@ -46,7 +48,7 @@ static const struct usipy_fast_parser hdr_pdata = {
     }
 };
 
-static const struct usipy_hdr_db_entr usipy_hdr_db[USIPY_HF_max + 1] = {
+static const struct usipy_hdr_db_entr usipy_hdr_db[USIPY_HF_max + 1] ICACHE_RODATA_ATTR = {
     {.cantype = USIPY_HF_generic},
     {.cantype = USIPY_HF_ALLOW, .name = {.s.ro = "Allow", .l = 5}},
     {.cantype = USIPY_HF_ALSO, .name = {.s.ro = "Also", .l = 4}},
