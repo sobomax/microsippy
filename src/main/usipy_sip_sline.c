@@ -6,6 +6,7 @@
 #include "usipy_sip_sline.h"
 #include "usipy_msg_heap.h"
 #include "usipy_sip_msg.h"
+#include "usipy_sip_method_db.h"
 
 enum usipy_sip_msg_kind
 usipy_sip_sline_parse(struct usipy_sip_sline *slp)
@@ -25,6 +26,7 @@ usipy_sip_sline_parse(struct usipy_sip_sline *slp)
         slp->parsed.sl.reason_phrase = s4;
         r = USIPY_SIP_MSG_RES;
     } else if (usipy_verify_sip_version(&s4)) {
+        slp->parsed.rl.mtype = usipy_method_db_lookup(s1);
         slp->parsed.rl.method = s1;
         slp->parsed.rl.ruri = s3;
         slp->parsed.rl.version = s4;

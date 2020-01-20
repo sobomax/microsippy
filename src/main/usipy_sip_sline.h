@@ -1,3 +1,5 @@
+struct usipy_method_db_entr;
+
 struct usipy_sip_status_line {
     struct usipy_str version;
     unsigned int status_code;
@@ -8,6 +10,7 @@ struct usipy_sip_request_line {
     struct usipy_str method;
     struct usipy_str ruri;
     struct usipy_str version;
+    const struct usipy_method_db_entr *mtype;
 };
 
 struct usipy_sip_sline {
