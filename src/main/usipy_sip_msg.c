@@ -79,9 +79,10 @@ next_line:
         goto e1;
     }
     for (int i = 0; i < rp->nhdrs; i++) {
-        if (usipy_sip_hdr_preparse(rp->hdrs[i]) != 0)
+	struct usipy_sip_hdr *tsp = &(rp->hdrs[i]);
+        if (usipy_sip_hdr_preparse(tsp) != 0)
             goto e1;
-        rp->hdr_masks.present |= USIPY_HF_MASK(rp->hdrs[i]);
+        rp->hdr_masks.present |= USIPY_HF_MASK(tsp);
     }
     rp->heap.first = (void *)&rp->hdrs[rp->nhdrs];
     ralgn = USIPY_REALIGN((uintptr_t)rp->heap.first);
