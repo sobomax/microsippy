@@ -41,6 +41,7 @@ enum TIM_DIV_ENUM {
 //timer reload values
 #define TIM_SINGLE      0 //on interrupt routine you need to write a new value to start the timer again
 #define TIM_LOOP        1 //on interrupt the counter will start with the same value again
+#define TIM_EDGE        0
 
 static void
 timer1_enable(uint8_t divider, uint8_t int_type, uint8_t reload){
@@ -77,7 +78,7 @@ usipy_sip_tm_task(void *pvParameters)
     const struct usipy_sip_tm_conf *cfp;
 
     cfp = (struct usipy_sip_tm_conf *)pvParameters;
-    timer1_enable(TIM_DIV1, TIM_LOOP);
+    timer1_enable(TIM_DIV1, TIM_EDGE, TIM_LOOP);
     timer1_write(0xffffffff);
     while (1) {
         union {
