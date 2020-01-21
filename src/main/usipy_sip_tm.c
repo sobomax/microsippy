@@ -24,6 +24,7 @@
 #define T1I  ESP8266_REG(0x60C) //Interrupt Status Register (1bit) write to clear
 #define T1V  ESP8266_REG(0x604) //(RO) Current Value
 #define T1C  ESP8266_REG(0x608) //Control Register
+#define T1L  ESP8266_REG(0x600) //Load Value (Starting Value of Counter) 23bit (0-8388607)
 #define TCIT  0 //Interrupt Type 0:edge, 1:level
 #define TCPD  2 //Prescale Devider (2bit) 0:1(12.5ns/tick), 1:16(0.2us/tick), 2/3:256(3.2us/tick)
 #define TCAR  6 //AutoReload (restart timer when condition is reached)
@@ -41,12 +42,14 @@ enum TIM_DIV_ENUM {
 #define TIM_SINGLE      0 //on interrupt routine you need to write a new value to start the timer again
 #define TIM_LOOP        1 //on interrupt the counter will start with the same value again
 
-void timer1_enable(uint8_t divider, uint8_t int_type, uint8_t reload){
+static void
+timer1_enable(uint8_t divider, uint8_t int_type, uint8_t reload){
     T1C = (1 << TCTE) | ((divider & 3) << TCPD) | ((int_type & 1) << TCIT) | ((reload & 1) << TCAR);
     T1I = 0;
 }
 
-void timer1_write(uint32_t ticks){
+static void
+timer1_write(uint32_t ticks){
     T1L = ((ticks)& 0x7FFFFF);
 #if 0
     if ((T1C & (1 << TCIT)) == 0) TEIE |= TEIE1;//edge int enable
