@@ -180,7 +180,8 @@ usipy_sip_tm_task(void *pvParameters)
                 ets = xthal_get_ccount();
                 ESP_LOGI(cfp->log_tag, "usipy_sip_msg_ctor_fromwire() = %p: took tsdiff(%u, %u) = %u cycles",
                   msg, bts, ets, tsdiff(bts, ets));
-                ESP_LOGI(cfp->log_tag, "timer1_enabled = %u", timer1_enabled());
+                ESP_LOGI(cfp->log_tag, "timer1_enabled() = %u, timer1_read() = %u",
+                  timer1_enabled(), timer1_read());
                 if (msg == NULL)
                     continue;
 #define USIPY_HF_TID_MASK (USIPY_HFT_MASK(USIPY_HF_CSEQ) | USIPY_HFT_MASK(USIPY_HF_CALLID))
