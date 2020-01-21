@@ -6,7 +6,6 @@
 #include "lwip/sockets.h"
 #include "lwip/inet.h"
 #include "esp_log.h"
-#include "xtensa/hal.h"
 
 #include "usipy_str.h"
 #include "usipy_sip_tm.h"
@@ -62,10 +61,10 @@ tsdiff(unsigned int bts, unsigned int ets)
 {
     unsigned int r;
 
-    if (bts <= ets)
-        return (ets - bts);
-    r = (unsigned int)0xffffffff - bts;
-    return (r + ets + 1);
+    if (ets <= bts)
+        return (bts - ets);
+    r = (unsigned int)0xffffffff - ets;
+    return (r + bts + 1);
 }
 
 void
@@ -175,9 +174,9 @@ usipy_sip_tm_task(void *pvParameters)
 
                 int cerror;
                 unsigned int bts, ets;
-                bts = xthal_get_ccount();
+                bts = timer1_read();
                 struct usipy_msg *msg = usipy_sip_msg_ctor_fromwire(rx_buffer, len, &cerror);
-                ets = xthal_get_ccount();
+                ets = timer1_read();
                 ESP_LOGI(cfp->log_tag, "usipy_sip_msg_ctor_fromwire() = %p: took tsdiff(%u, %u) = %u cycles",
                   msg, bts, ets, tsdiff(bts, ets));
                 ESP_LOGI(cfp->log_tag, "timer1_enabled() = %u, timer1_read() = %u:%u",
@@ -185,9 +184,9 @@ usipy_sip_tm_task(void *pvParameters)
                 if (msg == NULL)
                     continue;
 #define USIPY_HF_TID_MASK (USIPY_HFT_MASK(USIPY_HF_CSEQ) | USIPY_HFT_MASK(USIPY_HF_CALLID))
-                bts = xthal_get_ccount();
+                bts = timer1_read();
                 int rval = usipy_sip_msg_parse_hdrs(msg, USIPY_HF_TID_MASK);
-                ets = xthal_get_ccount();
+                ets = timer1_read();
                 ESP_LOGI(cfp->log_tag, "usipy_sip_msg_parse_hdrs(USIPY_HF_TID_MASK) = %d: took %u cycles", rval,
                   tsdiff(bts, ets));
                 usipy_sip_msg_dump(msg, cfp->log_tag);
