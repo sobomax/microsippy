@@ -63,11 +63,6 @@ usipy_sip_msg_ctor_fromwire(const char *buf, size_t len, int *err)
                 goto e1;
             goto next_line;
         }
-        if (shp != NULL) {
-            if (usipy_sip_hdr_preparse(shp) != 0)
-                goto e1;
-            rp->hdr_masks.present |= USIPY_HF_MASK(shp);
-        }
         shp = &rp->hdrs[rp->nhdrs];
         if ((void *)(shp + 1) > (void *)((char *)(rp) + alloc_len))
             goto e1;
@@ -80,12 +75,13 @@ next_line:
         cp.l -= chp - cp.s.ro;
         cp.s.ro = chp;
     }
-    if (shp != NULL) {
-        if (usipy_sip_hdr_preparse(shp) != 0)
-            goto e1;
-        rp->hdr_masks.present |= USIPY_HF_MASK(shp);
-    } else if (rp->nhdrs == 0) {
+    if (rp->nhdrs == 0) {
         goto e1;
+    }
+    for (int i = 0; i < rp->nhdrs; i++) {
+        if (usipy_sip_hdr_preparse(rp->hdrs[i]) != 0)
+            goto e1;
+        rp->hdr_masks.present |= USIPY_HF_MASK(rp->hdrs[i]);
     }
     rp->heap.first = (void *)&rp->hdrs[rp->nhdrs];
     ralgn = USIPY_REALIGN((uintptr_t)rp->heap.first);
