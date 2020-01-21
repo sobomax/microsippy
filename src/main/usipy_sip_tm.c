@@ -21,8 +21,12 @@
 #include "usipy_sip_hdr_db.h"
 
 #define ESP8266_REG(addr) *((volatile uint32_t *)(0x60000000+(addr)))
+#define T1I  ESP8266_REG(0x60C) //Interrupt Status Register (1bit) write to clear
 #define T1V  ESP8266_REG(0x604) //(RO) Current Value
 #define T1C  ESP8266_REG(0x608) //Control Register
+#define TCIT  0 //Interrupt Type 0:edge, 1:level
+#define TCPD  2 //Prescale Devider (2bit) 0:1(12.5ns/tick), 1:16(0.2us/tick), 2/3:256(3.2us/tick)
+#define TCAR  6 //AutoReload (restart timer when condition is reached)
 #define TCTE  7 //Timer Enable
 #define timer1_read()           (T1V)
 #define timer1_enabled()        ((T1C & (1 << TCTE)) != 0)
