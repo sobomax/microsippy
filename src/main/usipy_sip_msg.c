@@ -32,7 +32,7 @@ usipy_sip_msg_ctor_fromwire(const char *buf, size_t len, int *err)
     memcpy(rp->_storage, buf, len);
     rp->onwire.s.rw = rp->_storage;
     rp->onwire.l = len;
-    rp->hdrs = rp->_storage + len;
+    rp->hdrs = (struct usipy_sip_hdr *)(rp->_storage + len);
     ralgn = USIPY_REALIGN((uintptr_t)rp->hdrs);
     if ((void *)ralgn != rp->hdrs) {
         rp->hdrs = (void *)(ralgn + (1 << USIPY_MEM_ALIGNOF));
@@ -72,7 +72,7 @@ usipy_sip_msg_ctor_fromwire(const char *buf, size_t len, int *err)
 	    usipy_sip_msg_dump(rp, "foobar2");
         }
         shp = &rp->hdrs[rp->nhdrs];
-        if (shp + 1 > (char *)(rp + alloc_len))
+        if ((void *)(shp + 1) > (void *)((char *)(rp) + alloc_len))
             goto e1;
         rp->nhdrs += 1;
         shp->onwire.full.s.ro = cp.s.ro;
