@@ -1,4 +1,4 @@
-from ptyprocess import PtyProcessUnicode
+from ptyprocess import PtyProcess
 from sys import argv, stdout
 
 import getopt
@@ -15,7 +15,7 @@ if __name__ == '__main__':
         if o == '-o':
             ofile = open(a.strip(), 'w')
 
-    pp = PtyProcessUnicode.spawn(args)
+    pp = PtyProcess.spawn(args)
     if ofile != None:
         oset = (stdout, ofile)
     else:
