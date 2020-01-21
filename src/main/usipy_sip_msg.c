@@ -32,13 +32,11 @@ usipy_sip_msg_ctor_fromwire(const char *buf, size_t len, int *err)
     memcpy(rp->_storage, buf, len);
     rp->onwire.s.rw = rp->_storage;
     rp->onwire.l = len;
-    rp->heap.first = rp->_storage + len;
-    ralgn = USIPY_REALIGN((uintptr_t)rp->heap.first);
-    if ((void *)ralgn != rp->heap.first) {
-        rp->heap.first = (void *)(ralgn + (1 << USIPY_MEM_ALIGNOF));
+    rp->hdrs = rp->_storage + len;
+    ralgn = USIPY_REALIGN((uintptr_t)rp->hdrs);
+    if ((void *)ralgn != rp->hdrs) {
+        rp->hdrs = (void *)(ralgn + (1 << USIPY_MEM_ALIGNOF));
     }
-    rp->heap.free = rp->heap.first;
-    rp->heap.size = USIPY_REALIGN(alloc_len - (rp->heap.first - (void *)rp));
     int nempty = 0;
     struct usipy_sip_hdr *shp = NULL;
     for (struct usipy_str cp = rp->onwire; cp.l > 0;) {
@@ -73,11 +71,9 @@ usipy_sip_msg_ctor_fromwire(const char *buf, size_t len, int *err)
             rp->hdr_masks.present |= USIPY_HF_MASK(shp);
 	    usipy_sip_msg_dump(rp, "foobar2");
         }
-        shp = usipy_msg_heap_alloc(&rp->heap, sizeof(struct usipy_sip_hdr));
-        if (shp == NULL)
+        shp = &rp->hdrs[rp->nhdrs];
+        if (shp + 1 > (char *)(rp + alloc_len))
             goto e1;
-        if (rp->nhdrs == 0)
-            rp->hdrs = shp;
         rp->nhdrs += 1;
         shp->onwire.full.s.ro = cp.s.ro;
 multi_line:
@@ -91,7 +87,16 @@ next_line:
         if (usipy_sip_hdr_preparse(shp) != 0)
             goto e1;
         rp->hdr_masks.present |= USIPY_HF_MASK(shp);
+    } else if (rp->nhdrs == 0) {
+        goto e1;
     }
+    rp->heap.first = (void *)&rp->hdrs[rp->nhdrs];
+    ralgn = USIPY_REALIGN((uintptr_t)rp->heap.first);
+    if ((void *)ralgn != rp->heap.first) {
+        rp->heap.first = (void *)(ralgn + (1 << USIPY_MEM_ALIGNOF));
+    }
+    rp->heap.free = rp->heap.first;
+    rp->heap.size = USIPY_REALIGN(alloc_len - (rp->heap.first - (void *)rp));
     return (rp);
 e1:
     free(rp);
