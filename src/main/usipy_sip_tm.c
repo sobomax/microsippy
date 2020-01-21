@@ -27,6 +27,26 @@
 #define timer1_read()           (T1V)
 #define timer1_enabled()        ((T1C & (1 << TCTE)) != 0)
 
+//timer dividers
+enum TIM_DIV_ENUM {
+  TIM_DIV1 = 0,   //80MHz (80 ticks/us - 104857.588 us max)
+  TIM_DIV16 = 1,  //5MHz (5 ticks/us - 1677721.4 us max)
+  TIM_DIV256 = 3 //312.5Khz (1 tick = 3.2us - 26843542.4 us max)
+};
+//timer reload values
+#define TIM_SINGLE      0 //on interrupt routine you need to write a new value to start the timer again
+#define TIM_LOOP        1 //on interrupt the counter will start with the same value again
+
+void ICACHE_RAM_ATTR timer1_enable(uint8_t divider, uint8_t int_type, uint8_t reload){
+    T1C = (1 << TCTE) | ((divider & 3) << TCPD) | ((int_type & 1) << TCIT) | ((reload & 1) << TCAR);
+    T1I = 0;
+}
+
+void ICACHE_RAM_ATTR timer1_write(uint32_t ticks){
+    T1L = ((ticks)& 0x7FFFFF);
+    if ((T1C & (1 << TCIT)) == 0) TEIE |= TEIE1;//edge int enable
+}
+
 static unsigned int
 tsdiff(unsigned int bts, unsigned int ets)
 {
@@ -48,6 +68,8 @@ usipy_sip_tm_task(void *pvParameters)
     const struct usipy_sip_tm_conf *cfp;
 
     cfp = (struct usipy_sip_tm_conf *)pvParameters;
+    timer1_enable(TIM_DIV1, TIM_LOOP);
+    timer1_write(0xffffffff);
     while (1) {
         union {
             struct sockaddr_in v4;
