@@ -37,14 +37,16 @@ enum TIM_DIV_ENUM {
 #define TIM_SINGLE      0 //on interrupt routine you need to write a new value to start the timer again
 #define TIM_LOOP        1 //on interrupt the counter will start with the same value again
 
-void ICACHE_RAM_ATTR timer1_enable(uint8_t divider, uint8_t int_type, uint8_t reload){
+void timer1_enable(uint8_t divider, uint8_t int_type, uint8_t reload){
     T1C = (1 << TCTE) | ((divider & 3) << TCPD) | ((int_type & 1) << TCIT) | ((reload & 1) << TCAR);
     T1I = 0;
 }
 
-void ICACHE_RAM_ATTR timer1_write(uint32_t ticks){
+void timer1_write(uint32_t ticks){
     T1L = ((ticks)& 0x7FFFFF);
+#if 0
     if ((T1C & (1 << TCIT)) == 0) TEIE |= TEIE1;//edge int enable
+#endif
 }
 
 static unsigned int
