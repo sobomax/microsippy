@@ -66,10 +66,7 @@ usipy_sip_msg_ctor_fromwire(const char *buf, size_t len, int *err)
         if (shp != NULL) {
             if (usipy_sip_hdr_preparse(shp) != 0)
                 goto e1;
-            ESP_LOGI("foobar0", "shp = %p, shp->hf_type = %p, shp->onwire.hf_type = %p",
-              shp, shp->hf_type, shp->onwire.hf_type);
             rp->hdr_masks.present |= USIPY_HF_MASK(shp);
-	    usipy_sip_msg_dump(rp, "foobar2");
         }
         shp = &rp->hdrs[rp->nhdrs];
         if ((void *)(shp + 1) > (void *)((char *)(rp) + alloc_len))
@@ -163,7 +160,6 @@ usipy_sip_msg_parse_hdrs(struct usipy_msg *mp, uint64_t parsemask)
     parsemask &= ~(mp->hdr_masks.parsed);
     for (int i = 0; i < mp->nhdrs; i++) {
         struct usipy_sip_hdr *shp = &mp->hdrs[i];
-        ESP_LOGI("foobar", "shp->hf_type = %p", shp->hf_type);
         if (!USIPY_HF_ISMSET(parsemask, shp->hf_type->cantype))
             continue;
         switch (shp->hf_type->cantype) {
@@ -174,9 +170,7 @@ usipy_sip_msg_parse_hdrs(struct usipy_msg *mp, uint64_t parsemask)
             break;
 
         case USIPY_HF_CALLID:
-#if 0
             shp->parsed.generic = &shp->onwire.value;
-#endif
 	    break;
 
         default:
