@@ -28,6 +28,7 @@
 #define TCPD  2 //Prescale Devider (2bit) 0:1(12.5ns/tick), 1:16(0.2us/tick), 2/3:256(3.2us/tick)
 #define TCAR  6 //AutoReload (restart timer when condition is reached)
 #define TCTE  7 //Timer Enable
+#define T1VMAX 0x7FFFFF
 #define timer1_read()           (T1V)
 #define timer1_enabled()        ((T1C & (1 << TCTE)) != 0)
 
@@ -50,7 +51,7 @@ timer1_enable(uint8_t divider, uint8_t int_type, uint8_t reload){
 
 static void
 timer1_write(uint32_t ticks){
-    T1L = ((ticks)& 0x7FFFFF);
+    T1L = ((ticks)& T1VMAX);
 #if 0
     if ((T1C & (1 << TCIT)) == 0) TEIE |= TEIE1;//edge int enable
 #endif
@@ -63,7 +64,7 @@ tsdiff(unsigned int bts, unsigned int ets)
 
     if (ets <= bts)
         return (bts - ets);
-    r = (unsigned int)0xffffffff - ets;
+    r = (unsigned int)T1VMAX - ets;
     return (r + bts + 1);
 }
 
