@@ -20,6 +20,13 @@
 #include "usipy_sip_hdr_types.h"
 #include "usipy_sip_hdr_db.h"
 
+#define ESP8266_REG(addr) *((volatile uint32_t *)(0x60000000+(addr)))
+#define T1V  ESP8266_REG(0x604) //(RO) Current Value
+#define T1C  ESP8266_REG(0x608) //Control Register
+#define TCTE  7 //Timer Enable
+#define timer1_read()           (T1V)
+#define timer1_enabled()        ((T1C & (1 << TCTE)) != 0)
+
 static unsigned int
 tsdiff(unsigned int bts, unsigned int ets)
 {
@@ -141,6 +148,7 @@ usipy_sip_tm_task(void *pvParameters)
                 ets = xthal_get_ccount();
                 ESP_LOGI(cfp->log_tag, "usipy_sip_msg_ctor_fromwire() = %p: took tsdiff(%u, %u) = %u cycles",
                   msg, bts, ets, tsdiff(bts, ets));
+                ESP_LOGI(cfp->log_tag, "timer1_enabled = %u", timer1_enabled());
                 if (msg == NULL)
                     continue;
 #define USIPY_HF_TID_MASK (USIPY_HFT_MASK(USIPY_HF_CSEQ) | USIPY_HFT_MASK(USIPY_HF_CALLID))
