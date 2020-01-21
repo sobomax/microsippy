@@ -20,7 +20,24 @@ struct usipy_msg {
    char _storage[0];
 };
 
-struct usipy_msg *usipy_sip_msg_ctor_fromwire(const char *, size_t, int *);
+struct usipy_codeptr {
+    const char *fname;
+    int linen;
+    const char *funcn;
+};
+
+struct usipy_msg_parse_err {
+    int errno;
+    struct usipy_codeptr loc;
+    const char *reason;
+};
+
+#define USIPY_MSG_PARSE_ERR_init { \
+  .errno = 0, .loc.fname = NULL, .loc.linen = 0, .loc.funcn = NULL \
+}
+
+struct usipy_msg *usipy_sip_msg_ctor_fromwire(const char *, size_t,
+  struct usipy_msg_parse_err *);
 void usipy_sip_msg_dtor(struct usipy_msg *);
 void usipy_sip_msg_dump(const struct usipy_msg *, const char *);
 int usipy_sip_msg_parse_hdrs(struct usipy_msg *, uint64_t);

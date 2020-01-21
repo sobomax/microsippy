@@ -173,15 +173,17 @@ usipy_sip_tm_task(void *pvParameters)
                 ESP_LOGI(cfp->log_tag, "Received %d bytes from %s:", len, addr_str);
 		ESP_LOGI(cfp->log_tag, "%.*s", len, rx_buffer);
 
-                int cerror;
+                struct usipy_msg_parse_err cerror = USIPY_MSG_PARSE_ERR_init;
                 unsigned int bts, ets;
                 bts = timer1_read();
                 struct usipy_msg *msg = usipy_sip_msg_ctor_fromwire(rx_buffer, len, &cerror);
                 ets = timer1_read();
                 ESP_LOGI(cfp->log_tag, "usipy_sip_msg_ctor_fromwire() = %p: took tsdiff(%u, %u) = %u cycles",
                   msg, bts, ets, tsdiff(bts, ets));
+#if 0
                 ESP_LOGI(cfp->log_tag, "timer1_enabled() = %u, timer1_read() = %u:%u",
                   timer1_enabled(), timer1_read(), timer1_read());
+#endif
                 if (msg == NULL)
                     continue;
 #define USIPY_HF_TID_MASK (USIPY_HFT_MASK(USIPY_HF_CSEQ) | USIPY_HFT_MASK(USIPY_HF_CALLID))

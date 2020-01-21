@@ -17,7 +17,8 @@
 #include "usipy_sip_hdr_cseq.h"
 
 struct usipy_msg *
-usipy_sip_msg_ctor_fromwire(const char *buf, size_t len, int *err)
+usipy_sip_msg_ctor_fromwire(const char *buf, size_t len,
+  struct usipy_msg_parse_err *perrp)
 {
     struct usipy_msg *rp;
     size_t alloc_len;
@@ -95,8 +96,8 @@ next_line:
 e1:
     free(rp);
 e0:
-    if (err != NULL)
-        *err = ENOMEM;
+    if (perrp != NULL)
+        *perrp->errno = ENOMEM;
     return (NULL);
 }
 
