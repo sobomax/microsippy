@@ -192,8 +192,8 @@ usipy_sip_msg_break_down(const struct usipy_str *sp, char *omap)
     over = 0;
     for (i = 0; i < sp->l; i += sizeof(val)) {
         memcpy(&val, sp->s.ro + i, sizeof(val));
-onemotime:
         val = ntohl(val);
+onemotime:
         mvalA = val ^ mskA;
         mvalB = val ^ mskB;
         int chkover = 0, chkcarry = 0;
@@ -229,7 +229,10 @@ onemotime:
     }
     if (i != sp->l) {
         val = 0;
-        memcpy(&val, sp->s.ro + i - sizeof(val), i - sp->l);
+        for (i = i - sizeof(val); i < sp->l; i++) {
+          val <<= 8;
+          val |= sp->s.ro[i];
+        }
         goto onemotime;
     }
 
