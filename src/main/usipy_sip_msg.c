@@ -180,6 +180,7 @@ usipy_sip_msg_parse_hdrs(struct usipy_msg *mp, uint64_t parsemask)
 }
 
 #include <netinet/in.h>
+#include <sys/endian.h>
 
 int
 usipy_sip_msg_break_down(const struct usipy_str *sp, uint32_t *omap)
@@ -195,7 +196,7 @@ usipy_sip_msg_break_down(const struct usipy_str *sp, uint32_t *omap)
     oword = 0;
     for (i = 0; i < sp->l; i += sizeof(val)) {
         memcpy(&val, sp->s.ro + i, sizeof(val));
-        val = ntohl(val);
+        val = le32toh(val);
 onemotime:
         mvalA = val ^ mskA;
         mvalB = val ^ mskB;
