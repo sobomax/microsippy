@@ -33,7 +33,7 @@ struct usipy_msg_parse_err {
 };
 
 #define USIPY_MSG_PARSE_ERR_init { \
-  .errno = 0, .loc.fname = NULL, .loc.linen = 0, .loc.funcn = NULL \
+  .erRNo = 0, .loc.fname = NULL, .loc.linen = 0, .loc.funcn = NULL \
 }
 
 struct usipy_msg *usipy_sip_msg_ctor_fromwire(const char *, size_t,
