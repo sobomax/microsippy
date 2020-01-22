@@ -229,9 +229,9 @@ onemotime:
     }
     if (i != sp->l) {
         val = 0;
-        for (i = i - sizeof(val); i < sp->l; i++) {
+        for (int j = i - sizeof(val); j < sp->l; j++) {
           val <<= 8;
-          val |= sp->s.ro[i];
+          val |= sp->s.ro[j];
         }
         goto onemotime;
     }
