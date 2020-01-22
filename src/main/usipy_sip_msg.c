@@ -232,8 +232,8 @@ onemotime:
         val = 0;
         memcpy(&val, sp->s.ro + i - sizeof(val), i - sp->l);
         goto onemotime;
-    }
 #endif
+    }
 
     return ((i >> 2));
 }
