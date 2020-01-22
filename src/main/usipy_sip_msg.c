@@ -233,7 +233,7 @@ onemotime:
                 over = 1;
             }
         }
-        if ((i & ((sizeof(val) * 2) - 1)) == 0) {
+        if ((i & 0x1f) == 0) {
             if (oword != 0) {
                 *opp = oword;
                 oword = 0;
