@@ -192,33 +192,32 @@ usipy_sip_msg_break_down(const struct usipy_str *sp, char *omap)
     over = 0;
     for (i = 0; i < sp->l; i += sizeof(val)) {
         memcpy(&val, sp->s.ro + i, sizeof(val));
-#if 0
 onemotime:
         val = ntohl(val);
         mvalA = val ^ mskA;
         mvalB = val ^ mskB;
         int chkover = 0, chkcarry = 0;
         if (mvalA == 0) {
-            omap[i >> 2] = 0b1111;
+            //omap[i >> 2] = 0b1111;
         } else if ((mvalA & 0x0000FFFF) == 0) {
-            omap[i >> 2] = 0b0011;
+            //omap[i >> 2] = 0b0011;
             chkover = 1;
         } else if ((mvalA &0xFFFF0000) == 0) {
-            omap[i >> 2] = 0b1100;
+            //omap[i >> 2] = 0b1100;
             chkcarry = 1;
         } else if ((mvalB &0x00FFFF00) == 0) {
-            omap[i >> 2] = 0b0110;
+            //omap[i >> 2] = 0b0110;
             chkcarry = 1;
             chkover = 1;
         } else {
-            omap[i >> 2] = 0b0000;
+            //omap[i >> 2] = 0b0000;
             chkcarry = 1;
             chkover = 1;
         }
         if (over) {
             if (chkcarry && (mvalB &0x000000FF) == 0) {
-                omap[i >> 2] |= 0b0001;
-                omap[(i >> 2) - 1] |= 0b1000;
+                //omap[i >> 2] |= 0b0001;
+                //omap[(i >> 2) - 1] |= 0b1000;
             }
             over = 0;
         }
@@ -232,7 +231,6 @@ onemotime:
         val = 0;
         memcpy(&val, sp->s.ro + i - sizeof(val), i - sp->l);
         goto onemotime;
-#endif
     }
 
     return ((i >> 2));
