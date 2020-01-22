@@ -27,7 +27,7 @@ struct usipy_codeptr {
 };
 
 struct usipy_msg_parse_err {
-    int errno;
+    int erRNo;
     struct usipy_codeptr loc;
     const char *reason;
 };

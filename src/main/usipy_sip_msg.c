@@ -97,7 +97,7 @@ e1:
     free(rp);
 e0:
     if (perrp != NULL)
-        *perrp->errno = ENOMEM;
+        perrp->erRNo = ENOMEM;
     return (NULL);
 }
 
