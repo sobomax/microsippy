@@ -199,6 +199,9 @@ onemotime:
         mvalA = val ^ mskA;
         mvalB = val ^ mskB;
         int chkover = 0, chkcarry = 0;
+        if (oword & (1 << 28)) {
+            omap[-1] |= 0b0001;
+        }
         oword <<= 4;
         if (mvalA == 0) {
             oword |= 0b1111;
