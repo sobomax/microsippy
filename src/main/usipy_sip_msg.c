@@ -232,7 +232,7 @@ onemotime:
                 over = 1;
             }
         }
-        if ((i ^ ((sizeof(val) * 2) - 1)) == 0) {
+        if ((i & ((sizeof(val) * 2) - 1)) == 0) {
             *omap = oword;
             omap += 1;
             oword = 0;
