@@ -32,7 +32,7 @@ tsdiff(unsigned int bts, unsigned int ets)
     return (r + bts + 1);
 }
 
-static char tmpbub[1024];
+static uint32_t tmpbub[1024];
 
 void
 usipy_sip_tm_task(void *pvParameters)

@@ -182,7 +182,7 @@ usipy_sip_msg_parse_hdrs(struct usipy_msg *mp, uint64_t parsemask)
 #include <netinet/in.h>
 
 int
-usipy_sip_msg_break_down(const struct usipy_str *sp, char *omap)
+usipy_sip_msg_break_down(const struct usipy_str *sp, uint32_t *omap)
 {
     const uint32_t mskA = ('\r' << 0) | ('\n' << 8) | ('\r' << 16) | ('\n' << 24);
     const uint32_t mskB = ('\n' << 0) | ('\r' << 8) | ('\n' << 16) | ('\r' << 24);
@@ -230,8 +230,8 @@ onemotime:
             }
         }
         if ((i ^ ((sizeof(val) * 2) - 1)) == 0) {
-            memcpy(omap, &oword, sizeof(oword));
-            omap += sizeof(oword);
+            *omap = oword;
+            omap += 1;
             oword = 0;
         }
     }
