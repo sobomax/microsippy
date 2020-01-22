@@ -32,6 +32,7 @@ tsdiff(unsigned int bts, unsigned int ets)
     return (r + bts + 1);
 }
 
+#include <string.h>
 static uint32_t tmpbub[128];
 
 void
