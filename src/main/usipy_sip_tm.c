@@ -146,7 +146,7 @@ usipy_sip_tm_task(void *pvParameters)
                 err = usipy_sip_msg_break_down(&msg_onwire, tmpbub);
                 ets = timer1_read();
                 ESP_LOGI(cfp->log_tag, "usipy_sip_msg_break_down() = %d: took %u cycles",
-                  tsdiff(bts, ets));
+                  err, tsdiff(bts, ets));
                 bts = timer1_read();
                 struct usipy_msg *msg = usipy_sip_msg_ctor_fromwire(rx_buffer, len, &cerror);
                 ets = timer1_read();
