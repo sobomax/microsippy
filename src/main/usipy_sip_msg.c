@@ -178,3 +178,60 @@ usipy_sip_msg_parse_hdrs(struct usipy_msg *mp, uint64_t parsemask)
     mp->hdr_masks.parsed |= parsemask;
     return (0);
 }
+
+#include <netinet/in.h>
+
+int
+usipy_sip_msg_break_down(const struct usipy_str *sp, char *omap)
+{
+    const uint32_t mskA = ('\r' << 0) | ('\n' << 8) | ('\r' << 16) | ('\n' << 24);
+    const uint32_t mskB = ('\n' << 0) | ('\r' << 8) | ('\n' << 16) | ('\r' << 24);
+    uint32_t val, mvalA, mvalB;
+    int i, over;
+
+    over = 0;
+    for (i = 0; i < sp->l; i += sizeof(val)) {
+        memcpy(&val, sp->s.ro + i, sizeof(val));
+onemotime:
+        val = ntohl(val);
+        mvalA = val ^ mskA;
+        mvalB = val ^ mskB;
+        int chkover = 0, chkcarry = 0;
+        if (mvalA == 0) {
+            omap[i >> 2] = 0b1111;
+        } else if ((mvalA & 0x0000FFFF) == 0) {
+            omap[i >> 2] = 0b0011;
+            chkover = 1;
+        } else if ((mvalA &0xFFFF0000) == 0) {
+            omap[i >> 2] = 0b1100;
+            chkcarry = 1;
+        } else if ((mvalB &0x00FFFF00) == 0) {
+            omap[i >> 2] = 0b0110;
+            chkcarry = 1;
+            chkover = 1;
+        } else {
+            omap[i >> 2] = 0b0000;
+            chkcarry = 1;
+            chkover = 1;
+        }
+        if (over) {
+            if (chkcarry && (mvalB &0x000000FF) == 0) {
+                omap[i >> 2] |= 0b0001;
+                omap[(i >> 2) - 1] |= 0b1000;
+            }
+            over = 0;
+        }
+        if (chkover) {
+            if ((mvalB & 0xFF000000) == 0) {
+                over = 1;
+            }
+        }
+    }
+    if (i != sp->l) {
+        val = 0;
+        memcpy(&val, sp->s.ro + i - sizeof(val), i - sp->l);
+        goto onemotime;
+    }
+
+    return ((i >> 2));
+}
