@@ -32,7 +32,7 @@ tsdiff(unsigned int bts, unsigned int ets)
     return (r + bts + 1);
 }
 
-static uint32_t tmpbub[1024];
+static uint32_t tmpbub[128];
 
 void
 usipy_sip_tm_task(void *pvParameters)
@@ -142,11 +142,15 @@ usipy_sip_tm_task(void *pvParameters)
                 struct usipy_msg_parse_err cerror = USIPY_MSG_PARSE_ERR_init;
                 unsigned int bts, ets;
                 struct usipy_str msg_onwire = {.s.ro = rx_buffer, .l = len};
+                memset(tmpbub, '\0', sizeof(tmpbub));
                 bts = timer1_read();
                 err = usipy_sip_msg_break_down(&msg_onwire, tmpbub);
                 ets = timer1_read();
                 ESP_LOGI(cfp->log_tag, "usipy_sip_msg_break_down() = %d: took %u cycles",
                   err, tsdiff(bts, ets));
+                for (int i = 0; i < err; i++) {
+                    ESP_LOGI(cfp->log_tag, "    tmpbub[%d] = %u", i, tmpbub[i]);
+                }
                 bts = timer1_read();
                 struct usipy_msg *msg = usipy_sip_msg_ctor_fromwire(rx_buffer, len, &cerror);
                 ets = timer1_read();
