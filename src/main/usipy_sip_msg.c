@@ -233,9 +233,11 @@ onemotime:
             }
         }
         if ((i & ((sizeof(val) * 2) - 1)) == 0) {
-            *omap = oword;
+            if (oword != 0) {
+                *omap = oword;
+                oword = 0;
+            }
             omap += 1;
-            oword = 0;
         }
     }
     if (i > sp->l && !last) {
@@ -246,6 +248,10 @@ onemotime:
         }
         last = 1;
         goto onemotime;
+    }
+    if (oword != 0) {
+        *omap = oword;
+        omap += 1;
     }
 
     return ((i >> 2));
