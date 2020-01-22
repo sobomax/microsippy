@@ -204,28 +204,28 @@ onemotime:
             oword |= 0b1111;
         } else if ((mvalA & 0x0000FFFF) == 0) {
             oword |= 0b0011;
-            chkover = 1;
+            chkcarry = 1;
         } else if ((mvalA &0xFFFF0000) == 0) {
             oword |= 0b1100;
-            chkcarry = 1;
+            chkover = 1;
         } else if ((mvalB &0x00FFFF00) == 0) {
             oword |= 0b0110;
             chkcarry = 1;
             chkover = 1;
         } else {
-            oword |= 0b0000;
+            //oword |= 0b0000;
             chkcarry = 1;
             chkover = 1;
         }
         if (over) {
-            if (chkcarry && (mvalB &0x000000FF) == 0) {
-                oword |= 0b0001;
+            if (chkcarry && (mvalB &0xFF000000) == 0) {
+                oword |= 0b11000;
                 //omap[(i >> 2) - 1] |= 0b1000;
             }
             over = 0;
         }
         if (chkover) {
-            if ((mvalB & 0xFF000000) == 0) {
+            if ((mvalB & 0x000000FF) == 0) {
                 over = 1;
             }
         }
