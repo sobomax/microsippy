@@ -188,6 +188,7 @@ usipy_sip_msg_break_down(const struct usipy_str *sp, uint32_t *omap)
     const uint32_t mskB = ('\n' << 0) | ('\r' << 8) | ('\n' << 16) | ('\r' << 24);
     uint32_t val, mvalA, mvalB, oword;
     int i, over, last;
+    uint32_t *opp = omap;
 
     over = 0;
     last = 0;
@@ -200,7 +201,7 @@ onemotime:
         mvalB = val ^ mskB;
         int chkover = 0, chkcarry = 0;
         if (oword & (1 << 28)) {
-            omap[-1] |= 0b0001;
+            opp[-1] |= 0b0001;
         }
         oword <<= 4;
         if (mvalA == 0) {
@@ -223,7 +224,6 @@ onemotime:
         if (over) {
             if (chkcarry && (mvalB &0xFF000000) == 0) {
                 oword |= 0b11000;
-                //omap[(i >> 2) - 1] |= 0b1000;
             }
             over = 0;
         }
@@ -234,10 +234,10 @@ onemotime:
         }
         if ((i & ((sizeof(val) * 2) - 1)) == 0) {
             if (oword != 0) {
-                *omap = oword;
+                *opp = oword;
                 oword = 0;
             }
-            omap += 1;
+            opp += 1;
         }
     }
     if (i > sp->l && !last) {
@@ -250,9 +250,9 @@ onemotime:
         goto onemotime;
     }
     if (oword != 0) {
-        *omap = oword;
-        omap += 1;
+        *opp = oword;
+        opp += 1;
     }
 
-    return ((i >> 2));
+    return (opp - omap);
 }
