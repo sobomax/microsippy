@@ -11,6 +11,3 @@ IF(WIFI_CONFIG)
   idf_build_set_property(COMPILE_DEFINITIONS "-DEXAMPLE_WIFI_SSID=\"$ENV{WIFI_SSID}\"" APPEND)
   idf_build_set_property(COMPILE_DEFINITIONS "-DEXAMPLE_WIFI_PASSWORD=\"$ENV{WIFI_PASSWORD}\"" APPEND)
 ENDIF(WIFI_CONFIG)
-
-list(REMOVE_ITEM compile_options "-Og")
-list(APPEND compile_options "-O2")
