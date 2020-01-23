@@ -11,7 +11,7 @@ IDF_TGT=${1:-"build"}
 
 if [ "${IDF_TGT}" = "build" ]
 then
-  echo "CONFIG_COMPILER_OPTIMIZATION_PERF=y" > sdkconfig.defaults
+  cp "${SRCDIR}/sdkconfig.release"  "${SRCDIR}/sdkconfig"
   mkdir -p "${BUILDDIR}"
   PATH="${PATH}:${IDF_TOOLCHAIN}/bin" cmake \
    -DWIFI_CONFIG=ON -B"${BUILDDIR}" -H"${SRCDIR}"
