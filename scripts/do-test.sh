@@ -48,7 +48,12 @@ grep -q 'Waiting for data' "${MLOG}"
 grep -q 'SIP/2.0 100 Trying' "${MLOG}"
 for tst in ${TESTS}
 do
+  EXPFILE="${BUILDDIR}/expect/${tst}"
   REQFILE="${BUILDDIR}/${tst}.req"
+  if [ ! -e "${EXPFILE}" ]
+  then
+    EXPFILE="${REQFILE}"
+  fi
   RESFILE="${BUILDDIR}/${tst}.res"
-  ${DIFF} "${REQFILE}" "${RESFILE}"
+  ${DIFF} "${EXPFILE}" "${RESFILE}"
 done
