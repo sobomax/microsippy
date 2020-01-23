@@ -188,10 +188,6 @@ usipy_sip_msg_parse_hdrs(struct usipy_msg *mp, uint64_t parsemask)
  *                [ 01100011  00000000  00000000  00000000 ]
  */
 
-#define OTBENT(x) { \
-  0b1111 << (x), 0b0011 << (x), 0b1100 << (x), 0b0110 << (x), (x) ? (0b00011000 << (x - 4)) : 0b0001 \
-}
-
 static const char *
 load_8_vals(const char *cp, size_t len, uint32_t vals[8])
 {
@@ -212,9 +208,8 @@ usipy_sip_msg_break_down(const struct usipy_str *sp, uint32_t *omap)
 {
     static const uint32_t mskB = ('\r' << 0) | ('\n' << 8) | ('\r' << 16) | ('\n' << 24);
     static const uint32_t mskA = ('\n' << 0) | ('\r' << 8) | ('\n' << 16) | ('\r' << 24);
-    static const uint32_t shtbl[8][5] = {
-      OTBENT(0),  OTBENT(4),  OTBENT(8),  OTBENT(12),
-      OTBENT(16), OTBENT(20), OTBENT(24), OTBENT(28)
+    static const uint32_t shtbl[8] = {
+      0b1111, 0b00011000, 0b0001, 0b0110, 0, 0b0011, 0b1100, 0b0000
     };
     uint32_t mvalA, mvalB, oword;
     int over;
@@ -228,29 +223,17 @@ usipy_sip_msg_break_down(const struct usipy_str *sp, uint32_t *omap)
         for (int n = 0; n < 8; n++) {
             mvalA = ibuf[n] ^ mskA;
             mvalB = ibuf[n] ^ mskB;
-            int chkover = 0, chkcarry = 0;
-            if (mvalA == 0) {
-                oword |= shtbl[n][0];
-            } else if ((mvalA & 0xFFFF0000) == 0) {
-                oword |= shtbl[n][1];
-                chkcarry = 1;
-            } else if ((mvalA & 0x0000FFFF) == 0) {
-                oword |= shtbl[n][2];
-                chkover = 1;
-            } else if ((mvalB & 0x00FFFF00) == 0) {
-                oword |= shtbl[n][3];
-                chkcarry = 1;
-                chkover = 1;
-            } else {
-                //oword |= 0b0000;
-                chkcarry = 1;
-                chkover = 1;
-            }
+            int cidx = ((mvalA != 0) & ((mvalB & 0x00FFFF00) != 0)) << 2 |
+              ((mvalA & 0xFFFF0000) != 0 ) << 1 | ((mvalA & 0x0000FFFF) != 0);
+            int chkover = (cidx >> 1) & 1, chkcarry = cidx & 1;
+            oword |= shtbl[cidx] << (n * 4);
             if (over) {
                 if (chkcarry && (mvalB & 0xFF000000) == 0) {
-                    oword |= shtbl[n][4];
                     if (n == 0) {
+                        oword |= shtbl[2] << (n * 4);
                         opp[-1] |= 1 << 31;
+                    } else {
+                        oword |= shtbl[1] << ((n - 1) * 4);
                     }
                 }
                 over = 0;
