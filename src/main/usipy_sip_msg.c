@@ -198,14 +198,8 @@ usipy_sip_msg_break_down(const struct usipy_str *sp, uint32_t *omap)
     static const uint32_t mskB = ('\r' << 0) | ('\n' << 8) | ('\r' << 16) | ('\n' << 24);
     static const uint32_t mskA = ('\n' << 0) | ('\r' << 8) | ('\n' << 16) | ('\r' << 24);
     static const uint32_t shtbl[8][5] = {
-      OTBENT(0),
-      OTBENT(4),
-      OTBENT(8),
-      OTBENT(12),
-      OTBENT(16),
-      OTBENT(20),
-      OTBENT(24),
-      OTBENT(28)
+      OTBENT(0),  OTBENT(4),  OTBENT(8),  OTBENT(12),
+      OTBENT(16), OTBENT(20), OTBENT(24), OTBENT(28)
     };
     uint32_t val, mvalA, mvalB, oword;
     int i, over, last;
@@ -221,16 +215,17 @@ onemotime:
         mvalA = val ^ mskA;
         mvalB = val ^ mskB;
         int chkover = 0, chkcarry = 0;
+        unsigned char tblidx = (i >> 2) & 0x7;
         if (mvalA == 0) {
-            oword |= shtbl[(i >> 2) & 0x7][0];
+            oword |= shtbl[tblidx][0];
         } else if ((mvalA & 0xFFFF0000) == 0) {
-            oword |= shtbl[(i >> 2) & 0x7][1];
+            oword |= shtbl[tblidx][1];
             chkcarry = 1;
-        } else if ((mvalA &0x0000FFFF) == 0) {
-            oword |= shtbl[(i >> 2) & 0x7][2];
+        } else if ((mvalA & 0x0000FFFF) == 0) {
+            oword |= shtbl[tblidx][2];
             chkover = 1;
-        } else if ((mvalB &0x00FFFF00) == 0) {
-            oword |= shtbl[(i >> 2) & 0x7][3];
+        } else if ((mvalB & 0x00FFFF00) == 0) {
+            oword |= shtbl[tblidx][3];
             chkcarry = 1;
             chkover = 1;
         } else {
@@ -239,13 +234,11 @@ onemotime:
             chkover = 1;
         }
         if (over) {
-            if (chkcarry && (mvalB &0xFF000000) == 0) {
-                if (((i >> 2) & 0x7) > 0) {
-                    oword |= shtbl[(i >> 2) & 0x7][4];
-                } else {
-                    oword |= shtbl[0][4];
+            if (chkcarry && (mvalB & 0xFF000000) == 0) {
+                oword |= shtbl[tblidx][4];
+                if (tblidx == 0) {
                     opp[-1] |= 1 << 31;
-                }   
+                }
             }
             over = 0;
         }
