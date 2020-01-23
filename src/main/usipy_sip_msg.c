@@ -244,7 +244,7 @@ onemotime:
                     oword |= shtbl[(i >> 2) & 0x7][4];
                 } else {
                     oword |= 0b0001;
-                    oword[-1] |= 1 << 31;
+                    opp[-1] |= 1 << 31;
                 }   
             }
             over = 0;
