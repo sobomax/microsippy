@@ -189,7 +189,7 @@ usipy_sip_msg_parse_hdrs(struct usipy_msg *mp, uint64_t parsemask)
  */
 
 #define OTBENT(x) { \
-  0b1111 << (x), 0b0011 << (x), 0b1100 << (x), 0b0110 << (x), 0b0011000 << (x - 4) \
+  0b1111 << (x), 0b0011 << (x), 0b1100 << (x), 0b0110 << (x), (x) ? (0b00011000 << (x - 4) : 0b0001) \
 }
 
 int
@@ -243,7 +243,7 @@ onemotime:
                 if (((i >> 2) & 0x7) > 0) {
                     oword |= shtbl[(i >> 2) & 0x7][4];
                 } else {
-                    oword |= 0b0001;
+                    oword |= shtbl[0][4];
                     opp[-1] |= 1 << 31;
                 }   
             }
