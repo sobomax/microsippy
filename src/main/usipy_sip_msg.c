@@ -208,7 +208,7 @@ usipy_sip_msg_break_down(const struct usipy_str *sp, uint32_t *omap)
 {
     static const uint32_t mskB = ('\r' << 0) | ('\n' << 8) | ('\r' << 16) | ('\n' << 24);
     static const uint32_t mskA = ('\n' << 0) | ('\r' << 8) | ('\n' << 16) | ('\r' << 24);
-    static const uint8_t shtbl[8] = {
+    static const uint32_t shtbl[8] = {
       0b1111, 0b00011000, 0b0001, 0b0110, 0, 0b0011, 0b1100, 0b0000
     };
     uint32_t mvalA, mvalB, oword;
@@ -226,14 +226,14 @@ usipy_sip_msg_break_down(const struct usipy_str *sp, uint32_t *omap)
             int cidx = ((mvalA != 0) & ((mvalB & 0x00FFFF00) != 0)) << 2 |
               ((mvalA & 0xFFFF0000) != 0 ) << 1 | ((mvalA & 0x0000FFFF) != 0);
             int chkover = (cidx >> 1) & 1, chkcarry = cidx & 1;
-            oword |= (uint32_t)(shtbl[cidx]) << (n * 4);
+            oword |= shtbl[cidx] << (n * 4);
             if (over) {
                 if (chkcarry && (mvalB & 0xFF000000) == 0) {
                     if (n == 0) {
-                        oword |= (uint32_t)(shtbl[2]) << (n * 4);
+                        oword |= shtbl[2] << (n * 4);
                         opp[-1] |= 1 << 31;
                     } else {
-                        oword |= (uint32_t)(shtbl[1]) << ((n - 1) * 4);
+                        oword |= shtbl[1] << ((n - 1) * 4);
                     }
                 }
                 over = 0;
