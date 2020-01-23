@@ -188,11 +188,25 @@ usipy_sip_msg_parse_hdrs(struct usipy_msg *mp, uint64_t parsemask)
  *                [ 01100011  00000000  00000000  00000000 ]
  */
 
+#define OTBENT(x) { \
+  0b1111 << (x), 0b0011 << (x), 0b1100 << (x), 0b0110 << (x), 0b0011000 << (x - 4) \
+}
+
 int
 usipy_sip_msg_break_down(const struct usipy_str *sp, uint32_t *omap)
 {
-    const uint32_t mskB = ('\r' << 0) | ('\n' << 8) | ('\r' << 16) | ('\n' << 24);
-    const uint32_t mskA = ('\n' << 0) | ('\r' << 8) | ('\n' << 16) | ('\r' << 24);
+    static const uint32_t mskB = ('\r' << 0) | ('\n' << 8) | ('\r' << 16) | ('\n' << 24);
+    static const uint32_t mskA = ('\n' << 0) | ('\r' << 8) | ('\n' << 16) | ('\r' << 24);
+    static const uint32_t shtbl[8][5] = {
+      OTBENT(0),
+      OTBENT(4),
+      OTBENT(8),
+      OTBENT(12),
+      OTBENT(16),
+      OTBENT(20),
+      OTBENT(24),
+      OTBENT(28)
+    };
     uint32_t val, mvalA, mvalB, oword;
     int i, over, last;
     uint32_t *opp = omap;
@@ -207,20 +221,16 @@ onemotime:
         mvalA = val ^ mskA;
         mvalB = val ^ mskB;
         int chkover = 0, chkcarry = 0;
-        if (oword & (1 << 28)) {
-            opp[-1] |= 0b0001;
-        }
-        oword <<= 4;
         if (mvalA == 0) {
-            oword |= 0b1111;
-        } else if ((mvalA & 0x0000FFFF) == 0) {
-            oword |= 0b0011;
+            oword |= shtbl[(i >> 2) & 0x7][0];
+        } else if ((mvalA & 0xFFFF0000) == 0) {
+            oword |= shtbl[(i >> 2) & 0x7][1];
             chkcarry = 1;
-        } else if ((mvalA &0xFFFF0000) == 0) {
-            oword |= 0b1100;
+        } else if ((mvalA &0x0000FFFF) == 0) {
+            oword |= shtbl[(i >> 2) & 0x7][2];
             chkover = 1;
         } else if ((mvalB &0x00FFFF00) == 0) {
-            oword |= 0b0110;
+            oword |= shtbl[(i >> 2) & 0x7][3];
             chkcarry = 1;
             chkover = 1;
         } else {
@@ -230,7 +240,12 @@ onemotime:
         }
         if (over) {
             if (chkcarry && (mvalB &0xFF000000) == 0) {
-                oword |= 0b11000;
+                if (((i >> 2) & 0x7) > 0) {
+                    oword |= shtbl[(i >> 2) & 0x7][4];
+                } else {
+                    oword |= 0b0001;
+                    oword[-1] |= 1 << 31;
+                }   
             }
             over = 0;
         }
