@@ -183,7 +183,7 @@ usipy_sip_msg_parse_hdrs(struct usipy_msg *mp, uint64_t parsemask)
 
 /*
  * Input string: "foo\r\nbar\r\nfoo\r\nbar\r\nfoo\r\nbar\r\nfoo\r\nbar\r\n"
- * Output bytes |   0......7  8......15 16.....23 24.....31  
+ * Output bytes |   31.....24 23.....16 15.....8  7......0  
  *                [ 00011000  11000110  00110001  10001100 ]
  *                [ 01100011  00000000  00000000  00000000 ]
  */
@@ -250,8 +250,8 @@ onemotime:
     if (i > sp->l && !last) {
         val = 0;
         for (i = i - sizeof(val); i < sp->l; i++) {
-          val <<= 8;
-          val |= sp->s.ro[i];
+          val >>= 8;
+          val |= (sp->s.ro[i] << 24);
         }
         last = 1;
         goto onemotime;
