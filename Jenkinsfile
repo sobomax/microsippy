@@ -2,6 +2,7 @@ node('microsippy') {
   timestamps {
     def builderHome = env.WORKSPACE
     def IDF_PATH = "${builderHome}/ESP8266_RTOS_SDK"
+    def P_IDF_PATH = "${builderHome}/ESP8266_RTOS_SDK.patched"
     def IDF_TOOLCHAIN = env.IDF_TOOLCHAIN
     stage('Prepare/Checkout') { // for display purposes
       dir('microsippy') {
@@ -17,6 +18,13 @@ node('microsippy') {
 
     stage('Clear Workspace') {
       sh "rm -rf ${builderHome}/microsippy/src/build"
+    }
+
+    stage('Merge') {
+      sh "git -C ${IDF_PATH} remote remote patched || true"
+      sh "git -C ${IDF_PATH} remote add -f patched ${P_IDF_PATH}"
+      sh "git -C ${IDF_PATH} fetch patched"
+      sh "git -C ${IDF_PATH} merge --m 'Merge our patches.' patched/master"
     }
 
     stage('Build') {
