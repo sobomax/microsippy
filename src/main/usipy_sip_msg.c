@@ -192,6 +192,21 @@ usipy_sip_msg_parse_hdrs(struct usipy_msg *mp, uint64_t parsemask)
   0b1111 << (x), 0b0011 << (x), 0b1100 << (x), 0b0110 << (x), (x) ? (0b00011000 << (x - 4)) : 0b0001 \
 }
 
+static const char *
+load_8_vals(const char *cp, size_t len, uint32_t vals[8])
+{
+    len = (len > 32) ? 32 : len;
+    memcpy(vals, cp, len);
+    cp += len;
+    if (len < 32) {
+        memset(((char *)vals) + len, '\0', 32 - len);
+    }
+    for (char n = 0; n < 8; n++) {
+        vals[n] = ntohl(vals[n]);
+    }
+    return (cp);
+}
+
 int
 usipy_sip_msg_break_down(const struct usipy_str *sp, uint32_t *omap)
 {
@@ -201,71 +216,55 @@ usipy_sip_msg_break_down(const struct usipy_str *sp, uint32_t *omap)
       OTBENT(0),  OTBENT(4),  OTBENT(8),  OTBENT(12),
       OTBENT(16), OTBENT(20), OTBENT(24), OTBENT(28)
     };
-    uint32_t val, mvalA, mvalB, oword;
-    int i, over, last;
+    uint32_t mvalA, mvalB, oword;
+    int over;
     uint32_t *opp = omap;
+    uint32_t ibuf[8];
 
     over = 0;
-    last = 0;
     oword = 0;
-    for (i = 0; i < sp->l; i += sizeof(val)) {
-        memcpy(&val, sp->s.ro + i, sizeof(val));
-        val = ntohl(val);
-onemotime:
-        mvalA = val ^ mskA;
-        mvalB = val ^ mskB;
-        int chkover = 0, chkcarry = 0;
-        unsigned char tblidx = (i >> 2) & 0x7;
-        if (mvalA == 0) {
-            oword |= shtbl[tblidx][0];
-        } else if ((mvalA & 0xFFFF0000) == 0) {
-            oword |= shtbl[tblidx][1];
-            chkcarry = 1;
-        } else if ((mvalA & 0x0000FFFF) == 0) {
-            oword |= shtbl[tblidx][2];
-            chkover = 1;
-        } else if ((mvalB & 0x00FFFF00) == 0) {
-            oword |= shtbl[tblidx][3];
-            chkcarry = 1;
-            chkover = 1;
-        } else {
-            //oword |= 0b0000;
-            chkcarry = 1;
-            chkover = 1;
-        }
-        if (over) {
-            if (chkcarry && (mvalB & 0xFF000000) == 0) {
-                oword |= shtbl[tblidx][4];
-                if (tblidx == 0) {
-                    opp[-1] |= 1 << 31;
+    for (const char *cp = sp->s.ro, *ecp = sp->s.ro + sp->l; cp < ecp;) {
+        cp = load_8_vals(cp, ecp - cp, ibuf);
+        for (char n = 0; n < 8; n++) {
+            mvalA = ibuf[n] ^ mskA;
+            mvalB = ibuf[n] ^ mskB;
+            int chkover = 0, chkcarry = 0;
+            if (mvalA == 0) {
+                oword |= shtbl[n][0];
+            } else if ((mvalA & 0xFFFF0000) == 0) {
+                oword |= shtbl[n][1];
+                chkcarry = 1;
+            } else if ((mvalA & 0x0000FFFF) == 0) {
+                oword |= shtbl[n][2];
+                chkover = 1;
+            } else if ((mvalB & 0x00FFFF00) == 0) {
+                oword |= shtbl[n][3];
+                chkcarry = 1;
+                chkover = 1;
+            } else {
+                //oword |= 0b0000;
+                chkcarry = 1;
+                chkover = 1;
+            }
+            if (over) {
+                if (chkcarry && (mvalB & 0xFF000000) == 0) {
+                    oword |= shtbl[n][4];
+                    if (n == 0) {
+                        opp[-1] |= 1 << 31;
+                    }
+                }
+                over = 0;
+            }
+            if (chkover) {
+                if ((mvalB & 0x000000FF) == 0) {
+                    over = 1;
                 }
             }
-            over = 0;
         }
-        if (chkover) {
-            if ((mvalB & 0x000000FF) == 0) {
-                over = 1;
-            }
+        if (oword != 0) {
+            *opp = oword;
+            oword = 0;
         }
-        if ((i & 0x1F) == 0x1C) {
-            if (oword != 0) {
-                *opp = oword;
-                oword = 0;
-            }
-            opp += 1;
-        }
-    }
-    if (i > sp->l && !last) {
-        val = 0;
-        for (i = i - sizeof(val); i < sp->l; i++) {
-          val >>= 8;
-          val |= (sp->s.ro[i] << 24);
-        }
-        last = 1;
-        goto onemotime;
-    }
-    if (oword != 0) {
-        *opp = oword;
         opp += 1;
     }
 
