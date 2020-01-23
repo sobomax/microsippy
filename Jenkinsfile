@@ -21,7 +21,7 @@ node('microsippy') {
     }
 
     stage('Merge') {
-      sh "git -C ${IDF_PATH} remote remote patched || true"
+      sh "git -C ${IDF_PATH} remote remove patched || true"
       sh "git -C ${IDF_PATH} remote add -f patched ${P_IDF_PATH}"
       sh "git -C ${IDF_PATH} fetch patched"
       sh "git -C ${IDF_PATH} merge --m 'Merge our patches.' patched/master"
