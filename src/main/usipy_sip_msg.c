@@ -201,7 +201,7 @@ load_8_vals(const char *cp, size_t len, uint32_t vals[8])
     if (len < 32) {
         memset(((char *)vals) + len, '\0', 32 - len);
     }
-    for (char n = 0; n < 8; n++) {
+    for (int n = 0; n < 8; n++) {
         vals[n] = ntohl(vals[n]);
     }
     return (cp);
@@ -225,7 +225,7 @@ usipy_sip_msg_break_down(const struct usipy_str *sp, uint32_t *omap)
     oword = 0;
     for (const char *cp = sp->s.ro, *ecp = sp->s.ro + sp->l; cp < ecp;) {
         cp = load_8_vals(cp, ecp - cp, ibuf);
-        for (char n = 0; n < 8; n++) {
+        for (int n = 0; n < 8; n++) {
             mvalA = ibuf[n] ^ mskA;
             mvalB = ibuf[n] ^ mskB;
             int chkover = 0, chkcarry = 0;
