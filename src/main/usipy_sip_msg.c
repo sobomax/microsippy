@@ -181,11 +181,18 @@ usipy_sip_msg_parse_hdrs(struct usipy_msg *mp, uint64_t parsemask)
 
 #include <netinet/in.h>
 
+/*
+ * Input string: "foo\r\nbar\r\nfoo\r\nbar\r\nfoo\r\nbar\r\nfoo\r\nbar\r\n"
+ * Output bytes |   0......7  8......15 16.....23 24.....31  
+ *                [ 00011000  11000110  00110001  10001100 ]
+ *                [ 01100011  00000000  00000000  00000000 ]
+ */
+
 int
 usipy_sip_msg_break_down(const struct usipy_str *sp, uint32_t *omap)
 {
-    const uint32_t mskA = ('\r' << 0) | ('\n' << 8) | ('\r' << 16) | ('\n' << 24);
-    const uint32_t mskB = ('\n' << 0) | ('\r' << 8) | ('\n' << 16) | ('\r' << 24);
+    const uint32_t mskB = ('\r' << 0) | ('\n' << 8) | ('\r' << 16) | ('\n' << 24);
+    const uint32_t mskA = ('\n' << 0) | ('\r' << 8) | ('\n' << 16) | ('\r' << 24);
     uint32_t val, mvalA, mvalB, oword;
     int i, over, last;
     uint32_t *opp = omap;
@@ -195,7 +202,7 @@ usipy_sip_msg_break_down(const struct usipy_str *sp, uint32_t *omap)
     oword = 0;
     for (i = 0; i < sp->l; i += sizeof(val)) {
         memcpy(&val, sp->s.ro + i, sizeof(val));
-        //val = le32toh(val);
+        val = ntohl(val);
 onemotime:
         mvalA = val ^ mskA;
         mvalB = val ^ mskB;
