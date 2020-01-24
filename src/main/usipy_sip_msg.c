@@ -245,6 +245,8 @@ onemotime:
             if (chkcarry && (mvalB & 0xFF000000) == 0) {
                 if (cshift == 0) {
                     opp[-1] |= 1 << 31;
+                } else {
+                    oword |= 0b0001 << cshift;
                 }
             }
             over = 0;
