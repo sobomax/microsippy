@@ -42,7 +42,7 @@ usipy_sip_msg_ctor_fromwire(const char *buf, size_t len,
     if (rp == NULL) {
         goto e0;
     }
-    allocend = rp + alloc_len;
+    allocend = ((const char *)rp) + alloc_len;
     memset(rp, '\0', sizeof(struct usipy_msg));
     memset(rp->_storage + len, '\0', allocend - rp->_storage - len);
     memcpy(rp->_storage, buf, len);
