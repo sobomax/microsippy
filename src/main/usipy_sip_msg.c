@@ -30,14 +30,15 @@ usipy_sip_msg_ctor_fromwire(const char *buf, size_t len,
   struct usipy_msg_parse_err *perrp)
 {
     struct usipy_msg *rp;
-    size_t alloc_len, hf_prealloclen;
+    size_t alloc_len, hf_prealloclen, crlf_map_prealloclen;
     uintptr_t ralgn;
     const char *allocend;
 
     hf_prealloclen = len < (sizeof(struct usipy_sip_hdr) * USIPY_HFS_NMIN) ?
       sizeof(struct usipy_sip_hdr) * USIPY_HFS_NMIN : USIPY_ALIGNED_SIZE(len);
+    crlf_map_prealloclen = USIPY_ALIGNED_SIZE(CRLF_MAP_SIZE(len, uint32_t));
     alloc_len = sizeof(struct usipy_msg) + USIPY_ALIGNED_SIZE(len) +
-      hf_prealloclen + USIPY_ALIGNED_SIZE(CRLF_MAP_SIZE(len, uint32_t));
+      hf_prealloclen + crlf_map_prealloclen;
     rp = malloc(alloc_len);
     if (rp == NULL) {
         goto e0;
@@ -49,6 +50,8 @@ usipy_sip_msg_ctor_fromwire(const char *buf, size_t len,
     rp->onwire.s.rw = rp->_storage;
     rp->onwire.l = len;
     rp->heap.first = (void *)(rp->_storage + USIPY_ALIGNED_SIZE(len));
+    rp->_crlf_map = (uint32_t *)(rp->heap.first);
+    rp->heap.first += crlf_map_prealloclen;
     rp->hdrs = (struct usipy_sip_hdr *)(rp->heap.first);
     int nempty = 0;
     struct usipy_sip_hdr *shp = NULL;
