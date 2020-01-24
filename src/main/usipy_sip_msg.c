@@ -253,15 +253,21 @@ onemotime:
         }
     }
     if (i > sp->l && !last) {
-        val = 0;
-        for (i = i - sizeof(val); i < sp->l; i++) {
-          val >>= 8;
-          val |= (sp->s.ro[i] << 24);
+        const char *cp = sp->s.ro + i - sizeof(val);
+        switch (sizeof(val) - (i - sp->l)) {
+            val = (uint32_t)(cp[0]);
+            break;
+        case 2:
+            val = (uint32_t)(cp[0]) | (8 << cp[1]);
+            break;
+        case 3:
+            val = (uint32_t)(cp[0]) | (8 << cp[1]) | (16 << cp[2]);
+            break;
         }
         last = 1;
         goto onemotime;
     }
-    if (oword != 0) {
+    if (cshift != 0 && oword != 0) {
         *opp = oword;
         opp += 1;
     }
