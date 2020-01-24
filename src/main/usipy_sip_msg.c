@@ -52,6 +52,7 @@ usipy_sip_msg_ctor_fromwire(const char *buf, size_t len,
     rp->heap.first = (void *)(rp->_storage + USIPY_ALIGNED_SIZE(len));
     rp->_crlf_map = (uint32_t *)(rp->heap.first);
     rp->heap.first += crlf_map_prealloclen;
+    //usipy_sip_msg_break_down(&rp->onwire, rp->_crlf_map);
     rp->hdrs = (struct usipy_sip_hdr *)(rp->heap.first);
     int nempty = 0;
     struct usipy_sip_hdr *shp = NULL;
@@ -199,8 +200,8 @@ usipy_sip_msg_parse_hdrs(struct usipy_msg *mp, uint64_t parsemask)
 /*
  * Input string: "foo\r\nbar\r\nfoo\r\nbar\r\nfoo\r\nbar\r\nfoo\r\nbar\r\n"
  * Output bytes |   0......7  8......15 16.....23 24.....31
- *                [ 00011000  11000110  00110001  10001100 ]
- *                [ 01100011  00000000  00000000  00000000 ]
+ *                [ 00010000  10000100  00100001  00001000 ]
+ *                [ 01000010  00000000  00000000  00000000 ]
  */
 
 int
@@ -224,15 +225,15 @@ onemotime:
         mvalB = val ^ mskB;
         int chkover = 0, chkcarry = 0;
         if (mvalA == 0) {
-            oword |= 0b1111 << cshift;
+            oword |= 0b0101 << cshift;
         } else if ((mvalA & 0xFFFF0000) == 0) {
-            oword |= 0b0011 << cshift;
+            oword |= 0b0001 << cshift;
             chkcarry = 1;
         } else if ((mvalA &0x0000FFFF) == 0) {
-            oword |= 0b1100 << cshift;
+            oword |= 0b0100 << cshift;
             chkover = 1;
         } else if ((mvalB &0x00FFFF00) == 0) {
-            oword |= 0b0110 << cshift;
+            oword |= 0b0010 << cshift;
             chkcarry = 1;
             chkover = 1;
         } else {
@@ -243,10 +244,7 @@ onemotime:
         if (over) {
             if (chkcarry && (mvalB & 0xFF000000) == 0) {
                 if (cshift == 0) {
-                    oword |= 0b0001;
                     opp[-1] |= 1 << 31;
-                } else {
-                    oword |= 0b00011000 << (cshift - 4);
                 }
             }
             over = 0;
