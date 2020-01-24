@@ -57,3 +57,4 @@ do
   RESFILE="${BUILDDIR}/${tst}.res"
   ${DIFF} "${EXPFILE}" "${RESFILE}"
 done
+grep -w usipy_sip_msg_break_down "${MLOG}"
