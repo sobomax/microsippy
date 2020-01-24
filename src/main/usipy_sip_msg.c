@@ -23,25 +23,33 @@
   ) * sizeof(store_t) \
 )
 
+#define USIPY_HFS_NMIN (12)
+
 struct usipy_msg *
 usipy_sip_msg_ctor_fromwire(const char *buf, size_t len,
   struct usipy_msg_parse_err *perrp)
 {
     struct usipy_msg *rp;
-    size_t alloc_len;
+    size_t alloc_len, hf_prealloclen;
     uintptr_t ralgn;
+    const char *allocend;
 
-    alloc_len = sizeof(struct usipy_msg) + USIPY_ALIGNED_SIZE(len * 2) + \
-      USIPY_ALIGNED_SIZE(CRLF_MAP_SIZE(len, uint32_t));
+    hf_prealloclen = len < (sizeof(struct usipy_sip_hdr) * USIPY_HFS_NMIN) ?
+      sizeof(struct usipy_sip_hdr) * USIPY_HFS_NMIN : USIPY_ALIGNED_SIZE(len);
+    alloc_len = sizeof(struct usipy_msg) + USIPY_ALIGNED_SIZE(len) +
+      hf_prealloclen + USIPY_ALIGNED_SIZE(CRLF_MAP_SIZE(len, uint32_t));
     rp = malloc(alloc_len);
     if (rp == NULL) {
         goto e0;
     }
-    memset(rp, '\0', alloc_len);
+    allocend = ((const char *)rp) + alloc_len;
+    memset(rp, '\0', sizeof(struct usipy_msg));
+    memset(rp->_storage + len, '\0', allocend - rp->_storage - len);
     memcpy(rp->_storage, buf, len);
     rp->onwire.s.rw = rp->_storage;
     rp->onwire.l = len;
-    rp->hdrs = (struct usipy_sip_hdr *)(rp->_storage + USIPY_ALIGNED_SIZE(len));
+    rp->heap.first = (void *)(rp->_storage + USIPY_ALIGNED_SIZE(len));
+    rp->hdrs = (struct usipy_sip_hdr *)(rp->heap.first);
     int nempty = 0;
     struct usipy_sip_hdr *shp = NULL;
     for (struct usipy_str cp = rp->onwire; cp.l > 0;) {
