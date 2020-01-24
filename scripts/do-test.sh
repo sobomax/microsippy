@@ -57,4 +57,7 @@ do
   RESFILE="${BUILDDIR}/${tst}.res"
   ${DIFF} "${EXPFILE}" "${RESFILE}"
 done
-grep -w usipy_sip_msg_break_down "${MLOG}"
+for s in "usipy_sip_msg_break_down" "heap remaining"
+do
+  grep -w "${s}" "${MLOG}"
+done
