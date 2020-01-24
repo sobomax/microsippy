@@ -191,7 +191,8 @@ usipy_sip_msg_parse_hdrs(struct usipy_msg *mp, uint64_t parsemask)
 static const char *
 load_8_vals(const char *cp, size_t len, uint32_t vals[8])
 {
-    char nwords, bleft, n;
+    char nwords, bleft;
+    int n;
 
     len = (len > 32) ? 32 : len;
     nwords = len >> 3;
