@@ -210,10 +210,10 @@ onemotime:
         int chkover = 0, chkcarry = 0;
         if (mvalA == 0) {
             oword |= 0b1111 << cshift;
-        } else if ((mvalA & 0x0000FFFF) == 0) {
+        } else if ((mvalA & 0xFFFF0000) == 0) {
             oword |= 0b0011 << cshift;
             chkcarry = 1;
-        } else if ((mvalA &0xFFFF0000) == 0) {
+        } else if ((mvalA &0x0000FFFF) == 0) {
             oword |= 0b1100 << cshift;
             chkover = 1;
         } else if ((mvalB &0x00FFFF00) == 0) {
@@ -228,7 +228,7 @@ onemotime:
         if (over) {
             if (chkcarry && (mvalB & 0xFF000000) == 0) {
                 if (cshift == 0) {
-                    oword |= 0b1000;
+                    oword |= 0b0001;
                     opp[-1] |= 1 << 31;
                 } else {
                     oword |= 0b00011000 << (cshift - 4);
