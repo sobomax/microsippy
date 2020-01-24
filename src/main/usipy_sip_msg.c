@@ -191,15 +191,42 @@ usipy_sip_msg_parse_hdrs(struct usipy_msg *mp, uint64_t parsemask)
 static const char *
 load_8_vals(const char *cp, size_t len, uint32_t vals[8])
 {
+    char nwords, bleft, n;
+
     len = (len > 32) ? 32 : len;
-    memcpy(vals, cp, len);
-    cp += len;
-    if (len < 32) {
-        memset(((char *)vals) + len, '\0', 32 - len);
+    nwords = len >> 3;
+
+    for (n = 0; n < nwords; n++) {
+        vals[n] = ntohl(*(uint32_t *)cp);
+        cp += 4;
+        len -= 4;
     }
-    for (int n = 0; n < 8; n++) {
-        vals[n] = ntohl(vals[n]);
+    if (nwords == 8)
+        goto done;
+
+    switch(len) {
+        case 1:
+            vals[n] = (uint32_t)(cp[0]);
+            cp += 1;
+            n += 1;
+            break;
+        case 2:
+            vals[n] = (uint32_t)(cp[0]) | (8 << cp[1]);
+            cp += 2;
+            n += 1;
+            break;
+        case 3:
+            vals[n] = (uint32_t)(cp[0]) | (8 << cp[1]) | (16 << cp[2]);
+            cp += 3;
+            n += 1;
+            break;
+        default:
+            break;
     }
+    for (; n < 8; n++) {
+        vals[n] = 0;
+    }
+done:
     return (cp);
 }
 
