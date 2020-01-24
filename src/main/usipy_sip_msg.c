@@ -16,6 +16,13 @@
 #include "usipy_sip_method_db.h"
 #include "usipy_sip_hdr_cseq.h"
 
+#define CRLF_MAP_SIZE(splen, store_t) ( \
+  ( \
+   (splen / (sizeof(store_t) * 8)) + \
+   ((splen & ((sizeof(store_t) * 8) - 1)) != 0) \
+  ) * sizeof(store_t) \
+)
+
 struct usipy_msg *
 usipy_sip_msg_ctor_fromwire(const char *buf, size_t len,
   struct usipy_msg_parse_err *perrp)
@@ -24,7 +31,8 @@ usipy_sip_msg_ctor_fromwire(const char *buf, size_t len,
     size_t alloc_len;
     uintptr_t ralgn;
 
-    alloc_len = sizeof(struct usipy_msg) + (len * 2);
+    alloc_len = sizeof(struct usipy_msg) + USIPY_ALIGNED_SIZE(len * 2) + \
+      USIPY_ALIGNED_SIZE(CRLF_MAP_SIZE(len, uint32_t));
     rp = malloc(alloc_len);
     if (rp == NULL) {
         goto e0;
@@ -33,11 +41,7 @@ usipy_sip_msg_ctor_fromwire(const char *buf, size_t len,
     memcpy(rp->_storage, buf, len);
     rp->onwire.s.rw = rp->_storage;
     rp->onwire.l = len;
-    rp->hdrs = (struct usipy_sip_hdr *)(rp->_storage + len);
-    ralgn = USIPY_REALIGN((uintptr_t)rp->hdrs);
-    if ((void *)ralgn != rp->hdrs) {
-        rp->hdrs = (void *)(ralgn + (1 << USIPY_MEM_ALIGNOF));
-    }
+    rp->hdrs = (struct usipy_sip_hdr *)(rp->_storage + USIPY_ALIGNED_SIZE(len));
     int nempty = 0;
     struct usipy_sip_hdr *shp = NULL;
     for (struct usipy_str cp = rp->onwire; cp.l > 0;) {
