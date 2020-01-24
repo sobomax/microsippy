@@ -246,7 +246,7 @@ onemotime:
                 if (cshift == 0) {
                     opp[-1] |= 1 << 31;
                 } else {
-                    oword |= 0b0001 << cshift;
+                    oword |= 0b00001000 << (cshift - 4);
                 }
             }
             over = 0;
