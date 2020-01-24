@@ -194,10 +194,10 @@ load_8_vals(const char *cp, size_t len, uint32_t vals[8])
     char nwords;
     int n;
 
+    ESP_LOGI("foobar", "load_8_vals(%p, %d, %p)", cp, len, vals);
     len = (len > 32) ? 32 : len;
     nwords = len >> 3;
 
-    ESP_LOGI("foobar", "load_8_vals(%p, %d, %p)", cp, len, vals);
     for (n = 0; n < nwords; n++) {
         vals[n] = ntohl(*(uint32_t *)cp);
         cp += 4;
