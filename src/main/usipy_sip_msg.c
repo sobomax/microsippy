@@ -355,7 +355,7 @@ doout:
     if (!last && cshift > 0) {
         last = 1;
         goto doout;
-    |
+    }
 
     return (opp - omap);
 }
