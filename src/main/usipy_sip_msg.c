@@ -34,8 +34,8 @@ usipy_sip_msg_ctor_fromwire(const char *buf, size_t len,
     uintptr_t ralgn;
     const char *allocend;
 
-    hf_prealloclen = len < (sizeof(struct usipy_sip_hdr) * USIPY_HFS_NMIN) ?
-      sizeof(struct usipy_sip_hdr) * USIPY_HFS_NMIN : USIPY_ALIGNED_SIZE(len);
+    hf_prealloclen = USIPY_ALIGNED_SIZE(len < (sizeof(struct usipy_sip_hdr) * USIPY_HFS_NMIN) ?
+      sizeof(struct usipy_sip_hdr) * USIPY_HFS_NMIN : len);
     crlf_map_prealloclen = USIPY_ALIGNED_SIZE(CRLF_MAP_SIZE(len, uint32_t));
     alloc_len = sizeof(struct usipy_msg) + USIPY_ALIGNED_SIZE(len) +
       hf_prealloclen + crlf_map_prealloclen;
