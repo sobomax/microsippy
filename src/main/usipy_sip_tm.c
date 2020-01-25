@@ -155,8 +155,9 @@ usipy_sip_tm_task(void *pvParameters)
                     int cidx = 0, fset;
                     while ((fset = ffs(cval)) != 0) {
                         cidx += fset;
-                        ESP_LOGI(cfp->log_tag, "    CRLF @ %d", (i * sizeof(tmpbub[0]) * 8) + cidx - 1);
-                        cval >>= fset;
+                        ESP_LOGI(cfp->log_tag, "    fset = %d, CRLF @ %d", fset,
+                          (i * sizeof(tmpbub[0]) * 8) + cidx - 1);
+                        cval = cval >> fset;
                     }
                 }
                 bts = timer1_read();
