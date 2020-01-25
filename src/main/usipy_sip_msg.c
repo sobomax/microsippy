@@ -204,7 +204,6 @@ usipy_sip_msg_parse_hdrs(struct usipy_msg *mp, uint64_t parsemask)
  *                [ 01000010  00000000  00000000  00000000 ]
  */
 
-#if 0
 int
 usipy_sip_msg_break_down(const struct usipy_str *sp, uint32_t *omap)
 {
@@ -290,73 +289,3 @@ onemotime:
 
     return (opp - omap);
 }
-#else
-int
-usipy_sip_msg_break_down(const struct usipy_str *sp, uint32_t *omap)
-{
-    static const uint32_t mskA = ('\r' << 0) | ('\r' << 8) | ('\r' << 16) | ('\r' << 24);
-    static const uint32_t mskB = ('\n' << 0) | ('\n' << 8) | ('\n' << 16) | ('\n' << 24);
-    uint32_t val, mvalA, mvalB, oword[2];
-    int i, carry, last;
-    uint32_t *opp = omap;
-
-    carry = 0;
-    last = 0;
-    oword[0] = oword[1] = 0;
-    char cshift = 0;
-    for (i = 0; i < sp->l; i += sizeof(val)) {
-        memcpy(&val, sp->s.ro + i, sizeof(val));
-        val = ntohl(val);
-onemotime:
-        mvalA = (val ^ mskA);
-        mvalA = ((mvalA & 0xFF000000) == 0) | ((mvalA & 0x00FF0000) == 0) << 1 | 
-          ((mvalA & 0x0000FF00) == 0) << 2 | ((mvalA & 0x000000FF) == 0) << 3;
-        oword[0] |= mvalA << cshift;
-        mvalB = (val ^ mskB);
-        mvalB = ((mvalB & 0xFF000000) == 0) | ((mvalB & 0x00FF0000) == 0) << 1 | 
-          ((mvalB & 0x0000FF00) == 0) << 2 | ((mvalB & 0x000000FF) == 0) << 3;
-        oword[1] |= mvalB << cshift;
-        if (cshift == 28 || last) {
-doout:
-            //ESP_LOGI("foobar", "oword[0] = %u, oword[1] = %u", oword[0], oword[1]);
-            val = oword[0] & (oword[1] >> 1);
-            if (carry) {
-                if (oword[1] & 1) {
-                    opp[-1] |= 1 << 31;
-                }
-                carry = 0;
-            }
-            if (val != 0) {
-                *opp = val & ~(1 << 31);
-                carry = (val & (1 << 31)) != 0;
-            }
-            oword[0] = oword[1] = 0;
-            opp += 1;
-            cshift = 0;
-        } else {
-            cshift += 4;
-        }
-    }
-    if (i > sp->l && !last) {
-        const char *cp = sp->s.ro + i - sizeof(val);
-        switch (sizeof(val) - (i - sp->l)) {
-            val = (uint32_t)(cp[0]);
-            break;
-        case 2:
-            val = (uint32_t)(cp[0]) | (8 << cp[1]);
-            break;
-        case 3:
-            val = (uint32_t)(cp[0]) | (8 << cp[1]) | (16 << cp[2]);
-            break;
-        }
-        last = 1;
-        goto onemotime;
-    }
-    if (!last && cshift > 0) {
-        last = 1;
-        goto doout;
-    |
-
-    return (opp - omap);
-}
-#endif
