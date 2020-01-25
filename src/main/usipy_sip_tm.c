@@ -150,7 +150,14 @@ usipy_sip_tm_task(void *pvParameters)
                 ESP_LOGI(cfp->log_tag, "usipy_sip_msg_break_down() = %d: took %u cycles",
                   err, tsdiff(bts, ets));
                 for (int i = 0; i < err; i++) {
-                    ESP_LOGI(cfp->log_tag, "    tmpbub[%d] = %u", i, tmpbub[i]);
+                    uint32_t cval = tmpbub[i]);
+                    ESP_LOGI(cfp->log_tag, "    tmpbub[%d] = %u", i, cval);
+                    int cidx = 0, fset;
+                    while ((fset = ffs(cval)) != 0) {
+                        cidx += fset;
+                        ESP_LOGI(cfp->log_tag, "    CRLF @ %d", (i * sizeof(tmpbub[0]) * 8) + cidx - 1);
+                        cval >>= fset;
+                    }
                 }
                 bts = timer1_read();
                 struct usipy_msg *msg = usipy_sip_msg_ctor_fromwire(rx_buffer, len, &cerror);
