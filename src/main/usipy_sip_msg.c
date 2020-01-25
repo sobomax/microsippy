@@ -317,7 +317,8 @@ onemotime:
           ((mvalB & 0x0000FF00) == 0) << 2 | ((mvalB & 0x000000FF) == 0) << 3;
         oword[1] |= mvalB << cshift;
         if (cshift == 28 || last) {
-            ESP_LOGI("foobar", "oword[0] = %u, oword[1] = %u", oword[0], oword[1]);
+doout:
+            //ESP_LOGI("foobar", "oword[0] = %u, oword[1] = %u", oword[0], oword[1]);
             val = oword[0] & (oword[1] >> 1);
             if (carry) {
                 if (oword[1] & 1) {
@@ -351,6 +352,10 @@ onemotime:
         last = 1;
         goto onemotime;
     }
+    if (!last && cshift > 0) {
+        last = 1;
+        goto doout;
+    |
 
     return (opp - omap);
 }
