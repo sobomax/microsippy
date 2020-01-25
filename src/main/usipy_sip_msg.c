@@ -317,6 +317,7 @@ onemotime:
           ((mvalB & 0x0000FF00) == 0) << 2 | ((mvalB & 0x000000FF) == 0) << 3;
         oword[1] |= mvalB << cshift;
         if (cshift == 28 || last) {
+            ESP_LOGI(log_tag, "oword[0] = %u, oword[1] = %u", oword[0], oword[1]);
             val = oword[0] & (oword[1] >> 1);
             if (carry) {
                 if (oword[1] & 1) {
