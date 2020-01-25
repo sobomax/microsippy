@@ -153,7 +153,7 @@ usipy_sip_tm_task(void *pvParameters)
                     uint32_t cval = tmpbub[i]);
                     ESP_LOGI(cfp->log_tag, "    tmpbub[%d] = %u", i, cval);
                     int cidx = 0, fset;
-                    while ((fset = ffs(cval)) != 0) {
+                    while (cval != 0 && ((fset = ffs(cval)) != 0) && (cidx < sizeof(tmpbub[0]) * 8)) {
                         cidx += fset;
                         ESP_LOGI(cfp->log_tag, "    fset = %d, CRLF @ %d", fset,
                           (i * sizeof(tmpbub[0]) * 8) + cidx - 1);
