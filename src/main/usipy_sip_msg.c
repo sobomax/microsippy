@@ -309,11 +309,11 @@ usipy_sip_msg_break_down(const struct usipy_str *sp, uint32_t *omap)
         val = ntohl(val);
 onemotime:
         mvalA = (val ^ mskA);
-        mvalA |= ((mvalA & 0xFF000000) == 0) | ((mvalA & 0x00FF0000) == 0) << 1 | 
+        mvalA = ((mvalA & 0xFF000000) == 0) | ((mvalA & 0x00FF0000) == 0) << 1 | 
           ((mvalA & 0x0000FF00) == 0) << 2 | ((mvalA & 0x000000FF) == 0) << 3;
         oword[0] |= mvalA << cshift;
         mvalB = (val ^ mskB);
-        mvalB |= ((mvalB & 0xFF000000) == 0) | ((mvalB & 0x00FF0000) == 0) << 1 | 
+        mvalB = ((mvalB & 0xFF000000) == 0) | ((mvalB & 0x00FF0000) == 0) << 1 | 
           ((mvalB & 0x0000FF00) == 0) << 2 | ((mvalB & 0x000000FF) == 0) << 3;
         oword[1] |= mvalB << cshift;
         if (cshift == 28 || last) {
