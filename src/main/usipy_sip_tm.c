@@ -146,7 +146,7 @@ usipy_sip_tm_task(void *pvParameters)
                 memset(tmpbub, '\0', sizeof(tmpbub));
                 struct usipy_sip_msg_iterator mit;
                 memset(&mit, '\0', sizeof(mit));
-                mit.sp = &msg_onwire;
+                mit.msg_onwire = {.s.ro = rx_buffer, .l = len};
                 bts = timer1_read();
                 err = usipy_sip_msg_break_down(&mit, tmpbub);
                 ets = timer1_read();

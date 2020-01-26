@@ -34,7 +34,7 @@ struct usipy_msg_parse_err {
 };
 
 struct usipy_sip_msg_iterator {
-    const struct usipy_str *sp;
+    struct usipy_str msg_onwire;
     int i;
     int over;
     uint32_t oword;

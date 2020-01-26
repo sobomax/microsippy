@@ -214,8 +214,8 @@ usipy_sip_msg_break_down(struct usipy_sip_msg_iterator *mip, uint32_t *omap)
     uint32_t *opp = omap;
 
     last = 0;
-    for (; mip->i < mip->sp->l; mip->i += sizeof(val)) {
-        memcpy(&val, mip->sp->s.ro + mip->i, sizeof(val));
+    for (; mip->i < mip->msg_onwire.l; mip->i += sizeof(val)) {
+        memcpy(&val, mip->msg_onwire.s.ro + mip->i, sizeof(val));
         val = ntohl(val);
 onemotime:
         mvalA = val ^ mskA;
@@ -264,9 +264,9 @@ onemotime:
             mip->cshift += 4;
         }
     }
-    if (mip->i > mip->sp->l && !last) {
-        const char *cp = mip->sp->s.ro + mip->i - sizeof(val);
-        switch (sizeof(val) - (mip->i - mip->sp->l)) {
+    if (mip->i > mip->msg_onwire.l && !last) {
+        const char *cp = mip->msg_onwire.s.ro + mip->i - sizeof(val);
+        switch (sizeof(val) - (mip->i - mip->msg_onwire.l)) {
             val = (uint32_t)(cp[0]);
             break;
         case 2:
