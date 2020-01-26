@@ -142,11 +142,10 @@ usipy_sip_tm_task(void *pvParameters)
 
                 struct usipy_msg_parse_err cerror = USIPY_MSG_PARSE_ERR_init;
                 unsigned int bts, ets;
-                struct usipy_str msg_onwire = {.s.ro = rx_buffer, .l = len};
                 memset(tmpbub, '\0', sizeof(tmpbub));
                 struct usipy_sip_msg_iterator mit;
                 memset(&mit, '\0', sizeof(mit));
-                mit.msg_onwire = {.s.ro = rx_buffer, .l = len};
+                mit.msg_onwire = (struct usipy_str){.s.ro = rx_buffer, .l = len};
                 bts = timer1_read();
                 err = usipy_sip_msg_break_down(&mit, tmpbub);
                 ets = timer1_read();
