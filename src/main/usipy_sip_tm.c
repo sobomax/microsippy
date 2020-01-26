@@ -144,8 +144,11 @@ usipy_sip_tm_task(void *pvParameters)
                 unsigned int bts, ets;
                 struct usipy_str msg_onwire = {.s.ro = rx_buffer, .l = len};
                 memset(tmpbub, '\0', sizeof(tmpbub));
+                struct usipy_sip_msg_iterator mit;
+                memset(&mit, '\0', sizeof(mit));
+                mit->sp = &msg_onwire;
                 bts = timer1_read();
-                err = usipy_sip_msg_break_down(&msg_onwire, tmpbub);
+                err = usipy_sip_msg_break_down(&mit, tmpbub);
                 ets = timer1_read();
                 ESP_LOGI(cfp->log_tag, "usipy_sip_msg_break_down() = %d: took %u cycles",
                   err, tsdiff(bts, ets));

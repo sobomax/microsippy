@@ -33,6 +33,14 @@ struct usipy_msg_parse_err {
     const char *reason;
 };
 
+struct usipy_sip_msg_iterator {
+    const struct usipy_str *sp;
+    int i;
+    int over;
+    uint32_t oword;
+    char cshift;
+};
+
 #define USIPY_MSG_PARSE_ERR_init { \
   .erRNo = 0, .loc.fname = NULL, .loc.linen = 0, .loc.funcn = NULL \
 }

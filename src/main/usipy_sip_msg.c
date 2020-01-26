@@ -205,35 +205,32 @@ usipy_sip_msg_parse_hdrs(struct usipy_msg *mp, uint64_t parsemask)
  */
 
 int
-usipy_sip_msg_break_down(const struct usipy_str *sp, uint32_t *omap)
+usipy_sip_msg_break_down(struct usipy_sip_msg_iterator *mip, uint32_t *omap)
 {
     static const uint32_t mskB = ('\r' << 0) | ('\n' << 8) | ('\r' << 16) | ('\n' << 24);
     static const uint32_t mskA = ('\n' << 0) | ('\r' << 8) | ('\n' << 16) | ('\r' << 24);
-    uint32_t val, mvalA, mvalB, oword;
-    int i, over, last;
+    uint32_t val, mvalA, mvalB;
+    int last;
     uint32_t *opp = omap;
 
-    over = 0;
     last = 0;
-    oword = 0;
-    char cshift = 0;
-    for (i = 0; i < sp->l; i += sizeof(val)) {
-        memcpy(&val, sp->s.ro + i, sizeof(val));
+    for (; mip->i < mip->sp->l; mip->i += sizeof(val)) {
+        memcpy(&val, mip->sp->s.ro + mip->i, sizeof(val));
         val = ntohl(val);
 onemotime:
         mvalA = val ^ mskA;
         mvalB = val ^ mskB;
         int chkover = 0, chkcarry = 0;
         if (mvalA == 0) {
-            oword |= 0b0101 << cshift;
+            mip->oword |= 0b0101 << mip->cshift;
         } else if ((mvalA & 0xFFFF0000) == 0) {
-            oword |= 0b0001 << cshift;
+            mip->oword |= 0b0001 << mip->cshift;
             chkcarry = 1;
         } else if ((mvalA &0x0000FFFF) == 0) {
-            oword |= 0b0100 << cshift;
+            mip->oword |= 0b0100 << mip->cshift;
             chkover = 1;
         } else if ((mvalB &0x00FFFF00) == 0) {
-            oword |= 0b0010 << cshift;
+            mip->oword |= 0b0010 << mip->cshift;
             chkcarry = 1;
             chkover = 1;
         } else {
@@ -241,35 +238,35 @@ onemotime:
             chkcarry = 1;
             chkover = 1;
         }
-        if (over) {
+        if (mip->over) {
             if (chkcarry && (mvalB & 0xFF000000) == 0) {
-                if (cshift == 0) {
+                if (mip->cshift == 0) {
                     opp[-1] |= 1 << 31;
                 } else {
-                    oword |= 0b00001000 << (cshift - 4);
+                    mip->oword |= 0b00001000 << (mip->cshift - 4);
                 }
             }
-            over = 0;
+            mip->over = 0;
         }
         if (chkover) {
             if ((mvalB & 0x000000FF) == 0) {
-                over = 1;
+                mip->over = 1;
             }
         }
-        if (cshift == 28) {
-            if (oword != 0) {
-                *opp = oword;
-                oword = 0;
+        if (mip->cshift == 28) {
+            if (mip->oword != 0) {
+                *opp = mip->oword;
+                mip->oword = 0;
             }
             opp += 1;
-            cshift = 0;
+            mip->cshift = 0;
         } else {
-            cshift += 4;
+            mip->cshift += 4;
         }
     }
-    if (i > sp->l && !last) {
-        const char *cp = sp->s.ro + i - sizeof(val);
-        switch (sizeof(val) - (i - sp->l)) {
+    if (mip->i > mip->sp->l && !last) {
+        const char *cp = mip->sp->s.ro + mip->i - sizeof(val);
+        switch (sizeof(val) - (mip->i - mip->sp->l)) {
             val = (uint32_t)(cp[0]);
             break;
         case 2:
@@ -282,8 +279,8 @@ onemotime:
         last = 1;
         goto onemotime;
     }
-    if (cshift != 0 && oword != 0) {
-        *opp = oword;
+    if (mip->cshift != 0 && mip->oword != 0) {
+        *opp = mip->oword;
         opp += 1;
     }
 
