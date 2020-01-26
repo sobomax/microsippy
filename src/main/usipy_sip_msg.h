@@ -50,7 +50,7 @@ struct usipy_msg *usipy_sip_msg_ctor_fromwire(const char *, size_t,
 void usipy_sip_msg_dtor(struct usipy_msg *);
 void usipy_sip_msg_dump(const struct usipy_msg *, const char *);
 int usipy_sip_msg_parse_hdrs(struct usipy_msg *, uint64_t);
-int usipy_sip_msg_break_down(const struct usipy_str *, uint32_t *);
+int usipy_sip_msg_break_down(struct usipy_sip_msg_iterator *, uint32_t *);
 
 #define USIPY_HFT_MASK(hft) ((uint64_t)1 << (hft))
 #define USIPY_HF_MASK(shp) (USIPY_HFT_MASK((shp)->hf_type->cantype))
