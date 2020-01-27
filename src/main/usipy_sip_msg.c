@@ -71,6 +71,8 @@ usipy_sip_msg_ctor_fromwire(const char *buf, size_t len,
         const char *chp = rp->onwire.s.ro + crlf_off;
         if (rp->nhdrs > 0) {
             if (chp == cp.s.ro) {
+                cp.l -= 2;
+                cp.s.ro += 2;
                 /* End of headers reached */
                 break;
             }
@@ -104,8 +106,15 @@ next_line:
     for (int i = 0; i < rp->nhdrs; i++) {
 	struct usipy_sip_hdr *tsp = &(rp->hdrs[i]);
         if (usipy_sip_hdr_preparse(tsp) != 0) {
+            goto e1;
         }
         rp->hdr_masks.present |= USIPY_HF_MASK(tsp);
+    }
+    if (cp.l > 0) {
+        rp->body = cp;
+        if (mit.i < len) {
+            memcpy(rp->onwire.s.rw + mit.i, buf + mit.i, len - mit.i);
+        }
     }
     rp->heap.first = (void *)&rp->hdrs[rp->nhdrs];
     ralgn = USIPY_REALIGN((uintptr_t)rp->heap.first);
