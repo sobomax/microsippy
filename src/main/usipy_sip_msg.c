@@ -289,12 +289,14 @@ onemotime:
             val = (uint32_t)(cp[0]) | (8 << cp[1]) | (16 << cp[2]);
             break;
         }
+        mip->i += (sizeof(val) * 8) - sizeof(val) - mip->cshift;
         mip->last = 1;
         goto onemotime;
     } else {
         mip->last = 1;
     }
     if (mip->cshift != 0 && mip->oword != 0) {
+        mip->i += (sizeof(val) * 8) - mip->cshift;
         goto gotresult;
     }
 
