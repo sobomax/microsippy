@@ -61,6 +61,8 @@ usipy_sip_msg_ctor_fromwire(const char *buf, size_t len,
                 /* End of headers reached */
                 if (nempty > 0)
                     break;
+                cp.l -= 2;
+                cp.s.ro += 2;
                 nempty += 1;
                 continue;
             }
