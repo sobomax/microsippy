@@ -53,7 +53,7 @@ usipy_sip_msg_ctor_fromwire(const char *buf, size_t len,
         int crlf_off = usipy_sip_msg_break_down(&mit);
         if (crlf_off < 0)
             break;
-        const char *chp = mit.msg_onwire.s.ro + crlf_off;
+        const char *chp = rp->onwire.s.ro + crlf_off;
         if (rp->nhdrs > 0) {
             if (chp == cp.s.ro) {
                 /* End of headers reached */
@@ -70,8 +70,10 @@ usipy_sip_msg_ctor_fromwire(const char *buf, size_t len,
             rp->sline.onwire.s.ro = cp.s.ro;
             rp->sline.onwire.l = crlf_off;
             rp->kind = usipy_sip_sline_parse(&rp->sline);
+#if 0
             ESP_LOGI("foobar", "usipy_sip_sline_parse(\"%.*s\") = %d",
               rp->sline.onwire.l, rp->sline.onwire.s.ro, rp->kind);
+#endif
             if (rp->kind == USIPY_SIP_MSG_UNKN)
                 goto e1;
             goto next_line;
@@ -94,6 +96,8 @@ next_line:
     ESP_LOGI("foobar", "rp->nhdrs = %d", rp->nhdrs);
     for (int i = 0; i < rp->nhdrs; i++) {
 	struct usipy_sip_hdr *tsp = &(rp->hdrs[i]);
+        ESP_LOGI("foobar, "usipy_sip_sline_parse(\"%.*s\")",
+          tsp->onwire.full.l, tsp->onwire.full.s.ro);
         if (usipy_sip_hdr_preparse(tsp) != 0) {
             ESP_LOGI("foobar", "usipy_sip_hdr_preparse failed at %d", i);
             goto e1;
