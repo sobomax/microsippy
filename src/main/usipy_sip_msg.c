@@ -27,7 +27,7 @@ struct usipy_sip_msg_iterator {
     uint32_t oword;
     char cshift;
     uint32_t imask;
-    int *ioffst;
+    const char *ioffst;
 };
 static int usipy_sip_msg_break_down(struct usipy_sip_msg_iterator *);
 
@@ -285,7 +285,7 @@ onemotime:
             uint32_t tval = val ^ mip->imask;
             for (int j = 0; j < sizeof(tval); j++) {
                 if ((tval & 0xff) == 0) {
-                    *(mip->ioffst) = mip->i + j;
+                    *(mip->ioffst) = mip->msg_onwire.s.ro + mip->i + j;
                     mip->imask = 0;
                     break;
                 }
