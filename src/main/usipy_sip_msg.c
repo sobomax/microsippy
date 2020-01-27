@@ -27,7 +27,7 @@ struct usipy_sip_msg_iterator {
     uint32_t oword;
     char cshift;
     uint32_t imask;
-    const char *ioffst;
+    const char **ioffst;
 };
 static int usipy_sip_msg_break_down(struct usipy_sip_msg_iterator *);
 
