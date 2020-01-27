@@ -147,11 +147,17 @@ usipy_sip_tm_task(void *pvParameters)
                 struct usipy_sip_msg_iterator mit;
                 memset(&mit, '\0', sizeof(mit));
                 mit.msg_onwire = {.s.ro = rx_buffer, .l = len};
+#if 0
                 bts = timer1_read();
                 err = usipy_sip_msg_break_down(&mit, tmpbub);
                 ets = timer1_read();
                 ESP_LOGI(cfp->log_tag, "usipy_sip_msg_break_down() = %d: took %u cycles",
                   err, tsdiff(bts, ets));
+#endif
+                while ((int i = usipy_sip_msg_break_down(&mit)) != -1) {
+                    ESP_LOGI(cfp->log_tag, "    CRLF @ %d", i);
+                }
+#if 0
                 for (int i = 0; i < err; i++) {
                     uint32_t cval = tmpbub[i];
                     ESP_LOGI(cfp->log_tag, "    tmpbub[%d] = %u", i, cval);
@@ -163,6 +169,7 @@ usipy_sip_tm_task(void *pvParameters)
                         cval = cval >> (fset + 1);
                     }
                 }
+#endif
                 bts = timer1_read();
                 struct usipy_msg *msg = usipy_sip_msg_ctor_fromwire(rx_buffer, len, &cerror);
                 ets = timer1_read();
