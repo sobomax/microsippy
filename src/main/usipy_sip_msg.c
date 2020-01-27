@@ -60,7 +60,6 @@ usipy_sip_msg_ctor_fromwire(const char *buf, size_t len,
     rp->heap.first = (void *)(rp->_storage + USIPY_ALIGNED_SIZE(len));
     //usipy_sip_msg_break_down(&rp->onwire, rp->_crlf_map);
     rp->hdrs = (struct usipy_sip_hdr *)(rp->heap.first);
-    int nempty = 0;
     struct usipy_sip_hdr *shp = NULL;
     memset(&mit, '\0', sizeof(mit));
     mit.msg_onwire = (struct usipy_str){.s.ro = buf, .l = len};
@@ -73,12 +72,7 @@ usipy_sip_msg_ctor_fromwire(const char *buf, size_t len,
         if (rp->nhdrs > 0) {
             if (chp == cp.s.ro) {
                 /* End of headers reached */
-                if (nempty > 0)
-                    break;
-                cp.l -= 2;
-                cp.s.ro += 2;
-                nempty += 1;
-                continue;
+                break;
             }
             if (USIPY_ISWS(cp.s.ro[0])) {
                 /* Continuation */
