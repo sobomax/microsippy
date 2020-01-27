@@ -8,6 +8,7 @@ enum usipy_sip_msg_kind {
 
 struct usipy_msg {
    struct usipy_str onwire;
+   struct usipy_str body;
    enum usipy_sip_msg_kind kind;
    struct usipy_sip_sline sline;
    struct usipy_sip_hdr *hdrs;
