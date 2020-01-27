@@ -231,9 +231,7 @@ usipy_sip_msg_parse_hdrs(struct usipy_msg *mp, uint64_t parsemask)
 
 /*
  * Input string: "foo\r\nbar\r\nfoo\r\nbar\r\nfoo\r\nbar\r\nfoo\r\nbar\r\n"
- * Output bytes |   0......7  8......15 16.....23 24.....31
- *                [ 00010000  10000100  00100001  00001000 ]
- *                [ 01000010  00000000  00000000  00000000 ]
+ * Output offsets: 3 8 13 18 23 28 33 38 -1
  */
 
 static int
