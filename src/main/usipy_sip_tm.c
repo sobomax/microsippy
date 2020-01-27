@@ -152,12 +152,10 @@ usipy_sip_tm_task(void *pvParameters)
                 ets = timer1_read();
                 ESP_LOGI(cfp->log_tag, "usipy_sip_msg_break_down() = %d: took %u cycles",
                   err, tsdiff(bts, ets));
-#endif
 		int i;
                 while ((i = usipy_sip_msg_break_down(&mit)) != -1) {
                     ESP_LOGI(cfp->log_tag, "    CRLF @ %d", i);
                 }
-#if 0
                 for (int i = 0; i < err; i++) {
                     uint32_t cval = tmpbub[i];
                     ESP_LOGI(cfp->log_tag, "    tmpbub[%d] = %u", i, cval);

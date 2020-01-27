@@ -18,6 +18,20 @@
 
 #define USIPY_HFS_NMIN (12)
 
+struct usipy_sip_msg_iterator {
+    struct usipy_str msg_onwire;
+    int i;
+    int over;
+    int last;
+    uint32_t oword;
+    char cshift;
+};
+static int usipy_sip_msg_break_down(struct usipy_sip_msg_iterator *);
+
+#define USIPY_MSG_PARSE_ERR_init { \
+  .erRNo = 0, .loc.fname = NULL, .loc.linen = 0, .loc.funcn = NULL \
+}
+
 struct usipy_msg *
 usipy_sip_msg_ctor_fromwire(const char *buf, size_t len,
   struct usipy_msg_parse_err *perrp)
@@ -54,8 +68,10 @@ usipy_sip_msg_ctor_fromwire(const char *buf, size_t len,
         if (crlf_off < 0)
             break;
         const char *chp = rp->onwire.s.ro + crlf_off;
+#if 0
         ESP_LOGI("foobar", "rp->nhdrs = %d, chp = %p, cp.s.ro == %p",
           rp->nhdrs, chp, cp.s.ro);
+#endif
         if (rp->nhdrs > 0) {
             if (chp == cp.s.ro) {
                 /* End of headers reached */
@@ -97,14 +113,20 @@ next_line:
     if (rp->nhdrs == 0) {
         goto e1;
     }
+#if 0
     ESP_LOGI("foobar", "rp->nhdrs = %d", rp->nhdrs);
+#endif
     for (int i = 0; i < rp->nhdrs; i++) {
 	struct usipy_sip_hdr *tsp = &(rp->hdrs[i]);
+#if 0
         ESP_LOGI("foobar", "usipy_sip_sline_parse(\"%.*s\")",
           tsp->onwire.full.l, tsp->onwire.full.s.ro);
+#endif
         if (usipy_sip_hdr_preparse(tsp) != 0) {
+#if 0
             ESP_LOGI("foobar", "usipy_sip_hdr_preparse failed at %d", i);
             goto e1;
+#endif
         }
         rp->hdr_masks.present |= USIPY_HF_MASK(tsp);
     }
@@ -211,7 +233,7 @@ usipy_sip_msg_parse_hdrs(struct usipy_msg *mp, uint64_t parsemask)
  *                [ 01000010  00000000  00000000  00000000 ]
  */
 
-int
+static int
 usipy_sip_msg_break_down(struct usipy_sip_msg_iterator *mip)
 {
     static const uint32_t mskB = ('\r' << 0) | ('\n' << 8) | ('\r' << 16) | ('\n' << 24);
