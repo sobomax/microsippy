@@ -288,7 +288,7 @@ onemotime:
             uint32_t tval = val ^ mip->imask;
             for (int j = 0; j < sizeof(tval); j++) {
                 if ((tval & 0xff) == 0) {
-                    *(mip->ioffst) = mip->msg_onwire.s.ro + mip->i + j;
+                    *(mip->ioffst) = mip->msg_copy->s.ro + mip->i + j;
                     mip->imask = 0;
                     break;
                 }
