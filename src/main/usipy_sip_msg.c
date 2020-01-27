@@ -181,12 +181,6 @@ usipy_sip_msg_dump(const struct usipy_msg *msg, const char *log_tag)
 #define USIPY_MSG_HDR_PARSED(msp, h) (USIPY_HF_ISMSET(msp->hdr_masks.parsed, (h)))
 #define USIPY_MSG_HDR_PRESENT(msp, h) (USIPY_HF_ISMSET(msp->hdr_masks.present, (h)))
 
-#include <lwip/def.h>
-
-#ifndef BYTE_ORDER
-#error BYTE_ORER is unknown
-#endif
-
 int
 usipy_sip_msg_parse_hdrs(struct usipy_msg *mp, uint64_t parsemask)
 {
@@ -217,7 +211,23 @@ usipy_sip_msg_parse_hdrs(struct usipy_msg *mp, uint64_t parsemask)
     return (0);
 }
 
-#include <netinet/in.h>
+#include <lwip/def.h>
+
+#ifndef BYTE_ORDER
+#error BYTE_ORER is unknown
+#endif
+
+#if BYTE_ORDER == LITTLE_ENDIAN
+#  define LE32TOH(dp, sp) /* Nop */
+#else
+#  define LE32TOH(dp, sp) { \
+    *(uint32_t *)(dp) = (uint32_t) \
+     ((const char *)(sp))[0] | \
+     ((const char *)(sp))[1] << 8 | \
+     ((const char *)(sp))[2] << 16 | \
+     ((const char *)(sp))[3] << 24; \
+  }
+#endif
 
 /*
  * Input string: "foo\r\nbar\r\nfoo\r\nbar\r\nfoo\r\nbar\r\nfoo\r\nbar\r\n"
@@ -244,17 +254,17 @@ gotresult:
     for (; mip->i < mip->msg_onwire.l; mip->i += sizeof(val)) {
         memcpy(&val, mip->msg_onwire.s.ro + mip->i, sizeof(val));
         memcpy(mip->msg_copy->s.rw + mip->i, &val, sizeof(val));
-        val = ntohl(val);
+        LE32TOH(&val, &val);
 onemotime:
         mvalA = val ^ mskA;
         mvalB = val ^ mskB;
         int chkover = 0, chkcarry = 0;
         if (mvalA == 0) {
             mip->oword |= 0b0101 << mip->cshift;
-        } else if ((mvalA & 0xFFFF0000) == 0) {
+        } else if ((mvalA & 0x0000FFFF) == 0) {
             mip->oword |= 0b0001 << mip->cshift;
             chkcarry = 1;
-        } else if ((mvalA &0x0000FFFF) == 0) {
+        } else if ((mvalA &0xFFFF0000) == 0) {
             mip->oword |= 0b0100 << mip->cshift;
             chkover = 1;
         } else if ((mvalB &0x00FFFF00) == 0) {
@@ -268,10 +278,10 @@ onemotime:
         }
         if (mip->over) {
             mip->over = 0;
-            if (chkcarry && (mvalB & 0xFF000000) == 0) {
+            if (chkcarry && (mvalB & 0x000000FF) == 0) {
                 if (mip->cshift == 0) {
                     if (chkover) {
-                        if ((mvalB & 0x000000FF) == 0) {
+                        if ((mvalB & 0xFF000000) == 0) {
                             mip->over = 1;
                         }
                     }
@@ -284,7 +294,7 @@ onemotime:
             }
         }
         if (chkover) {
-            if ((mvalB & 0x000000FF) == 0) {
+            if ((mvalB & 0xFF000000) == 0) {
                 mip->over = 1;
             }
         }
