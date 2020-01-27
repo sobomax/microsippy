@@ -68,8 +68,10 @@ usipy_sip_msg_ctor_fromwire(const char *buf, size_t len,
             }
         } else if (rp->sline.onwire.l == 0) {
             rp->sline.onwire.s.ro = cp.s.ro;
-            rp->sline.onwire.l = chp - cp.s.ro;
+            rp->sline.onwire.l = crlf_off;
             rp->kind = usipy_sip_sline_parse(&rp->sline);
+            ESP_LOGI("foobar, "usipy_sip_sline_parse(\"%.*s\") = %d",
+              rp->sline.onwire.l, rp->sline.onwire.s.ro, rp->kind);
             if (rp->kind == USIPY_SIP_MSG_UNKN)
                 goto e1;
             goto next_line;
@@ -89,10 +91,13 @@ next_line:
     if (rp->nhdrs == 0) {
         goto e1;
     }
+    ESP_LOGI("foobar", "rp->nhdrs = %d", rp->nhdrs);
     for (int i = 0; i < rp->nhdrs; i++) {
 	struct usipy_sip_hdr *tsp = &(rp->hdrs[i]);
-        if (usipy_sip_hdr_preparse(tsp) != 0)
+        if (usipy_sip_hdr_preparse(tsp) != 0) {
+            ESP_LOGI("foobar", "usipy_sip_hdr_preparse failed at %d", i);
             goto e1;
+        }
         rp->hdr_masks.present |= USIPY_HF_MASK(tsp);
     }
     rp->heap.first = (void *)&rp->hdrs[rp->nhdrs];
