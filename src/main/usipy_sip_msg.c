@@ -96,7 +96,7 @@ next_line:
     ESP_LOGI("foobar", "rp->nhdrs = %d", rp->nhdrs);
     for (int i = 0; i < rp->nhdrs; i++) {
 	struct usipy_sip_hdr *tsp = &(rp->hdrs[i]);
-        ESP_LOGI("foobar, "usipy_sip_sline_parse(\"%.*s\")",
+        ESP_LOGI("foobar", "usipy_sip_sline_parse(\"%.*s\")",
           tsp->onwire.full.l, tsp->onwire.full.s.ro);
         if (usipy_sip_hdr_preparse(tsp) != 0) {
             ESP_LOGI("foobar", "usipy_sip_hdr_preparse failed at %d", i);
