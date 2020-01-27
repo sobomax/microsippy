@@ -70,7 +70,7 @@ usipy_sip_msg_ctor_fromwire(const char *buf, size_t len,
             rp->sline.onwire.s.ro = cp.s.ro;
             rp->sline.onwire.l = crlf_off;
             rp->kind = usipy_sip_sline_parse(&rp->sline);
-            ESP_LOGI("foobar, "usipy_sip_sline_parse(\"%.*s\") = %d",
+            ESP_LOGI("foobar", "usipy_sip_sline_parse(\"%.*s\") = %d",
               rp->sline.onwire.l, rp->sline.onwire.s.ro, rp->kind);
             if (rp->kind == USIPY_SIP_MSG_UNKN)
                 goto e1;
