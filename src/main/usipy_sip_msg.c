@@ -27,7 +27,7 @@ struct usipy_sip_msg_iterator {
     uint32_t oword;
     char cshift;
     uint32_t imask;
-    int ioffst;
+    int *ioffst;
 };
 static int usipy_sip_msg_break_down(struct usipy_sip_msg_iterator *);
 
@@ -98,6 +98,7 @@ usipy_sip_msg_ctor_fromwire(const char *buf, size_t len,
             goto e1;
         rp->nhdrs += 1;
         mit.imask = MAKE_IMASK(':');
+        mit.ioffst = &(shp->col_offst);
         shp->onwire.full.s.ro = cp.s.ro;
 multi_line:
         shp->onwire.full.l = chp - shp->onwire.full.s.ro;
@@ -111,6 +112,7 @@ next_line:
     }
     for (int i = 0; i < rp->nhdrs; i++) {
 	struct usipy_sip_hdr *tsp = &(rp->hdrs[i]);
+        ESP_LOGI("foobar", " header[%d]: col_offst = %d", i, tsp->col_offst);
         if (usipy_sip_hdr_preparse(tsp) != 0) {
             goto e1;
         }
@@ -283,7 +285,7 @@ onemotime:
             uint32_t tval = val ^ mip->imask;
             for (int j = 0; j < sizeof(tval); j++) {
                 if ((tval & 0xff) == 0) {
-                    mip->ioffst = mip->i + j;
+                    *(mip->ioffst) = mip->i + j;
                     mip->imask = 0;
                     break;
                 }

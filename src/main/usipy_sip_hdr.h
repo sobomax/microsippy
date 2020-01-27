@@ -14,6 +14,7 @@ struct usipy_sip_hdr {
 	const struct usipy_hdr_db_entr *hf_type;
     } onwire;
     const struct usipy_hdr_db_entr *hf_type;
+    int col_offst;
     union usipy_sip_hdr_parsed parsed;
 };
 
