@@ -17,7 +17,6 @@ struct usipy_msg {
        uint64_t present;
        uint64_t parsed;
    } hdr_masks;
-   uint32_t *_crlf_map;
    char _storage[0];
 };
 
