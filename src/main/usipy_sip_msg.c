@@ -212,8 +212,9 @@ usipy_sip_msg_break_down(struct usipy_sip_msg_iterator *mip)
     uint32_t val, mvalA, mvalB;
 
     if ((mip->cshift == 0 || mip->last) && mip->oword != 0) {
+	char boff;
 gotresult:
-        char boff = ffs(mip->oword) - 1;
+        boff = ffs(mip->oword) - 1;
         mip->oword ^= (1 << boff);
         return (mip->i - (sizeof(val) * 8) + boff);
     }

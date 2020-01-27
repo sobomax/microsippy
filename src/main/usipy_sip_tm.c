@@ -153,7 +153,8 @@ usipy_sip_tm_task(void *pvParameters)
                 ESP_LOGI(cfp->log_tag, "usipy_sip_msg_break_down() = %d: took %u cycles",
                   err, tsdiff(bts, ets));
 #endif
-                while ((int i = usipy_sip_msg_break_down(&mit)) != -1) {
+		int i;
+                while ((i = usipy_sip_msg_break_down(&mit)) != -1) {
                     ESP_LOGI(cfp->log_tag, "    CRLF @ %d", i);
                 }
 #if 0
