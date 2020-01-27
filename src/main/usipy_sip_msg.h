@@ -37,6 +37,7 @@ struct usipy_sip_msg_iterator {
     struct usipy_str msg_onwire;
     int i;
     int over;
+    int last;
     uint32_t oword;
     char cshift;
 };
