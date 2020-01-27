@@ -54,6 +54,8 @@ usipy_sip_msg_ctor_fromwire(const char *buf, size_t len,
         if (crlf_off < 0)
             break;
         const char *chp = rp->onwire.s.ro + crlf_off;
+        ESP_LOGI("foobar", "rp->nhdrs = %d, chp = %p, cp.s.ro == %p",
+          rp->nhdrs, chp, cp.s.ro);
         if (rp->nhdrs > 0) {
             if (chp == cp.s.ro) {
                 /* End of headers reached */
