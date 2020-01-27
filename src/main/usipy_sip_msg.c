@@ -26,12 +26,16 @@ struct usipy_sip_msg_iterator {
     int last;
     uint32_t oword;
     char cshift;
+    uint32_t imask;
+    int ioffst;
 };
 static int usipy_sip_msg_break_down(struct usipy_sip_msg_iterator *);
 
 #define USIPY_MSG_PARSE_ERR_init { \
   .erRNo = 0, .loc.fname = NULL, .loc.linen = 0, .loc.funcn = NULL \
 }
+
+#define MAKE_IMASK(ch) (((ch) << 24) | ((ch) << 16) | ((ch) << 8) | ch)
 
 struct usipy_msg *
 usipy_sip_msg_ctor_fromwire(const char *buf, size_t len,
@@ -93,6 +97,7 @@ usipy_sip_msg_ctor_fromwire(const char *buf, size_t len,
         if ((void *)(shp + 1) > (void *)((char *)(rp) + alloc_len))
             goto e1;
         rp->nhdrs += 1;
+        mit.imask = MAKE_IMASK(':');
         shp->onwire.full.s.ro = cp.s.ro;
 multi_line:
         shp->onwire.full.l = chp - shp->onwire.full.s.ro;
@@ -273,6 +278,17 @@ onemotime:
             //oword |= 0b0000;
             chkcarry = 1;
             chkover = 1;
+        }
+        if (mip->imask != 0) {
+            uint32_t tval = val ^ mip->imask;
+            for (int j = 0; j < sizeof(tval); j++) {
+                if ((tval & 0xff) == 0) {
+                    mip->ioffst = mip->i + j;
+                    mip->imask = 0;
+                    break;
+                }
+                tval >>= 8;
+            }
         }
         if (mip->over) {
             mip->over = 0;
