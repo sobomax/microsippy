@@ -217,7 +217,7 @@ usipy_sip_msg_parse_hdrs(struct usipy_msg *mp, uint64_t parsemask)
 #error BYTE_ORER is unknown
 #endif
 
-#if BYTE_ORDER == LITTLE_ENDIAN
+#if BYTE_ORDER == LITTLE_ENDIAN || 1
 #  define LE32TOH(dp, sp) /* Nop */
 #else
 #  define LE32TOH(dp, sp) { \
@@ -239,8 +239,8 @@ usipy_sip_msg_parse_hdrs(struct usipy_msg *mp, uint64_t parsemask)
 static int
 usipy_sip_msg_break_down(struct usipy_sip_msg_iterator *mip)
 {
-    static const uint32_t mskB = ('\r' << 0) | ('\n' << 8) | ('\r' << 16) | ('\n' << 24);
-    static const uint32_t mskA = ('\n' << 0) | ('\r' << 8) | ('\n' << 16) | ('\r' << 24);
+    static const uint32_t mskA = ('\r' << 0) | ('\n' << 8) | ('\r' << 16) | ('\n' << 24);
+    static const uint32_t mskB = ('\n' << 0) | ('\r' << 8) | ('\n' << 16) | ('\r' << 24);
     uint32_t val, mvalA, mvalB;
 
     if (mip->cshift == 0 && mip->oword != 0) {
