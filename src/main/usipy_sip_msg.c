@@ -64,7 +64,8 @@ usipy_sip_msg_ctor_fromwire(const char *buf, size_t len,
     memset(&mit, '\0', sizeof(mit));
     mit.msg_onwire = (struct usipy_str){.s.ro = buf, .l = len};
     mit.msg_copy = &rp->onwire;
-    for (struct usipy_str cp = rp->onwire; cp.l > 0;) {
+    struct usipy_str cp;
+    for (cp = rp->onwire; cp.l > 0;) {
         int crlf_off = usipy_sip_msg_break_down(&mit);
         if (crlf_off < 0)
             break;
