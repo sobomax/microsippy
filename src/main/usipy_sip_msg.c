@@ -205,15 +205,21 @@ usipy_sip_msg_parse_hdrs(struct usipy_msg *mp, uint64_t parsemask)
  */
 
 int
-usipy_sip_msg_break_down(struct usipy_sip_msg_iterator *mip, uint32_t *omap)
+usipy_sip_msg_break_down(struct usipy_sip_msg_iterator *mip)
 {
     static const uint32_t mskB = ('\r' << 0) | ('\n' << 8) | ('\r' << 16) | ('\n' << 24);
     static const uint32_t mskA = ('\n' << 0) | ('\r' << 8) | ('\n' << 16) | ('\r' << 24);
     uint32_t val, mvalA, mvalB;
-    int last;
-    uint32_t *opp = omap;
 
-    last = 0;
+    if ((mip->cshift == 0 || mip->last) && mip->oword != 0) {
+gotresult:
+        char boff = ffs(mip->oword) - 1;
+        mip->oword ^= (1 << boff);
+        return (mip->i - (sizeof(val) * 8) + boff);
+    }
+    if (mip->last)
+        return (-1);
+
     for (; mip->i < mip->msg_onwire.l; mip->i += sizeof(val)) {
         memcpy(&val, mip->msg_onwire.s.ro + mip->i, sizeof(val));
         val = ntohl(val);
@@ -239,14 +245,21 @@ onemotime:
             chkover = 1;
         }
         if (mip->over) {
+            mip->over = 0;
             if (chkcarry && (mvalB & 0xFF000000) == 0) {
                 if (mip->cshift == 0) {
-                    opp[-1] |= 1 << 31;
+                    if (chkover) {
+                        if ((mvalB & 0x000000FF) == 0) {
+                            mip->over = 1;
+                        }
+                    }
+                    mip->cshift = 4;
+                    mip->i += sizeof(val);
+                    return (mip->i - sizeof(val) - 1);
                 } else {
                     mip->oword |= 0b00001000 << (mip->cshift - 4);
                 }
             }
-            mip->over = 0;
         }
         if (chkover) {
             if ((mvalB & 0x000000FF) == 0) {
@@ -254,17 +267,16 @@ onemotime:
             }
         }
         if (mip->cshift == 28) {
-            if (mip->oword != 0) {
-                *opp = mip->oword;
-                mip->oword = 0;
-            }
-            opp += 1;
             mip->cshift = 0;
+            if (mip->oword != 0) {
+                mip->i += sizeof(val);
+                goto gotresult;
+            }
         } else {
             mip->cshift += 4;
         }
     }
-    if (mip->i > mip->msg_onwire.l && !last) {
+    if (mip->i > mip->msg_onwire.l && !mip->last) {
         const char *cp = mip->msg_onwire.s.ro + mip->i - sizeof(val);
         switch (sizeof(val) - (mip->i - mip->msg_onwire.l)) {
             val = (uint32_t)(cp[0]);
@@ -276,13 +288,14 @@ onemotime:
             val = (uint32_t)(cp[0]) | (8 << cp[1]) | (16 << cp[2]);
             break;
         }
-        last = 1;
+        mip->last = 1;
         goto onemotime;
+    } else {
+        mip->last = 1;
     }
     if (mip->cshift != 0 && mip->oword != 0) {
-        *opp = mip->oword;
-        opp += 1;
+        goto gotresult;
     }
 
-    return (opp - omap);
+    return (-1);
 }
