@@ -112,7 +112,10 @@ next_line:
     }
     for (int i = 0; i < rp->nhdrs; i++) {
 	struct usipy_sip_hdr *tsp = &(rp->hdrs[i]);
-        ESP_LOGI("foobar", " header[%d]: col_offst = %d", i, tsp->col_offst);
+        if (tsp->col_offst != NULL) {
+            ESP_LOGI("foobar", " header[%d]: col_offst = %d", i,
+              tsp->col_offst - tsp->onwire.full.s.ro);
+        }
         if (usipy_sip_hdr_preparse(tsp) != 0) {
             goto e1;
         }
