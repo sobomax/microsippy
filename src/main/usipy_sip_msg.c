@@ -171,6 +171,12 @@ usipy_sip_msg_dump(const struct usipy_msg *msg, const char *log_tag)
 #define USIPY_MSG_HDR_PARSED(msp, h) (USIPY_HF_ISMSET(msp->hdr_masks.parsed, (h)))
 #define USIPY_MSG_HDR_PRESENT(msp, h) (USIPY_HF_ISMSET(msp->hdr_masks.present, (h)))
 
+#include <lwip/def.h>
+
+#ifndef BYTE_ORDER
+#error BYTE_ORER is unknown
+#endif
+
 int
 usipy_sip_msg_parse_hdrs(struct usipy_msg *mp, uint64_t parsemask)
 {
@@ -217,15 +223,13 @@ usipy_sip_msg_break_down(struct usipy_sip_msg_iterator *mip)
     static const uint32_t mskA = ('\n' << 0) | ('\r' << 8) | ('\n' << 16) | ('\r' << 24);
     uint32_t val, mvalA, mvalB;
 
-    if ((mip->cshift == 0 || mip->last) && mip->oword != 0) {
+    if (mip->cshift == 0 && mip->oword != 0) {
 	char boff;
 gotresult:
         boff = ffs(mip->oword) - 1;
         mip->oword ^= (1 << boff);
         return (mip->i - (sizeof(val) * 8) + boff);
     }
-    if (mip->last)
-        return (-1);
 
     for (; mip->i < mip->msg_onwire.l; mip->i += sizeof(val)) {
         memcpy(&val, mip->msg_onwire.s.ro + mip->i, sizeof(val));
@@ -304,11 +308,11 @@ onemotime:
         }
         mip->last = 1;
         goto onemotime;
-    } else {
-        mip->last = 1;
     }
+    mip->last = 1;
     if (mip->cshift != 0 && mip->oword != 0) {
         mip->i += (sizeof(val) * 8) - mip->cshift;
+	mip->cshift = 0;
         goto gotresult;
     }
 
