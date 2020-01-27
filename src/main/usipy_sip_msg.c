@@ -20,6 +20,7 @@
 
 struct usipy_sip_msg_iterator {
     struct usipy_str msg_onwire;
+    struct usipy_str *msg_copy;
     int i;
     int over;
     int last;
@@ -53,7 +54,7 @@ usipy_sip_msg_ctor_fromwire(const char *buf, size_t len,
     allocend = ((const char *)rp) + alloc_len;
     memset(rp, '\0', sizeof(struct usipy_msg));
     memset(rp->_storage + len, '\0', allocend - rp->_storage - len);
-    memcpy(rp->_storage, buf, len);
+    /*memcpy(rp->_storage, buf, len);*/
     rp->onwire.s.rw = rp->_storage;
     rp->onwire.l = len;
     rp->heap.first = (void *)(rp->_storage + USIPY_ALIGNED_SIZE(len));
@@ -62,7 +63,8 @@ usipy_sip_msg_ctor_fromwire(const char *buf, size_t len,
     int nempty = 0;
     struct usipy_sip_hdr *shp = NULL;
     memset(&mit, '\0', sizeof(mit));
-    mit.msg_onwire = (struct usipy_str){.s.ro = rp->onwire.s.ro, .l = len};
+    mit.msg_onwire = (struct usipy_str){.s.ro = buf, .l = len};
+    mit.msg_copy = &rp->onwire;
     for (struct usipy_str cp = rp->onwire; cp.l > 0;) {
         int crlf_off = usipy_sip_msg_break_down(&mit);
         if (crlf_off < 0)
@@ -252,6 +254,7 @@ gotresult:
 
     for (; mip->i < mip->msg_onwire.l; mip->i += sizeof(val)) {
         memcpy(&val, mip->msg_onwire.s.ro + mip->i, sizeof(val));
+        memcpy(mip->msg_copy->s.rw + mip->i, &val, sizeof(val));
         val = ntohl(val);
 onemotime:
         mvalA = val ^ mskA;
@@ -309,12 +312,18 @@ onemotime:
     if (mip->i > mip->msg_onwire.l && !mip->last) {
         const char *cp = mip->msg_onwire.s.ro + mip->i - sizeof(val);
         switch (sizeof(val) - (mip->i - mip->msg_onwire.l)) {
+            mip->msg_copy->s.rw[mip->msg_onwire.l - 1] = cp[0];
             val = (uint32_t)(cp[0]);
             break;
         case 2:
+            mip->msg_copy->s.rw[mip->msg_onwire.l - 1] = cp[0];
+            mip->msg_copy->s.rw[mip->msg_onwire.l - 2] = cp[1];
             val = (uint32_t)(cp[0]) | (8 << cp[1]);
             break;
         case 3:
+            mip->msg_copy->s.rw[mip->msg_onwire.l - 1] = cp[0];
+            mip->msg_copy->s.rw[mip->msg_onwire.l - 2] = cp[1];
+            mip->msg_copy->s.rw[mip->msg_onwire.l - 3] = cp[2];
             val = (uint32_t)(cp[0]) | (8 << cp[1]) | (16 << cp[2]);
             break;
         }
