@@ -1,5 +1,6 @@
 #include <stdint.h>
 #include <stdlib.h>
+#include <string.h>
 
 #include "usipy_str.h"
 #include "usipy_fast_parser.h"
