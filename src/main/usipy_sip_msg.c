@@ -257,7 +257,7 @@ usipy_sip_msg_break_down(struct usipy_sip_msg_iterator *mip)
 {
     static const uint32_t mskA = ('\r' << 0) | ('\n' << 8) | ('\r' << 16) | ('\n' << 24);
     static const uint32_t mskB = ('\n' << 0) | ('\r' << 8) | ('\n' << 16) | ('\r' << 24);
-    uint32_t val, mvalA, mvalB;
+    uint32_t val, mvalA, mvalB, oword;
 
     if (mip->cshift == 0 && mip->oword != 0) {
         char boff;
@@ -276,19 +276,19 @@ onemotime:
         mvalB = val ^ mskB;
         int chkover = 0, chkcarry = 0;
         if (mvalA == 0) {
-            mip->oword |= 0b1010 << mip->cshift;
+            oword = 0b1010 << mip->cshift;
         } else if ((mvalA & 0x0000FFFF) == 0) {
-            mip->oword |= 0b0010 << mip->cshift;
+            oword = 0b0010 << mip->cshift;
             chkcarry = 1;
         } else if ((mvalA &0xFFFF0000) == 0) {
-            mip->oword |= 0b1000 << mip->cshift;
+            oword = 0b1000 << mip->cshift;
             chkover = 1;
         } else if ((mvalB &0x00FFFF00) == 0) {
-            mip->oword |= 0b0100 << mip->cshift;
+            oword = 0b0100 << mip->cshift;
             chkcarry = 1;
             chkover = 1;
         } else {
-            //oword |= 0b0000;
+            oword = 0b0000;
             chkcarry = 1;
             chkover = 1;
         }
@@ -308,7 +308,7 @@ onemotime:
         if (mip->over) {
             mip->over = 0;
             if (chkcarry && (mvalB & 0x000000FF) == 0) {
-                mip->oword |= 0b0001 << mip->cshift;
+                oword |= 0b0001 << mip->cshift;
             }
         }
         if (chkover) {
@@ -316,6 +316,7 @@ onemotime:
                 mip->over = 1;
             }
         }
+        mip->oword |= oword;
         if (mip->cshift == 28) {
             mip->cshift = 0;
             if (mip->oword != 0) {
