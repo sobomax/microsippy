@@ -1,5 +1,6 @@
 #include <stdint.h>
 #include <stdlib.h>
+#include <string.h>
 
 #include "usipy_str.h"
 #include "usipy_fast_parser.h"
@@ -50,9 +51,9 @@ done:
 int
 usipy_fp_classify(const struct usipy_fast_parser *fp, const struct usipy_str *sp)
 {
-    size_t i;
-    unsigned char ch, res;
-    struct usipy_str_iter sip = {.sp = &sp, .store = 0, .i = 0, .loaded = 0};
+    unsigned char res;
+    struct usipy_str_iter sip = {.sp = sp, .store = 0, .i = 0, .loaded = 0};
+    int ch;
 
     res = 0;
     while ((ch = usipy_str_iter_next(&sip)) != -1) {
