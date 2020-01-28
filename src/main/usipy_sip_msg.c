@@ -102,7 +102,9 @@ usipy_sip_msg_ctor_fromwire(const char *buf, size_t len,
         if ((void *)(shp + 1) > (void *)((char *)(rp) + alloc_len))
             goto e1;
         rp->nhdrs += 1;
+#if 0
         mit.ioffst = &(shp->col_offst);
+#endif
         shp->onwire.full.s.ro = cp.s.ro;
 multi_line:
         shp->onwire.full.l = chp - shp->onwire.full.s.ro;
