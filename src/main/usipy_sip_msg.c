@@ -26,8 +26,10 @@ struct usipy_sip_msg_iterator {
     int last;
     uint32_t oword;
     char cshift;
+#if 0
     uint32_t imask;
     const char **ioffst;
+#endif
 };
 static int usipy_sip_msg_break_down(struct usipy_sip_msg_iterator *);
 
@@ -68,6 +70,9 @@ usipy_sip_msg_ctor_fromwire(const char *buf, size_t len,
     memset(&mit, '\0', sizeof(mit));
     mit.msg_onwire = (struct usipy_str){.s.ro = buf, .l = len};
     mit.msg_copy = &rp->onwire;
+#if 0
+    mit.imask = MAKE_IMASK(':');
+#endif
     struct usipy_str cp;
     for (cp = rp->onwire; cp.l > 0;) {
         int crlf_off = usipy_sip_msg_break_down(&mit);
@@ -97,7 +102,6 @@ usipy_sip_msg_ctor_fromwire(const char *buf, size_t len,
         if ((void *)(shp + 1) > (void *)((char *)(rp) + alloc_len))
             goto e1;
         rp->nhdrs += 1;
-        mit.imask = MAKE_IMASK(':');
         mit.ioffst = &(shp->col_offst);
         shp->onwire.full.s.ro = cp.s.ro;
 multi_line:
@@ -252,11 +256,11 @@ usipy_sip_msg_break_down(struct usipy_sip_msg_iterator *mip)
     uint32_t val, mvalA, mvalB;
 
     if (mip->cshift == 0 && mip->oword != 0) {
-	char boff;
+        char boff;
 gotresult:
         boff = ffs(mip->oword) - 1;
         mip->oword ^= (1 << boff);
-        return (mip->i - (sizeof(val) * 8) + boff);
+        return (mip->i - (sizeof(val) * 8) + boff - 1);
     }
 
     for (; mip->i < mip->msg_onwire.l; mip->i += sizeof(val)) {
@@ -268,15 +272,15 @@ onemotime:
         mvalB = val ^ mskB;
         int chkover = 0, chkcarry = 0;
         if (mvalA == 0) {
-            mip->oword |= 0b0101 << mip->cshift;
+            mip->oword |= 0b1010 << mip->cshift;
         } else if ((mvalA & 0x0000FFFF) == 0) {
-            mip->oword |= 0b0001 << mip->cshift;
+            mip->oword |= 0b0010 << mip->cshift;
             chkcarry = 1;
         } else if ((mvalA &0xFFFF0000) == 0) {
-            mip->oword |= 0b0100 << mip->cshift;
+            mip->oword |= 0b1000 << mip->cshift;
             chkover = 1;
         } else if ((mvalB &0x00FFFF00) == 0) {
-            mip->oword |= 0b0010 << mip->cshift;
+            mip->oword |= 0b0100 << mip->cshift;
             chkcarry = 1;
             chkover = 1;
         } else {
@@ -284,6 +288,7 @@ onemotime:
             chkcarry = 1;
             chkover = 1;
         }
+#if 0
         if (mip->imask != 0) {
             uint32_t tval = val ^ mip->imask;
             for (int j = 0; j < sizeof(tval); j++) {
@@ -295,21 +300,11 @@ onemotime:
                 tval >>= 8;
             }
         }
+#endif
         if (mip->over) {
             mip->over = 0;
             if (chkcarry && (mvalB & 0x000000FF) == 0) {
-                if (mip->cshift == 0) {
-                    if (chkover) {
-                        if ((mvalB & 0xFF000000) == 0) {
-                            mip->over = 1;
-                        }
-                    }
-                    mip->cshift = 4;
-                    mip->i += sizeof(val);
-                    return (mip->i - sizeof(val) - 1);
-                } else {
-                    mip->oword |= 0b00001000 << (mip->cshift - 4);
-                }
+                mip->oword |= 0b0001 << mip->cshift;
             }
         }
         if (chkover) {
