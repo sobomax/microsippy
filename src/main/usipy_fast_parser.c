@@ -8,7 +8,6 @@
 int
 usipy_fp_classify(const struct usipy_fast_parser *fp, const struct usipy_str *sp)
 {
-    unsigned char ch;
     uint32_t cval, res;
 
     res = 0;
