@@ -23,7 +23,6 @@ struct usipy_sip_msg_iterator {
     struct usipy_str *msg_copy;
     int i;
     int over;
-    int last;
     uint32_t oword;
     char cshift;
 #if 0
@@ -268,10 +267,18 @@ gotresult:
     }
 
     for (; mip->i < mip->msg_onwire.l; mip->i += sizeof(val)) {
-        memcpy(&val, mip->msg_onwire.s.ro + mip->i, sizeof(val));
-        memcpy(mip->msg_copy->s.rw + mip->i, &val, sizeof(val));
-        LE32TOH(&val, &val);
-onemotime:
+        int remain = mip->msg_onwire.l - mip->i;
+        if (remain < sizeof(val)) {
+            val = 0;
+            for (int j = 0; j < remain; j++) {
+                val |= mip->msg_onwire.s.ro[mip->i + j] << (j * 8);
+                mip->msg_copy->s.rw[mip->i + j] = mip->msg_onwire.s.ro[mip->i + j];
+            }
+        } else {
+            memcpy(&val, mip->msg_onwire.s.ro + mip->i, sizeof(val));
+            memcpy(mip->msg_copy->s.rw + mip->i, &val, sizeof(val));
+            LE32TOH(&val, &val);
+        }
         mvalA = val ^ mskA;
         mvalB = val ^ mskB;
         int chkover = 0, chkcarry = 0;
@@ -327,28 +334,6 @@ onemotime:
             mip->cshift += 4;
         }
     }
-    if (mip->i > mip->msg_onwire.l && !mip->last) {
-        const char *cp = mip->msg_onwire.s.ro + mip->i - sizeof(val);
-        switch (sizeof(val) - (mip->i - mip->msg_onwire.l)) {
-            mip->msg_copy->s.rw[mip->msg_onwire.l - 1] = cp[0];
-            val = (uint32_t)(cp[0]);
-            break;
-        case 2:
-            mip->msg_copy->s.rw[mip->msg_onwire.l - 1] = cp[0];
-            mip->msg_copy->s.rw[mip->msg_onwire.l - 2] = cp[1];
-            val = (uint32_t)(cp[0]) | (8 << cp[1]);
-            break;
-        case 3:
-            mip->msg_copy->s.rw[mip->msg_onwire.l - 1] = cp[0];
-            mip->msg_copy->s.rw[mip->msg_onwire.l - 2] = cp[1];
-            mip->msg_copy->s.rw[mip->msg_onwire.l - 3] = cp[2];
-            val = (uint32_t)(cp[0]) | (8 << cp[1]) | (16 << cp[2]);
-            break;
-        }
-        mip->last = 1;
-        goto onemotime;
-    }
-    mip->last = 1;
     if (mip->cshift != 0 && mip->oword != 0) {
         mip->i += (sizeof(val) * 8) - mip->cshift;
 	mip->cshift = 0;
