@@ -78,29 +78,35 @@ usipy_sip_msg_ctor_fromwire(const char *buf, size_t len,
         if (crlf_off < 0)
             break;
         const char *chp = rp->onwire.s.ro + crlf_off;
-        if (rp->nhdrs > 0) {
-            if (chp == cp.s.ro) {
-                cp.l -= 2;
-                cp.s.ro += 2;
-                /* End of headers reached */
-                break;
+        if (shp == NULL) {
+            if (rp->sline.onwire.l == 0) {
+                rp->sline.onwire.s.ro = cp.s.ro;
+                rp->sline.onwire.l = crlf_off;
+                rp->kind = usipy_sip_sline_parse(&rp->sline);
+                if (rp->kind == USIPY_SIP_MSG_UNKN)
+                    goto e1;
+                goto next_line;
             }
+        } else {
             if (USIPY_ISWS(cp.s.ro[0])) {
                 /* Continuation */
                 goto multi_line;
             }
-        } else if (rp->sline.onwire.l == 0) {
-            rp->sline.onwire.s.ro = cp.s.ro;
-            rp->sline.onwire.l = crlf_off;
-            rp->kind = usipy_sip_sline_parse(&rp->sline);
-            if (rp->kind == USIPY_SIP_MSG_UNKN)
+            if (usipy_sip_hdr_preparse(shp) != 0) {
                 goto e1;
-            goto next_line;
+            }
+            rp->hdr_masks.present |= USIPY_HF_MASK(shp);
+            rp->nhdrs += 1;
+        }
+        if (chp == cp.s.ro) {
+            cp.l -= 2;
+            cp.s.ro += 2;
+            /* End of headers reached */
+            break;
         }
         shp = &rp->hdrs[rp->nhdrs];
         if ((void *)(shp + 1) > (void *)((char *)(rp) + alloc_len))
             goto e1;
-        rp->nhdrs += 1;
 #if 0
         mit.ioffst = &(shp->col_offst);
 #endif
@@ -114,19 +120,6 @@ next_line:
     }
     if (rp->nhdrs == 0) {
         goto e1;
-    }
-    for (int i = 0; i < rp->nhdrs; i++) {
-	struct usipy_sip_hdr *tsp = &(rp->hdrs[i]);
-#if 0
-        if (tsp->col_offst != NULL) {
-            ESP_LOGI("foobar", " header[%d]: col_offst = %d", i,
-              tsp->col_offst - tsp->onwire.full.s.ro);
-        }
-#endif
-        if (usipy_sip_hdr_preparse(tsp) != 0) {
-            goto e1;
-        }
-        rp->hdr_masks.present |= USIPY_HF_MASK(tsp);
     }
     if (cp.l > 0) {
         rp->body = cp;
