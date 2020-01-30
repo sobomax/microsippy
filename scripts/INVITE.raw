@@ -1,0 +1,21 @@
+INVITE sip:1234567890@%%BRD_IP%% SIP/2.0
+Via: SIP/2.0/UDP 10.0.0.1:65223;branch=z9hG4bK1237816229
+Max-Forwards: 70
+From: <sip:987654321@%%BRD_IP%%>;tag=2048067038
+To: <sip:1234567890@%%BRD_IP%%>
+Call-ID: 1451908535-1598441708-1788833205
+CSeq: 1 INVITE
+Contact: <sip:987654321@10.0.0.1:65223>
+User-Agent: pplsip
+Content-Type: application/sdp
+Content-Length: 203
+
+v=0
+o=987654321 16264 18299 IN IP4 10.0.0.1
+s=pplsip
+c=IN IP4 10.0.0.1
+t=0 0
+m=audio 25282 RTP/AVP 100 6 0 8 3 18 5 101
+a=rtpmap:0 pcmu/8000
+a=rtpmap:101 telephone-event/8000
+a=fmtp:101 0-11
