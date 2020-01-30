@@ -88,15 +88,18 @@ usipy_sip_msg_ctor_fromwire(const char *buf, size_t len,
                 goto next_line;
             }
         } else {
+            int nextra;
+
             if (USIPY_ISWS(cp.s.ro[0])) {
                 /* Continuation */
                 goto multi_line;
             }
-            if (usipy_sip_hdr_preparse(shp) != 0) {
+            nextra = usipy_sip_hdr_preparse(shp);
+            if (nextra < 0) {
                 goto e1;
             }
             rp->hdr_masks.present |= USIPY_HF_MASK(shp);
-            rp->nhdrs += 1;
+            rp->nhdrs += 1 + nextra;
         }
         if (chp == cp.s.ro) {
             cp.l -= 2;
