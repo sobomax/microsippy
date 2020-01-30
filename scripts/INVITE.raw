@@ -1,7 +1,8 @@
 INVITE sip:1234567890@%%BRD_IP%% SIP/2.0
 Via: SIP/2.0/UDP 10.0.0.1:65223;branch=z9hG4bK1237816229
 VIa: SIP / 2.0 / UDP first.example.com: 4000;ttl=16
-        ;maddr=224.2.0.1 ;branch=z9hG4bKa7c6a8dlze.1
+        ;maddr=224.2.0.1 ;branch=z9hG4bKa7c6a8dlze.1 , 
+	SIP/2.0/UDP pc33.atlanta.com;branch=z9hG4bKkjshdyff
 Max-Forwards: 70
 From: <sip:987654321@%%BRD_IP%%>;tag=2048067038
 To: <sip:1234567890@%%BRD_IP%%>
