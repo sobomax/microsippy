@@ -96,7 +96,7 @@ static const struct usipy_hdr_db_entr usipy_hdr_db[USIPY_HF_max + 1] = {
     {.cantype = USIPY_HF_SUPPORTED, .name = {.s.ro = "Supported", .l = 9}},
     {.cantype = USIPY_HF_TO, .name = {.s.ro = "To", .l = 2}},
     {.cantype = USIPY_HF_USERAGENT, .name = {.s.ro = "User-Agent", .l = 10}},
-    {.cantype = USIPY_HF_VIA, .name = {.s.ro = "Via", .l = 3}, .csl_allowed = 1},
+    {.cantype = USIPY_HF_VIA, .name = {.s.ro = "Via", .l = 3}, .flags.csl_allowed = 1},
     {.cantype = USIPY_HF_WWWAUTHENTICATE, .name = {.s.ro = "WWW-Authenticate", .l = 16}},
     {.cantype = USIPY_HF_WARNING, .name = {.s.ro = "Warning", .l = 7}},
     {.cantype = USIPY_HF_CALLID, .name = {.s.ro = "i", .l = 1}},
@@ -106,7 +106,7 @@ static const struct usipy_hdr_db_entr usipy_hdr_db[USIPY_HF_max + 1] = {
     {.cantype = USIPY_HF_FROM, .name = {.s.ro = "f", .l = 1}},
     {.cantype = USIPY_HF_REFERTO, .name = {.s.ro = "r", .l = 1}},
     {.cantype = USIPY_HF_TO, .name = {.s.ro = "t", .l = 1}},
-    {.cantype = USIPY_HF_VIA, .name = {.s.ro = "v", .l = 1}, .csl_allowed = 1}
+    {.cantype = USIPY_HF_VIA, .name = {.s.ro = "v", .l = 1}, .flags.csl_allowed = 1}
 };
 
 const struct usipy_hdr_db_entr *
