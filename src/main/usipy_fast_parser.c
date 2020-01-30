@@ -8,9 +8,10 @@
 int
 usipy_fp_classify(const struct usipy_fast_parser *fp, const struct usipy_str *sp)
 {
+    unsigned char ch;
     uint32_t cval, res;
 
-    res = 0;
+    res = sp->l;
     for (int i = 0; i < sp->l; i += sizeof(cval)) {
         int remain = sp->l - i;
         if (remain < sizeof(cval)) {
@@ -25,9 +26,9 @@ usipy_fp_classify(const struct usipy_fast_parser *fp, const struct usipy_str *sp
         cval |= 0x20202020;
         /* Apply Magick */
         cval ^= fp->magic;
-        res ^= cval;
+        res += cval;
     }
     if (sp->l > 1)
-        res = ((res >> (sp->l - 1)) ^ sp->l);
+        res >>= (sp->l - 1);
     return (fp->toid[res & 0xff]);
 }
