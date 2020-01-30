@@ -67,6 +67,7 @@ static const struct usipy_fast_parser hdr_pdata = {
 
 static const struct usipy_hdr_db_entr usipy_hdr_db[USIPY_HF_max + 1] = {
     {.cantype = USIPY_HF_generic},
+    {.cantype = USIPY_HF_ACCEPT, .name = {.s.ro = "Accept", .l = 6}},
     {.cantype = USIPY_HF_ALLOW, .name = {.s.ro = "Allow", .l = 5}},
     {.cantype = USIPY_HF_ALSO, .name = {.s.ro = "Also", .l = 4}},
     {.cantype = USIPY_HF_AUTHORIZATION, .name = {.s.ro = "Authorization", .l = 13}},
