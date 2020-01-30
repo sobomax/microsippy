@@ -35,6 +35,7 @@ usipy_sip_hdr_preparse(struct usipy_sip_hdr *shp)
              nextra += 1;
              shp++;
              shp->hf_type = shp[-1].hf_type;
+             shp->onwire.value = csp;
              shp->onwire.hf_type = shp[-1].onwire.hf_type;
              shp->onwire.name = shp[-1].onwire.name;
          }
