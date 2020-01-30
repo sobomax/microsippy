@@ -23,10 +23,10 @@ struct usipy_sip_msg_iterator {
     struct usipy_str *msg_copy;
     int i;
     int over;
-    uint32_t oword;
+    uint32_t oword[2];
     char cshift;
-#if 0
     uint32_t imask;
+#if 0
     const char **ioffst;
 #endif
 };
@@ -69,7 +69,7 @@ usipy_sip_msg_ctor_fromwire(const char *buf, size_t len,
     memset(&mit, '\0', sizeof(mit));
     mit.msg_onwire = (struct usipy_str){.s.ro = buf, .l = len};
     mit.msg_copy = &rp->onwire;
-#if 0
+#if 1
     mit.imask = MAKE_IMASK(':');
 #endif
     struct usipy_str cp;
@@ -257,17 +257,18 @@ usipy_sip_msg_break_down(struct usipy_sip_msg_iterator *mip)
 {
     static const uint32_t mskA = ('\r' << 0) | ('\n' << 8) | ('\r' << 16) | ('\n' << 24);
     static const uint32_t mskB = ('\n' << 0) | ('\r' << 8) | ('\n' << 16) | ('\r' << 24);
-    uint32_t val, mvalA, mvalB, oword;
+    uint32_t val, mvalA, mvalB;
 
-    if (mip->cshift == 0 && mip->oword != 0) {
+    if (mip->cshift == 0 && mip->oword[0] != 0) {
         char boff;
 gotresult:
-        boff = ffs(mip->oword) - 1;
-        mip->oword ^= (1 << boff);
+        boff = ffs(mip->oword[0]) - 1;
+        mip->oword[0] ^= (1 << boff);
         return (mip->i - (sizeof(val) * 8) + boff - 1);
     }
 
     for (; mip->i < mip->msg_onwire.l; mip->i += sizeof(val)) {
+        uint8_t obyte;
         int remain = mip->msg_onwire.l - mip->i;
         if (remain < sizeof(val)) {
             val = 0;
@@ -284,39 +285,39 @@ gotresult:
         mvalB = val ^ mskB;
         int chkover = 0, chkcarry = 0;
         if (mvalA == 0) {
-            oword = 0b1010 << mip->cshift;
+            obyte = 0b1010;
         } else if ((mvalA & 0x0000FFFF) == 0) {
-            oword = 0b0010 << mip->cshift;
+            obyte = 0b0010;
             chkcarry = 1;
         } else if ((mvalA &0xFFFF0000) == 0) {
-            oword = 0b1000 << mip->cshift;
+            obyte = 0b1000;
             chkover = 1;
         } else if ((mvalB &0x00FFFF00) == 0) {
-            oword = 0b0100 << mip->cshift;
+            obyte = 0b0100;
             chkcarry = 1;
             chkover = 1;
         } else {
-            oword = 0b0000;
+            obyte = 0b0000;
             chkcarry = 1;
             chkover = 1;
         }
 #if 0
-        if (mip->imask != 0) {
-            uint32_t tval = val ^ mip->imask;
-            for (int j = 0; j < sizeof(tval); j++) {
-                if ((tval & 0xff) == 0) {
-                    *(mip->ioffst) = mip->msg_copy->s.ro + mip->i + j;
-                    mip->imask = 0;
-                    break;
-                }
-                tval >>= 8;
+        uint32_t tval = val ^ mip->imask;
+        uint8_t tow = 0;
+        for (int j = 0; j < sizeof(tval); j++) {
+            if ((tval & 0xff) == 0) {
+                tow |= (1 << j);
             }
+            tval >>= 8;
+        }
+        if (tow != 0) {
+            mip->oword[1] |= tow << mip->cshift;
         }
 #endif
         if (mip->over) {
             mip->over = 0;
             if (chkcarry && (mvalB & 0x000000FF) == 0) {
-                oword |= 0b0001 << mip->cshift;
+                obyte |= 0b0001;
             }
         }
         if (chkover) {
@@ -324,10 +325,12 @@ gotresult:
                 mip->over = 1;
             }
         }
-        mip->oword |= oword;
+        if (obyte != 0) {
+            mip->oword[0] |= obyte << mip->cshift;
+        }
         if (mip->cshift == 28) {
             mip->cshift = 0;
-            if (mip->oword != 0) {
+            if (mip->oword[0] != 0) {
                 mip->i += sizeof(val);
                 goto gotresult;
             }
@@ -335,7 +338,7 @@ gotresult:
             mip->cshift += 4;
         }
     }
-    if (mip->cshift != 0 && mip->oword != 0) {
+    if (mip->cshift != 0 && mip->oword[0] != 0) {
         mip->i += (sizeof(val) * 8) - mip->cshift;
 	mip->cshift = 0;
         goto gotresult;
