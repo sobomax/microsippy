@@ -192,6 +192,7 @@ usipy_sip_msg_dump(const struct usipy_msg *msg, const char *log_tag)
 	ESP_LOGI(log_tag, "  .name = \"%.*s\"", shp->onwire.name.l, shp->onwire.name.s.ro);
 	ESP_LOGI(log_tag, "  .value = \"%.*s\"", shp->onwire.value.l, shp->onwire.value.s.ro);
     }
+    ESP_LOGI(log_tag, "body = \"%.*s\"", msg->body.l, msg->body.s.ro);
 }
 
 #define USIPY_HF_ISMSET(msk, h) ((msk) & USIPY_HFT_MASK(h))
