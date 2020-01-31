@@ -20,7 +20,6 @@
 
 struct usipy_sip_msg_iterator {
     struct usipy_str msg_onwire;
-    struct usipy_str *msg_copy;
     int i;
     int over;
     uint32_t oword[2];
@@ -39,7 +38,7 @@ static int usipy_sip_msg_break_down(struct usipy_sip_msg_iterator *);
 #define MAKE_IMASK(ch) (((ch) << 24) | ((ch) << 16) | ((ch) << 8) | ch)
 
 struct usipy_msg *
-usipy_sip_msg_ctor_fromwire(const char *buf, size_t len,
+usipy_sip_msg_ctor_fromwire(struct usipy_msg *buf, size_t len,
   struct usipy_msg_parse_err *perrp)
 {
     struct usipy_msg *rp;
@@ -52,7 +51,7 @@ usipy_sip_msg_ctor_fromwire(const char *buf, size_t len,
       sizeof(struct usipy_sip_hdr) * USIPY_HFS_NMIN : len);
     alloc_len = sizeof(struct usipy_msg) + USIPY_ALIGNED_SIZE(len) +
       hf_prealloclen;
-    rp = malloc(alloc_len);
+    rp = realloc(buf, alloc_len);
     if (rp == NULL) {
         goto e0;
     }
@@ -68,8 +67,7 @@ usipy_sip_msg_ctor_fromwire(const char *buf, size_t len,
     struct usipy_sip_hdr *shp = NULL, *ehp;
     ehp = (struct usipy_sip_hdr *)((char *)(rp) + alloc_len);
     memset(&mit, '\0', sizeof(mit));
-    mit.msg_onwire = (struct usipy_str){.s.ro = buf, .l = len};
-    mit.msg_copy = &rp->onwire;
+    mit.msg_onwire = (struct usipy_str){.s.ro = buf->_storage, .l = len};
 #if 1
     mit.imask = MAKE_IMASK(':');
 #endif
@@ -271,11 +269,9 @@ gotresult:
             val = 0;
             for (int j = 0; j < remain; j++) {
                 val |= mip->msg_onwire.s.ro[mip->i + j] << (j * 8);
-                mip->msg_copy->s.rw[mip->i + j] = mip->msg_onwire.s.ro[mip->i + j];
             }
         } else {
             memcpy(&val, mip->msg_onwire.s.ro + mip->i, sizeof(val));
-            memcpy(mip->msg_copy->s.rw + mip->i, &val, sizeof(val));
             LE32TOH(&val, &val);
         }
         mvalA = val ^ mskA;

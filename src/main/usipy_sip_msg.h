@@ -37,7 +37,7 @@ struct usipy_msg_parse_err {
   .erRNo = 0, .loc.fname = NULL, .loc.linen = 0, .loc.funcn = NULL \
 }
 
-struct usipy_msg *usipy_sip_msg_ctor_fromwire(const char *, size_t,
+struct usipy_msg *usipy_sip_msg_ctor_fromwire(struct usipy_msg *, size_t,
   struct usipy_msg_parse_err *);
 void usipy_sip_msg_dtor(struct usipy_msg *);
 void usipy_sip_msg_dump(const struct usipy_msg *, const char *);

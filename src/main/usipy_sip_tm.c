@@ -1,4 +1,5 @@
 #include <sys/param.h>
+#include <stdlib.h>
 #include <strings.h>
 #include "freertos/FreeRTOS.h"
 #include "freertos/task.h"
@@ -40,7 +41,7 @@ static uint32_t tmpbub[128];
 void
 usipy_sip_tm_task(void *pvParameters)
 {
-    char rx_buffer[MAX_UDP_SIZE];
+    struct usipy_msg *rx_buffer = NULL;
     char addr_str[128];
     int addr_family;
     int ip_protocol;
@@ -119,7 +120,14 @@ usipy_sip_tm_task(void *pvParameters)
                 socklen = sizeof(sourceAddr.v6);
 #endif
             }
-            int len = recvfrom(sock, rx_buffer, sizeof(rx_buffer) - 1, 0, (struct sockaddr *)&sourceAddr, &socklen);
+            if (rx_buffer == NULL)
+                rx_buffer = malloc(sizeof(struct usipy_msg) + MAX_UDP_SIZE);
+            if (rx_buffer == NULL) {
+                ESP_LOGE(cfp->log_tag, "malloc() failed: errno %d", errno);
+                abort();
+            }
+            int len = recvfrom(sock, rx_buffer->_storage, MAX_UDP_SIZE, 0,
+              (struct sockaddr *)&sourceAddr, &socklen);
 
             // Error occured during receiving
             if (len < 0) {
@@ -140,7 +148,7 @@ usipy_sip_tm_task(void *pvParameters)
                     break;
                 }
                 ESP_LOGI(cfp->log_tag, "Received %d bytes from %s:", len, addr_str);
-		ESP_LOGI(cfp->log_tag, "%.*s", len, rx_buffer);
+		ESP_LOGI(cfp->log_tag, "%.*s", len, rx_buffer->_storage);
 
                 struct usipy_msg_parse_err cerror = USIPY_MSG_PARSE_ERR_init;
                 unsigned int bts, ets;
@@ -148,7 +156,7 @@ usipy_sip_tm_task(void *pvParameters)
                 memset(tmpbub, '\0', sizeof(tmpbub));
                 struct usipy_sip_msg_iterator mit;
                 memset(&mit, '\0', sizeof(mit));
-                mit.msg_onwire = (struct usipy_str){.s.ro = rx_buffer, .l = len};
+                mit.msg_onwire = (struct usipy_str){.s.ro = rx_buffer->_storage, .l = len};
                 bts = timer1_read();
                 err = usipy_sip_msg_break_down(&mit, tmpbub);
                 ets = timer1_read();
@@ -181,6 +189,7 @@ usipy_sip_tm_task(void *pvParameters)
 #endif
                 if (msg == NULL)
                     continue;
+                rx_buffer = NULL;
 #define USIPY_HF_TID_MASK (USIPY_HFT_MASK(USIPY_HF_CSEQ) | USIPY_HFT_MASK(USIPY_HF_CALLID))
                 bts = timer1_read();
                 int rval = usipy_sip_msg_parse_hdrs(msg, USIPY_HF_TID_MASK);
@@ -196,6 +205,9 @@ usipy_sip_tm_task(void *pvParameters)
                     break;
                 }
             }
+        }
+        if (rx_buffer != NULL) {
+            free(rx_buffer);
         }
 
         if (sock != -1) {
