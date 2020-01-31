@@ -1,6 +1,8 @@
 #include <stdint.h>
 #include <stdlib.h>
 
+#include "esp_log.h"
+
 #include "usipy_msg_heap.h"
 #include "usipy_str.h"
 #include "usipy_sip_hdr_via.h"
@@ -40,4 +42,17 @@ usipy_sip_hdr_via_parse(struct usipy_msg_heap *mhp,
     vp->sent_protocol.version = s2;
     vp->sent_protocol.transport = s3;
     return (vp);
+}
+
+#define DUMP_STR(sname) \
+    ESP_LOGI(log_tag, "  ." #sname " = \"%.*s\"", vp->sname.l, vp->sname.s.ro)
+
+void
+usipy_sip_hdr_via_dump(const struct usipy_sip_hdr_via *vp)
+{
+
+    DUMP_STR(sent_protocol.name);
+    DUMP_STR(sent_protocol.version);
+    DUMP_STR(sent_protocol.transport);
+    DUMP_STR(sent_protocol.sent_by.host);
 }
