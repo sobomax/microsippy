@@ -120,8 +120,7 @@ usipy_sip_tm_task(void *pvParameters)
                 socklen = sizeof(sourceAddr.v6);
 #endif
             }
-            if (rx_buffer == NULL)
-                rx_buffer = malloc(sizeof(struct usipy_msg) + MAX_UDP_SIZE);
+            rx_buffer = malloc(sizeof(struct usipy_msg) + MAX_UDP_SIZE);
             if (rx_buffer == NULL) {
                 ESP_LOGE(cfp->log_tag, "malloc() failed: errno %d", errno);
                 abort();
@@ -179,8 +178,9 @@ usipy_sip_tm_task(void *pvParameters)
                 }
 #endif
                 bts = timer1_read();
-                struct usipy_msg *msg = usipy_sip_msg_ctor_fromwire(&rx_buffer, len, &cerror);
+                struct usipy_msg *msg = usipy_sip_msg_ctor_fromwire(rx_buffer, len, &cerror);
                 ets = timer1_read();
+                rx_buffer = NULL;
                 ESP_LOGI(cfp->log_tag, "usipy_sip_msg_ctor_fromwire() = %p: took tsdiff(%u, %u) = %u cycles",
                   msg, bts, ets, tsdiff(bts, ets));
 #if 0
@@ -189,7 +189,6 @@ usipy_sip_tm_task(void *pvParameters)
 #endif
                 if (msg == NULL)
                     continue;
-                rx_buffer = NULL;
 #define USIPY_HF_TID_MASK (USIPY_HFT_MASK(USIPY_HF_CSEQ) | USIPY_HFT_MASK(USIPY_HF_CALLID))
                 bts = timer1_read();
                 int rval = usipy_sip_msg_parse_hdrs(msg, USIPY_HF_TID_MASK);
@@ -199,7 +198,7 @@ usipy_sip_tm_task(void *pvParameters)
                 usipy_sip_msg_dump(msg, cfp->log_tag);
                 usipy_sip_msg_dtor(msg);
 
-                int err = sendto(sock, rx_buffer, len, 0, (struct sockaddr *)&sourceAddr, socklen);
+                int err = sendto(sock, msg->_storage, len, 0, (struct sockaddr *)&sourceAddr, socklen);
                 if (err < 0) {
                     ESP_LOGE(cfp->log_tag, "Error occured during sending: errno %d", errno);
                     break;

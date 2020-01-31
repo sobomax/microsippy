@@ -38,7 +38,7 @@ static int usipy_sip_msg_break_down(struct usipy_sip_msg_iterator *);
 #define MAKE_IMASK(ch) (((ch) << 24) | ((ch) << 16) | ((ch) << 8) | ch)
 
 struct usipy_msg *
-usipy_sip_msg_ctor_fromwire(struct usipy_msg **buf, size_t len,
+usipy_sip_msg_ctor_fromwire(struct usipy_msg *buf, size_t len,
   struct usipy_msg_parse_err *perrp)
 {
     struct usipy_msg *rp;
@@ -51,12 +51,10 @@ usipy_sip_msg_ctor_fromwire(struct usipy_msg **buf, size_t len,
       sizeof(struct usipy_sip_hdr) * USIPY_HFS_NMIN : len);
     alloc_len = sizeof(struct usipy_msg) + USIPY_ALIGNED_SIZE(len) +
       hf_prealloclen;
-    rp = realloc(*buf, alloc_len);
+    rp = realloc(buf, alloc_len);
     if (rp == NULL) {
+        free(buf);
         goto e0;
-    }
-    if (rp != *buf) {
-        *buf = rp;
     }
     allocend = ((const char *)rp) + alloc_len;
     memset(rp, '\0', sizeof(struct usipy_msg));
@@ -138,6 +136,7 @@ next_line:
     rp->heap.size = USIPY_REALIGN(alloc_len - (rp->heap.first - (void *)rp));
     return (rp);
 e1:
+    free(rp);
 e0:
     if (perrp != NULL)
         perrp->erRNo = ENOMEM;
