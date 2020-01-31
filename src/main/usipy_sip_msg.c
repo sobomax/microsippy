@@ -66,7 +66,7 @@ usipy_sip_msg_ctor_fromwire(const char *buf, size_t len,
     //usipy_sip_msg_break_down(&rp->onwire, rp->_crlf_map);
     rp->hdrs = (struct usipy_sip_hdr *)(rp->heap.first);
     struct usipy_sip_hdr *shp = NULL, *ehp;
-    ehp = (struct usipy_sip_hdr *)((char *)(rp) + alloc_len));
+    ehp = (struct usipy_sip_hdr *)((char *)(rp) + alloc_len);
     memset(&mit, '\0', sizeof(mit));
     mit.msg_onwire = (struct usipy_str){.s.ro = buf, .l = len};
     mit.msg_copy = &rp->onwire;
