@@ -54,5 +54,5 @@ usipy_sip_hdr_via_dump(const char *log_tag, const struct usipy_sip_hdr_via *vp)
     DUMP_STR(sent_protocol.name);
     DUMP_STR(sent_protocol.version);
     DUMP_STR(sent_protocol.transport);
-    DUMP_STR(sent_protocol.sent_by.host);
+    DUMP_STR(sent_by.host);
 }
