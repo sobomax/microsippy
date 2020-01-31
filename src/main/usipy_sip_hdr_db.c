@@ -1,6 +1,7 @@
 #include <stdint.h>
 #include <string.h>
 
+#include "usipy_types.h"
 #include "usipy_str.h"
 #include "usipy_fast_parser.h"
 #include "usipy_sip_hdr_types.h"

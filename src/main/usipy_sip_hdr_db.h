@@ -1,3 +1,8 @@
+union usipy_sip_hdr_parsed;
+
+DEFINE_RAW_METHOD(usipy_sip_hdr_dump, void, const char *,
+  const union usipy_sip_hdr_parsed *);
+
 struct usipy_hdr_db_entr {
     struct usipy_str name;
     unsigned char cantype;
@@ -8,6 +13,7 @@ struct usipy_hdr_db_entr {
          */
         unsigned char csl_allowed:1;
     } flags;
+    usipy_sip_hdr_dump_f dump;
 };
 
 const struct usipy_hdr_db_entr *usipy_hdr_db_lookup(const struct usipy_str *);
