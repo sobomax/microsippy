@@ -5,8 +5,9 @@
 
 #include "usipy_msg_heap.h"
 #include "usipy_str.h"
+#include "usipy_sip_hdr.h"
 #include "usipy_sip_hdr_via.h"
-#include "usipy_sip_method_db.h"
+//#include "usipy_sip_method_db.h"
 
 struct usipy_sip_hdr_via *
 usipy_sip_hdr_via_parse(struct usipy_msg_heap *mhp,
