@@ -51,7 +51,7 @@ usipy_sip_hdr_via_parse(struct usipy_msg_heap *mhp,
 void
 usipy_sip_hdr_via_dump(const char *log_tag, const union usipy_sip_hdr_parsed *up)
 {
-    const struct usipy_sip_hdr_via *vp = &up->via;
+    const struct usipy_sip_hdr_via *vp = up->via;
 
     DUMP_STR(sent_protocol.name);
     DUMP_STR(sent_protocol.version);
