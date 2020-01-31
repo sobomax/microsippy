@@ -20,13 +20,13 @@ usipy_sip_hdr_via_parse(struct usipy_msg_heap *mhp,
     if (usipy_str_split3(hvp, '/', &s1, &s2, &s4) != 0) {
         return (NULL);
     }
+    usipy_str_ltrm_b(&s4); /* UDP */
     if (usipy_str_splitlws(&s4, &s3, &s4) != 0) {
         return (NULL);
     }
     usipy_str_ltrm_e(&s1); /* SIP */
     usipy_str_ltrm_b(&s2); /* 2.0 */
     usipy_str_ltrm_e(&s2);
-    usipy_str_ltrm_b(&s3); /* UDP */
     usipy_str_ltrm_b(&s4);
     if (usipy_str_split(&s4, ';', &sent_by, &s4) != 0) {
         sent_by = s4;
