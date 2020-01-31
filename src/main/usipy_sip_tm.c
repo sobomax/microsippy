@@ -179,7 +179,7 @@ usipy_sip_tm_task(void *pvParameters)
                 }
 #endif
                 bts = timer1_read();
-                struct usipy_msg *msg = usipy_sip_msg_ctor_fromwire(rx_buffer, len, &cerror);
+                struct usipy_msg *msg = usipy_sip_msg_ctor_fromwire(&rx_buffer, len, &cerror);
                 ets = timer1_read();
                 ESP_LOGI(cfp->log_tag, "usipy_sip_msg_ctor_fromwire() = %p: took tsdiff(%u, %u) = %u cycles",
                   msg, bts, ets, tsdiff(bts, ets));

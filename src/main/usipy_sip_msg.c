@@ -38,7 +38,7 @@ static int usipy_sip_msg_break_down(struct usipy_sip_msg_iterator *);
 #define MAKE_IMASK(ch) (((ch) << 24) | ((ch) << 16) | ((ch) << 8) | ch)
 
 struct usipy_msg *
-usipy_sip_msg_ctor_fromwire(struct usipy_msg *buf, size_t len,
+usipy_sip_msg_ctor_fromwire(struct usipy_msg **buf, size_t len,
   struct usipy_msg_parse_err *perrp)
 {
     struct usipy_msg *rp;
@@ -51,9 +51,12 @@ usipy_sip_msg_ctor_fromwire(struct usipy_msg *buf, size_t len,
       sizeof(struct usipy_sip_hdr) * USIPY_HFS_NMIN : len);
     alloc_len = sizeof(struct usipy_msg) + USIPY_ALIGNED_SIZE(len) +
       hf_prealloclen;
-    rp = realloc(buf, alloc_len);
+    rp = realloc(*buf, alloc_len);
     if (rp == NULL) {
         goto e0;
+    }
+    if (rp != *buf) {
+        *buf = rp;
     }
     allocend = ((const char *)rp) + alloc_len;
     memset(rp, '\0', sizeof(struct usipy_msg));
@@ -67,7 +70,7 @@ usipy_sip_msg_ctor_fromwire(struct usipy_msg *buf, size_t len,
     struct usipy_sip_hdr *shp = NULL, *ehp;
     ehp = (struct usipy_sip_hdr *)((char *)(rp) + alloc_len);
     memset(&mit, '\0', sizeof(mit));
-    mit.msg_onwire = (struct usipy_str){.s.ro = buf->_storage, .l = len};
+    mit.msg_onwire = (struct usipy_str){.s.ro = rp->_storage, .l = len};
 #if 1
     mit.imask = MAKE_IMASK(':');
 #endif
@@ -125,9 +128,6 @@ next_line:
     }
     if (cp.l > 0) {
         rp->body = cp;
-        if (mit.i < len) {
-            memcpy(rp->onwire.s.rw + mit.i, buf + mit.i, len - mit.i);
-        }
     }
     rp->heap.first = (void *)&rp->hdrs[rp->nhdrs];
     ralgn = USIPY_REALIGN((uintptr_t)rp->heap.first);
