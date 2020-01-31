@@ -1,5 +1,4 @@
 #include <sys/param.h>
-#include <stdlib.h>
 #include <strings.h>
 #include "freertos/FreeRTOS.h"
 #include "freertos/task.h"
@@ -41,7 +40,7 @@ static uint32_t tmpbub[128];
 void
 usipy_sip_tm_task(void *pvParameters)
 {
-    struct usipy_msg *rx_buffer = NULL;
+    char rx_buffer[MAX_UDP_SIZE];
     char addr_str[128];
     int addr_family;
     int ip_protocol;
@@ -120,13 +119,7 @@ usipy_sip_tm_task(void *pvParameters)
                 socklen = sizeof(sourceAddr.v6);
 #endif
             }
-            rx_buffer = malloc(sizeof(struct usipy_msg) + MAX_UDP_SIZE);
-            if (rx_buffer == NULL) {
-                ESP_LOGE(cfp->log_tag, "malloc() failed: errno %d", errno);
-                abort();
-            }
-            int len = recvfrom(sock, rx_buffer->_storage, MAX_UDP_SIZE, 0,
-              (struct sockaddr *)&sourceAddr, &socklen);
+            int len = recvfrom(sock, rx_buffer, sizeof(rx_buffer) - 1, 0, (struct sockaddr *)&sourceAddr, &socklen);
 
             // Error occured during receiving
             if (len < 0) {
@@ -147,7 +140,7 @@ usipy_sip_tm_task(void *pvParameters)
                     break;
                 }
                 ESP_LOGI(cfp->log_tag, "Received %d bytes from %s:", len, addr_str);
-		ESP_LOGI(cfp->log_tag, "%.*s", len, rx_buffer->_storage);
+		ESP_LOGI(cfp->log_tag, "%.*s", len, rx_buffer);
 
                 struct usipy_msg_parse_err cerror = USIPY_MSG_PARSE_ERR_init;
                 unsigned int bts, ets;
@@ -155,7 +148,7 @@ usipy_sip_tm_task(void *pvParameters)
                 memset(tmpbub, '\0', sizeof(tmpbub));
                 struct usipy_sip_msg_iterator mit;
                 memset(&mit, '\0', sizeof(mit));
-                mit.msg_onwire = (struct usipy_str){.s.ro = rx_buffer->_storage, .l = len};
+                mit.msg_onwire = (struct usipy_str){.s.ro = rx_buffer, .l = len};
                 bts = timer1_read();
                 err = usipy_sip_msg_break_down(&mit, tmpbub);
                 ets = timer1_read();
@@ -180,7 +173,6 @@ usipy_sip_tm_task(void *pvParameters)
                 bts = timer1_read();
                 struct usipy_msg *msg = usipy_sip_msg_ctor_fromwire(rx_buffer, len, &cerror);
                 ets = timer1_read();
-                rx_buffer = NULL;
                 ESP_LOGI(cfp->log_tag, "usipy_sip_msg_ctor_fromwire() = %p: took tsdiff(%u, %u) = %u cycles",
                   msg, bts, ets, tsdiff(bts, ets));
 #if 0
@@ -198,15 +190,12 @@ usipy_sip_tm_task(void *pvParameters)
                 usipy_sip_msg_dump(msg, cfp->log_tag);
                 usipy_sip_msg_dtor(msg);
 
-                int err = sendto(sock, msg->_storage, len, 0, (struct sockaddr *)&sourceAddr, socklen);
+                int err = sendto(sock, rx_buffer, len, 0, (struct sockaddr *)&sourceAddr, socklen);
                 if (err < 0) {
                     ESP_LOGE(cfp->log_tag, "Error occured during sending: errno %d", errno);
                     break;
                 }
             }
-        }
-        if (rx_buffer != NULL) {
-            free(rx_buffer);
         }
 
         if (sock != -1) {
