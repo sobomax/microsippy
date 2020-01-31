@@ -28,7 +28,7 @@ usipy_sip_hdr_via_parse(struct usipy_msg_heap *mhp,
     if (usipy_str_split(&s4, ';', &sent_by, &s4) != 0) {
         sent_by = s4;
     } else {
-        usipy_str_ltrm_e(sent_by);
+        usipy_str_ltrm_e(&sent_by);
     }
 
     vp = usipy_msg_heap_alloc(mhp, sizeof(struct usipy_sip_hdr_via));
