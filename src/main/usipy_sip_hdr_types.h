@@ -37,6 +37,7 @@
 #define USIPY_HF_CONTENTTYPE_c      36
 #define USIPY_HF_FROM_c             37
 #define USIPY_HF_REFERTO_c          38
-#define USIPY_HF_TO_c               39
-#define USIPY_HF_VIA_c              40
-#define USIPY_HF_max                40
+#define USIPY_HF_SUPPORTED_c        39
+#define USIPY_HF_TO_c               40
+#define USIPY_HF_VIA_c              41
+#define USIPY_HF_max                41
