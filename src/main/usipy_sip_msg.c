@@ -138,7 +138,6 @@ next_line:
     rp->heap.size = USIPY_REALIGN(alloc_len - (rp->heap.first - (void *)rp));
     return (rp);
 e1:
-    free(rp);
 e0:
     if (perrp != NULL)
         perrp->erRNo = ENOMEM;
