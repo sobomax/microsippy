@@ -11,6 +11,7 @@ usipy_sip_hdr_via_parse(struct usipy_msg_heap *mhp,
   const struct usipy_str *hvp)
 {
     struct usipy_str s1, s2, s3, s4;
+    struct usipy_str sent_by;
     struct usipy_sip_hdr_via *vp;
 
     if (usipy_str_split3(hvp, '/', &s1, &s2, &s4) != 0) {
@@ -23,12 +24,18 @@ usipy_sip_hdr_via_parse(struct usipy_msg_heap *mhp,
     usipy_str_ltrm_b(&s2); /* 2.0 */
     usipy_str_ltrm_e(&s2);
     usipy_str_ltrm_b(&s3); /* UDP */
-    usipy_str_ltrm_b(&s4); 
+    usipy_str_ltrm_b(&s4);
+    if (usipy_str_split(&s4, ';', &sent_by, &s4) != 0) {
+        sent_by = s4;
+    } else {
+        usipy_str_ltrm_e(sent_by);
+    }
 
     vp = usipy_msg_heap_alloc(mhp, sizeof(struct usipy_sip_hdr_via));
     if (vp == NULL) {
         return (NULL);
     }
+    vp->sent_by.host = sent_by;
     vp->sent_protocol.name = s1;
     vp->sent_protocol.version = s2;
     vp->sent_protocol.transport = s3;
