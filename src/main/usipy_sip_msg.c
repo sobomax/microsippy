@@ -15,6 +15,7 @@
 #include "usipy_sip_hdr_db.h"
 #include "usipy_sip_method_db.h"
 #include "usipy_sip_hdr_cseq.h"
+#include "usipy_sip_hdr_via.h"
 
 #define USIPY_HFS_NMIN (12)
 
@@ -211,6 +212,12 @@ usipy_sip_msg_parse_hdrs(struct usipy_msg *mp, uint64_t parsemask)
         case USIPY_HF_CSEQ:
             shp->parsed.cseq = usipy_sip_hdr_cseq_parse(&mp->heap, &shp->onwire.value);
             if (shp->parsed.cseq == NULL)
+                return (-1);
+            break;
+
+        case USIPY_HF_VIA:
+            shp->parsed.via = usipy_sip_hdr_via_parse(&mp->heap, &shp->onwire.value);
+            if (shp->parsed.via == NULL)
                 return (-1);
             break;
 

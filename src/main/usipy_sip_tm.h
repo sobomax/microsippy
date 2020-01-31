@@ -5,3 +5,9 @@ struct usipy_sip_tm_conf {
 };
 
 void usipy_sip_tm_task(void *pvParameters);
+
+#define USIPY_HF_TID_MASK ( \
+  USIPY_HFT_MASK(USIPY_HF_CSEQ) | \
+  USIPY_HFT_MASK(USIPY_HF_CALLID) | \
+  USIPY_HFT_MASK(USIPY_HF_VIA) \
+)

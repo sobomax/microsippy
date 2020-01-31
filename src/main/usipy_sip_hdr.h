@@ -1,7 +1,9 @@
 struct usipy_hdr_db_entr;
 struct usipy_sip_hdr_cseq;
+struct usipy_sip_hdr_via;
 
 union usipy_sip_hdr_parsed {
+    struct usipy_sip_hdr_cseq *via;
     struct usipy_sip_hdr_cseq *cseq;
     const struct usipy_str *generic;
 };

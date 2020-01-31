@@ -181,7 +181,6 @@ usipy_sip_tm_task(void *pvParameters)
 #endif
                 if (msg == NULL)
                     continue;
-#define USIPY_HF_TID_MASK (USIPY_HFT_MASK(USIPY_HF_CSEQ) | USIPY_HFT_MASK(USIPY_HF_CALLID))
                 bts = timer1_read();
                 int rval = usipy_sip_msg_parse_hdrs(msg, USIPY_HF_TID_MASK);
                 ets = timer1_read();

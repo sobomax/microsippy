@@ -1,0 +1,37 @@
+#include <stdint.h>
+#include <stdlib.h>
+
+#include "usipy_msg_heap.h"
+#include "usipy_str.h"
+#include "usipy_sip_hdr_via.h"
+#include "usipy_sip_method_db.h"
+
+struct usipy_sip_hdr_via *
+usipy_sip_hdr_via_parse(struct usipy_msg_heap *mhp,
+  const struct usipy_str *hvp)
+{
+    struct usipy_str s1, s2, s3, s4;
+    uint32_t r;
+    struct usipy_sip_hdr_via *vp;
+
+    if (usipy_str_split3(hvp, '/', &s1, &s2, &s4) != 0) {
+        return (NULL);
+    }
+    if (usipy_str_splitlws(&s4, &s3, &s4) != 0) {
+        return (NULL);
+    }
+    usipy_str_ltrm_e(&s1); /* SIP */
+    usipy_str_ltrm_b(&s2); /* 2.0 */
+    usipy_str_ltrm_e(&s2);
+    usipy_str_ltrm_b(&s3); /* UDP */
+    usipy_str_ltrm_b(&s4); 
+
+    vp = usipy_msg_heap_alloc(mhp, sizeof(struct usipy_sip_hdr_via));
+    if (vp == NULL) {
+        return (NULL);
+    }
+    vp->sent_protocol.name = s1;
+    vp->sent_protocol.version = s2;
+    vp->sent_protocol.transport = s3;
+    return (vp);
+}
