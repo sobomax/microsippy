@@ -15,6 +15,8 @@ struct usipy_str_ro {
 
 int usipy_str_split(const struct usipy_str *, unsigned char,
   struct usipy_str *, struct usipy_str *);
+int usipy_str_split3(const struct usipy_str *, unsigned char,
+  struct usipy_str *, struct usipy_str *, struct usipy_str *);
 int usipy_str_atoui_range(const struct usipy_str *, unsigned int *,
   unsigned int, unsigned int);
 int usipy_str_splitlws(const struct usipy_str *, struct usipy_str *,
