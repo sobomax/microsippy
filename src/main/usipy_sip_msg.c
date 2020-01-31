@@ -65,7 +65,8 @@ usipy_sip_msg_ctor_fromwire(const char *buf, size_t len,
     rp->heap.first = (void *)(rp->_storage + USIPY_ALIGNED_SIZE(len));
     //usipy_sip_msg_break_down(&rp->onwire, rp->_crlf_map);
     rp->hdrs = (struct usipy_sip_hdr *)(rp->heap.first);
-    struct usipy_sip_hdr *shp = NULL;
+    struct usipy_sip_hdr *shp = NULL, *ehp;
+    ehp = (struct usipy_sip_hdr *)((char *)(rp) + alloc_len));
     memset(&mit, '\0', sizeof(mit));
     mit.msg_onwire = (struct usipy_str){.s.ro = buf, .l = len};
     mit.msg_copy = &rp->onwire;
@@ -94,7 +95,7 @@ usipy_sip_msg_ctor_fromwire(const char *buf, size_t len,
                 /* Continuation */
                 goto multi_line;
             }
-            nextra = usipy_sip_hdr_preparse(shp);
+            nextra = usipy_sip_hdr_preparse(shp, ehp);
             if (nextra < 0) {
                 goto e1;
             }
@@ -108,7 +109,7 @@ usipy_sip_msg_ctor_fromwire(const char *buf, size_t len,
             break;
         }
         shp = &rp->hdrs[rp->nhdrs];
-        if ((void *)(shp + 1) > (void *)((char *)(rp) + alloc_len))
+        if ((shp + 1) > ehp)
             goto e1;
 #if 0
         mit.ioffst = &(shp->col_offst);

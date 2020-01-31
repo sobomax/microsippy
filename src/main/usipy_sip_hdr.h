@@ -20,4 +20,4 @@ struct usipy_sip_hdr {
     union usipy_sip_hdr_parsed parsed;
 };
 
-int usipy_sip_hdr_preparse(struct usipy_sip_hdr *);
+int usipy_sip_hdr_preparse(struct usipy_sip_hdr *, struct usipy_sip_hdr *);

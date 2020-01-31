@@ -6,7 +6,7 @@
 #include "usipy_sip_hdr_db.h"
 
 int
-usipy_sip_hdr_preparse(struct usipy_sip_hdr *shp)
+usipy_sip_hdr_preparse(struct usipy_sip_hdr *shp, struct usipy_sip_hdr *ehp)
 {
      const struct usipy_hdr_db_entr *hdep;
      int nextra;
@@ -30,10 +30,12 @@ usipy_sip_hdr_preparse(struct usipy_sip_hdr *shp)
              if (usipy_str_split(&csp, ',', &shp->onwire.value, &csp) != 0) {
                  break;
              }
+             shp++;
+             if ((shp + 1) > ehp)
+                 return (-1);
              usipy_str_ltrm_b(&shp->onwire.value);
              usipy_str_ltrm_e(&shp->onwire.value);
              nextra += 1;
-             shp++;
              shp->hf_type = shp[-1].hf_type;
              shp->onwire.value = csp;
              shp->onwire.hf_type = shp[-1].onwire.hf_type;
