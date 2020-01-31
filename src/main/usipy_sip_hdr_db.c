@@ -6,6 +6,7 @@
 #include "usipy_fast_parser.h"
 #include "usipy_sip_hdr_types.h"
 #include "usipy_sip_hdr_db.h"
+#include "usipy_sip_hdr_via.h"
 
 static const struct usipy_fast_parser hdr_pdata = {
     .magic = 0x46,
@@ -116,7 +117,7 @@ static const struct usipy_hdr_db_entr usipy_hdr_db[USIPY_HF_max + 1] = {
      .flags.csl_allowed = 1},
     {.cantype = USIPY_HF_TO, .name = {.s.ro = "To", .l = 2}},
     {.cantype = USIPY_HF_USERAGENT, .name = {.s.ro = "User-Agent", .l = 10}},
-    {.cantype = USIPY_HF_VIA, .name = {.s.ro = "Via", .l = 3},
+    {.cantype = USIPY_HF_VIA, .name = {.s.ro = "Via", .l = 3}, .dump = usipy_sip_hdr_via_dump,
      .flags.csl_allowed = 1},
     {.cantype = USIPY_HF_WWWAUTHENTICATE, .name = {.s.ro = "WWW-Authenticate", .l = 16}},
     {.cantype = USIPY_HF_WARNING, .name = {.s.ro = "Warning", .l = 7},
@@ -131,8 +132,8 @@ static const struct usipy_hdr_db_entr usipy_hdr_db[USIPY_HF_max + 1] = {
     {.cantype = USIPY_HF_SUPPORTED, .name = {.s.ro = "k", .l = 1},
      .flags.csl_allowed = 1},
     {.cantype = USIPY_HF_TO, .name = {.s.ro = "t", .l = 1}},
-    {.cantype = USIPY_HF_VIA, .name = {.s.ro = "v", .l = 1},
-     .flags.csl_allowed = 1}
+    {.cantype = USIPY_HF_VIA, .name = {.s.ro = "v", .l = 1}, .dump = usipy_sip_hdr_via_dump,
+     .flags.csl_allowed = 1 }
 };
 
 const struct usipy_hdr_db_entr *

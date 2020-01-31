@@ -1,4 +1,5 @@
 struct usipy_msg_heap;
+union usipy_sip_hdr_parsed;
 
 struct usipy_sip_hdr_via {
     struct {
@@ -14,4 +15,4 @@ struct usipy_sip_hdr_via {
 
 struct usipy_sip_hdr_via *usipy_sip_hdr_via_parse(struct usipy_msg_heap *,
   const struct usipy_str *);
-void usipy_sip_hdr_via_dump(const char *, const struct usipy_sip_hdr_via *);
+void usipy_sip_hdr_via_dump(const char *, const union usipy_sip_hdr_parsed *);
