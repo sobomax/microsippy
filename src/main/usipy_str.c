@@ -103,7 +103,7 @@ usipy_str_splitlws(const struct usipy_str *ivp, struct usipy_str *ovp1,
 lws_found:
     ovp1->s.ro = ivp->s.ro;
     ovp1->l = cp - ivp->s.ro;
-    ovp2->s.ro = cp;
+    ovp2->s.ro = cp + 1;
     ovp2->l = ivp->l - ovp1->l - 1;
     usipy_str_ltrm_b(ovp2);
     return (0);
