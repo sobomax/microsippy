@@ -64,11 +64,20 @@ usipy_sip_hdr_via_parse(struct usipy_msg_heap *mhp,
             thisparam = paramspace;
             paramspace.l = 0;
         }
+        struct usipy_str param_token, param_value;
+        if (usipy_str_split(&thisparam, '=', &param_token, &param_value) == 0) {
+            usipy_str_ltrm_e(&param_token);
+            usipy_str_ltrm_b(&param_value);
+        } else {
+            param_token = thisparam;
+            param_value = (struct usipy_str){.l = 0, .s.ro = NULL};
+        }
         if (usipy_msg_heap_aextend(mhp, vp, VH_SIZEOF(tv.nparams),
           VH_SIZEOF(tv.nparams + 1)) != 0) {
             return (NULL);
         }
-        vp->params[tv.nparams].token = thisparam;
+        vp->params[tv.nparams].token = param_token;
+        vp->params[tv.nparams].value = param_value;
         tv.nparams++;
     }
     *vp = tv;
@@ -94,5 +103,6 @@ usipy_sip_hdr_via_dump(const union usipy_sip_hdr_parsed *up, const char *log_tag
         DUMP_UINT(sent_by.port);
     for (int i = 0; i < vp->nparams; i++) {
         DUMP_STR(params[i].token);
+        DUMP_STR(params[i].value);
     }
 }
