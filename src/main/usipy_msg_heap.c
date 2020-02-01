@@ -1,3 +1,4 @@
+#include <assert.h>
 #include <errno.h>
 #include <stddef.h>
 
@@ -14,7 +15,7 @@ usipy_msg_heap_alloc(struct usipy_msg_heap *hp, size_t len)
     if (currfree < len)
         return (NULL);
     rp = hp->free;
-    hp->free += len;
+    hp->free += alen;
     hp->lastprov = rp;
     return (rp);
 }
