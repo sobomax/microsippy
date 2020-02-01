@@ -21,12 +21,13 @@ usipy_msg_heap_alloc(struct usipy_msg_heap *hp, size_t len)
 }
 
 int
-usipy_msg_heap_aextend(struct usipy_msg_heap *hp, void *origp, size_t len, int n)
+usipy_msg_heap_aextend(struct usipy_msg_heap *hp, void *origp, size_t olen,
+  size_t nlen)
 {
     size_t currfree, elen;
 
     assert(origp == hp->lastprov);
-    elen = USIPY_ALIGNED_SIZE(len * n) - USIPY_ALIGNED_SIZE(len * (n - 1));
+    elen = USIPY_ALIGNED_SIZE(olen) - USIPY_ALIGNED_SIZE(nlen);
     if (elen == 0) {
         return (0);
     }
