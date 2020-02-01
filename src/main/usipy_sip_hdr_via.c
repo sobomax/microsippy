@@ -7,7 +7,6 @@
 #include "usipy_str.h"
 #include "usipy_sip_hdr.h"
 #include "usipy_sip_hdr_via.h"
-//#include "usipy_sip_method_db.h"
 
 struct usipy_sip_hdr_via *
 usipy_sip_hdr_via_parse(struct usipy_msg_heap *mhp,
@@ -57,12 +56,12 @@ usipy_sip_hdr_via_parse(struct usipy_msg_heap *mhp,
 }
 
 #define DUMP_STR(sname) \
-    ESP_LOGI(log_tag, "  ." #sname " = \"%.*s\"", vp->sname.l, vp->sname.s.ro)
+    ESP_LOGI(log_tag, "  parsed->via." #sname " = \"%.*s\"", vp->sname.l, vp->sname.s.ro)
 #define DUMP_UINT(sname) \
-    ESP_LOGI(log_tag, "  ." #sname " = %u", vp->sname)
+    ESP_LOGI(log_tag, "  parsed->via." #sname " = %u", vp->sname)
 
 void
-usipy_sip_hdr_via_dump(const char *log_tag, const union usipy_sip_hdr_parsed *up)
+usipy_sip_hdr_via_dump(const union usipy_sip_hdr_parsed *up, const char *log_tag)
 {
     const struct usipy_sip_hdr_via *vp = up->via;
 

@@ -1,7 +1,7 @@
 union usipy_sip_hdr_parsed;
 
-DEFINE_RAW_METHOD(usipy_sip_hdr_dump, void, const char *,
-  const union usipy_sip_hdr_parsed *);
+DEFINE_RAW_METHOD(usipy_sip_hdr_dump, void, const union usipy_sip_hdr_parsed *,
+  const char *);
 
 struct usipy_hdr_db_entr {
     struct usipy_str name;

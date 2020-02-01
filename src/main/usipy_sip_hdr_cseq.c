@@ -1,10 +1,12 @@
 #include <stdint.h>
 #include <stdlib.h>
 
+#include "esp_log.h"
+
 #include "usipy_msg_heap.h"
 #include "usipy_str.h"
+#include "usipy_sip_hdr.h"
 #include "usipy_sip_hdr_cseq.h"
-#include "usipy_sip_method_db.h"
 
 #define USIPY_SIP_SEQ_MIN 0
 #define USIPY_SIP_SEQ_MAX 0xffffffff
@@ -30,4 +32,15 @@ usipy_sip_hdr_cseq_parse(struct usipy_msg_heap *mhp,
     csp->val = r;
     csp->method = usipy_method_db_lookup(&s2)->cantype;
     return (csp);
+}
+
+#define DUMP_UINT(sname) \
+    ESP_LOGI(log_tag, "  parsed->cseq." #sname " = %u", csp->sname)
+
+void
+usipy_sip_hdr_cseq_dump(const union usipy_sip_hdr_parsed *up, const char *log_tag)
+{
+    const struct usipy_sip_hdr_cseq *csp = up->cseq;
+
+    DUMP_UINT(val);
 }
