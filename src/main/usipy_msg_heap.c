@@ -26,8 +26,8 @@ usipy_msg_heap_aextend(struct usipy_msg_heap *hp, void *origp, size_t olen,
 {
     size_t currfree, elen;
 
-    assert(origp == hp->lastprov);
-    elen = USIPY_ALIGNED_SIZE(olen) - USIPY_ALIGNED_SIZE(nlen);
+    assert(origp == hp->lastprov && nlen > olen);
+    elen = USIPY_ALIGNED_SIZE(nlen) - USIPY_ALIGNED_SIZE(olen);
     if (elen == 0) {
         return (0);
     }
