@@ -92,4 +92,7 @@ usipy_sip_hdr_via_dump(const union usipy_sip_hdr_parsed *up, const char *log_tag
     DUMP_STR(sent_by.host);
     if (vp->sent_by.port > 0)
         DUMP_UINT(sent_by.port);
+    for (int i = 0; i < vp->nparams; i++) {
+        DUMP_STR(params[i].token);
+    }
 }
