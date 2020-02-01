@@ -18,7 +18,7 @@
 #include "usipy_sip_hdr_cseq.h"
 #include "usipy_sip_hdr_via.h"
 
-#define USIPY_HFS_NMIN (12)
+#define USIPY_HFS_NMIN (20)
 
 struct usipy_sip_msg_iterator {
     struct usipy_str msg_onwire;
