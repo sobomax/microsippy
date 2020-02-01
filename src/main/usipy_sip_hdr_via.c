@@ -57,7 +57,7 @@ usipy_sip_hdr_via_parse(struct usipy_msg_heap *mhp,
         return (NULL);
     }
     tv.nparams = 0;
-    while (paramspace.l != 0;) {
+    while (paramspace.l != 0) {
         struct usipy_str thisparam;
         if (usipy_str_split_elem(&paramspace, ';', &thisparam) != 0) {
             thisparam = paramspace;
