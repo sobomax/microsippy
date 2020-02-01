@@ -14,24 +14,19 @@ usipy_sip_hdr_via_parse(struct usipy_msg_heap *mhp,
   const struct usipy_str *hvp)
 {
     struct usipy_str s4;
-    struct usipy_str sent_by, sent_by_port_s;
-    struct usipy_sip_hdr_via *vp;
-    struct usipy_str sent_protocol_name;
-    struct usipy_str sent_protocol_version;
-    struct usipy_str sent_protocol_transport;
-    struct usipy_str sent_by_host;
-    unsigned int sent_by_port;
+    struct usipy_str sent_by, sent_by_port;
+    struct usipy_sip_hdr_via tv, *vp;
 
-    if (usipy_str_split3(hvp, '/', &sent_protocol_name, &sent_protocol_version, &s4) != 0) {
+    if (usipy_str_split3(hvp, '/', &tv.sent_protocol.name, &tv.sent_protocol.version, &s4) != 0) {
         return (NULL);
     }
     usipy_str_ltrm_b(&s4); /* UDP */
-    if (usipy_str_splitlws(&s4, &sent_protocol_transport, &s4) != 0) {
+    if (usipy_str_splitlws(&s4, &tv.sent_protocol.transport, &s4) != 0) {
         return (NULL);
     }
-    usipy_str_ltrm_e(&sent_protocol_name); /* SIP */
-    usipy_str_ltrm_b(&sent_protocol_version); /* 2.0 */
-    usipy_str_ltrm_e(&sent_protocol_version);
+    usipy_str_ltrm_e(&tv.sent_protocol.name); /* SIP */
+    usipy_str_ltrm_b(&tv.sent_protocol.version); /* 2.0 */
+    usipy_str_ltrm_e(&tv.sent_protocol.version);
     usipy_str_ltrm_b(&s4);
     if (usipy_str_split(&s4, ';', &sent_by, &s4) != 0) {
         sent_by = s4;
@@ -42,25 +37,21 @@ usipy_sip_hdr_via_parse(struct usipy_msg_heap *mhp,
     if (sent_by.l == 0) {
         return (NULL);
     }
-    if (usipy_str_split(&sent_by, ':', &sent_by_host, &sent_by_port_s) == 0) {
-        usipy_str_ltrm_e(&sent_by_host);
-        usipy_str_ltrm_b(&sent_by_port_s);
-        if (usipy_str_atoui_range(&sent_by_port_s, &sent_by_port, 1, 65535) != 0) {
+    if (usipy_str_split(&sent_by, ':', &tv.sent_by.host, &sent_by_port) == 0) {
+        usipy_str_ltrm_e(&tv.sent_by.host);
+        usipy_str_ltrm_b(&sent_by_port);
+        if (usipy_str_atoui_range(&sent_by_port, &tv.sent_by.port, 1, 65535) != 0) {
             return (NULL);
         }
     } else {
-        sent_by_host = sent_by;
-        sent_by_port = 0;
+        tv.sent_by.host = sent_by;
+        tv.sent_by.port = 0;
     }
     vp = usipy_msg_heap_alloc(mhp, sizeof(struct usipy_sip_hdr_via));
     if (vp == NULL) {
         return (NULL);
     }
-    vp->sent_protocol.name = sent_protocol_name;
-    vp->sent_protocol.version = sent_protocol_version;
-    vp->sent_protocol.transport = sent_protocol_transport;
-    vp->sent_by.host = sent_by_host;
-    vp->sent_by.port = sent_by_port;
+    *vp = tv;
 
     return (vp);
 }
