@@ -15,22 +15,18 @@ usipy_sip_hdr_via_parse(struct usipy_msg_heap *mhp,
 {
     struct usipy_str s4;
     struct usipy_str sent_by, sent_by_port;
-    struct usipy_sip_hdr_via *vp;
+    struct usipy_sip_hdr_via tv, *vp;
 
-    vp = usipy_msg_heap_alloc(mhp, sizeof(struct usipy_sip_hdr_via));
-    if (vp == NULL) {
-        return (NULL);
-    }
-    if (usipy_str_split3(hvp, '/', &vp->sent_protocol.name, &vp->sent_protocol.version, &s4) != 0) {
+    if (usipy_str_split3(hvp, '/', &tv.sent_protocol.name, &tv.sent_protocol.version, &s4) != 0) {
         return (NULL);
     }
     usipy_str_ltrm_b(&s4); /* UDP */
-    if (usipy_str_splitlws(&s4, &vp->sent_protocol.transport, &s4) != 0) {
+    if (usipy_str_splitlws(&s4, &tv.sent_protocol.transport, &s4) != 0) {
         return (NULL);
     }
-    usipy_str_ltrm_e(&vp->sent_protocol.name); /* SIP */
-    usipy_str_ltrm_b(&vp->sent_protocol.version); /* 2.0 */
-    usipy_str_ltrm_e(&vp->sent_protocol.version);
+    usipy_str_ltrm_e(&tv.sent_protocol.name); /* SIP */
+    usipy_str_ltrm_b(&tv.sent_protocol.version); /* 2.0 */
+    usipy_str_ltrm_e(&tv.sent_protocol.version);
     usipy_str_ltrm_b(&s4);
     if (usipy_str_split(&s4, ';', &sent_by, &s4) != 0) {
         sent_by = s4;
@@ -41,15 +37,21 @@ usipy_sip_hdr_via_parse(struct usipy_msg_heap *mhp,
     if (sent_by.l == 0) {
         return (NULL);
     }
-    if (usipy_str_split(&sent_by, ':', &vp->sent_by.host, &sent_by_port) == 0) {
-        usipy_str_ltrm_e(&vp->sent_by.host);
+    if (usipy_str_split(&sent_by, ':', &tv.sent_by.host, &sent_by_port) == 0) {
+        usipy_str_ltrm_e(&tv.sent_by.host);
         usipy_str_ltrm_b(&sent_by_port);
-        if (usipy_str_atoui_range(&sent_by_port, &vp->sent_by.port, 1, 65535) != 0) {
+        if (usipy_str_atoui_range(&sent_by_port, &tv.sent_by.port, 1, 65535) != 0) {
             return (NULL);
         }
     } else {
-        vp->sent_by.host = sent_by;
+        tv.sent_by.host = sent_by;
+        tv.sent_by.port = 0;
     }
+    vp = usipy_msg_heap_alloc(mhp, sizeof(struct usipy_sip_hdr_via));
+    if (vp == NULL) {
+        return (NULL);
+    }
+    *vp = tv;
 
     return (vp);
 }
