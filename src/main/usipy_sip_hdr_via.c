@@ -31,11 +31,13 @@ usipy_sip_hdr_via_parse(struct usipy_msg_heap *mhp,
     usipy_str_ltrm_b(&tv.sent_protocol.version); /* 2.0 */
     usipy_str_ltrm_e(&tv.sent_protocol.version);
     usipy_str_ltrm_b(&s4);
-    if (usipy_str_split(&s4, ';', &sent_by, &s4) != 0) {
+    struct usipy_str paramspace;
+    if (usipy_str_split(&s4, ';', &sent_by, &paramspace) != 0) {
         sent_by = s4;
-        s4.l = 0;
+        paramspace.l = 0;
     } else {
         usipy_str_ltrm_e(&sent_by);
+        usipy_str_ltrm_b(&paramspace);
     }
     if (sent_by.l == 0) {
         return (NULL);
@@ -55,7 +57,7 @@ usipy_sip_hdr_via_parse(struct usipy_msg_heap *mhp,
         return (NULL);
     }
     tv.nparams = 0;
-    for (struct usipy_str paramspace = s4; paramspace.l != 0;) {
+    while (paramspace.l != 0;) {
         struct usipy_str thisparam;
         if (usipy_str_split_elem(&paramspace, ';', &thisparam) != 0) {
             thisparam = paramspace;
