@@ -39,11 +39,9 @@ usipy_sip_hdr_via_parse(struct usipy_msg_heap *mhp,
     if (usipy_str_split(&sent_by, ':', &tv.sent_by.host, &sent_by_port) == 0) {
         usipy_str_ltrm_e(&tv.sent_by.host);
         usipy_str_ltrm_b(&sent_by_port);
-#if 0
         if (usipy_str_atoui_range(&sent_by_port, &tv.sent_by.port, 1, 65535) != 0) {
             return (NULL);
         }
-#endif
     } else {
         tv.sent_by.host = sent_by;
         tv.sent_by.port = 0;
