@@ -20,6 +20,28 @@ usipy_str_split(const struct usipy_str *x, unsigned char dlm,
 }
 
 int
+usipy_str_split_elem(struct usipy_str *iter, unsigned char dlm,
+  struct usipy_str *crt)
+{
+    const char *r;
+    struct usipy_str left, right;
+
+
+    r = memchr(iter->s.ro, dlm, iter->l);
+    if (r == NULL)
+        return (-1);
+
+    left.l = r - iter->s.ro;
+    left.s.ro = iter->s.ro;
+    usipy_str_ltrm_e(&left);
+    *crt = (left.l == 0) ? USIPY_STR_NULL : left;
+    right.l = iter->l - (r - iter->s.ro) - 1;
+    right.s.ro = r + 1;
+    usipy_str_ltrm_b(&right);
+    *iter = (right.l == 0) ? USIPY_STR_NULL : right;
+}
+
+int
 usipy_str_split3(const struct usipy_str *x, unsigned char dlm,
   struct usipy_str *y, struct usipy_str *z, struct usipy_str *w)
 {

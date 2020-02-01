@@ -57,10 +57,7 @@ usipy_sip_hdr_via_parse(struct usipy_msg_heap *mhp,
     tv.nparams = 0;
     for (struct usipy_str paramspace = s4; paramspace.l != 0;) {
         struct usipy_str thisparam;
-        if (usipy_str_split(&paramspace, ';', &thisparam, &paramspace) == 0) {
-            usipy_str_ltrm_e(&thisparam);
-            usipy_str_ltrm_b(&paramspace);
-        } else {
+        if (usipy_str_split_elem(&paramspace, ';', &thisparam) != 0) {
             thisparam = paramspace;
             paramspace.l = 0;
         }
@@ -70,7 +67,7 @@ usipy_sip_hdr_via_parse(struct usipy_msg_heap *mhp,
             usipy_str_ltrm_b(&param_value);
         } else {
             param_token = thisparam;
-            param_value = (struct usipy_str){.l = 0, .s.ro = NULL};
+            param_value = USIPY_STR_NULL;
         }
         if (usipy_msg_heap_aextend(mhp, vp, VH_SIZEOF(tv.nparams),
           VH_SIZEOF(tv.nparams + 1)) != 0) {
