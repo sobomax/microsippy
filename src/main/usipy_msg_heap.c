@@ -31,7 +31,7 @@ usipy_msg_heap_aextend(struct usipy_msg_heap *hp, void *origp, size_t len, int n
         return (0);
     }
     currfree = usipy_msg_heap_remaining(hp);
-    if (currfree < elen)
+    if (currfree < elen) {
         return (-1);
     }
     hp->free += elen;
