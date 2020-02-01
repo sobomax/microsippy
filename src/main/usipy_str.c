@@ -39,6 +39,8 @@ usipy_str_split_elem(struct usipy_str *iter, unsigned char dlm,
     right.s.ro = r + 1;
     usipy_str_ltrm_b(&right);
     *iter = (right.l == 0) ? USIPY_STR_NULL : right;
+
+    return (0);
 }
 
 int
