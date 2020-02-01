@@ -58,7 +58,7 @@ usipy_sip_hdr_via_parse(struct usipy_msg_heap *mhp,
     }
     vp->sent_protocol.name = sent_protocol_name;
     vp->sent_protocol.version = sent_protocol_version;
-    vp->sent_protocol_transport = sent_protocol_transport;
+    vp->sent_protocol.transport = sent_protocol_transport;
     vp->sent_by.host = sent_by_host;
     vp->sent_by.port = sent_by_port;
 
