@@ -7,6 +7,7 @@
 #include "usipy_str.h"
 #include "usipy_sip_hdr.h"
 #include "usipy_sip_hdr_cseq.h"
+#include "usipy_sip_method_db.h"
 
 #define USIPY_SIP_SEQ_MIN 0
 #define USIPY_SIP_SEQ_MAX 0xffffffff
