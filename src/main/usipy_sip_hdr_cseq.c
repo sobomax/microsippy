@@ -36,7 +36,7 @@ usipy_sip_hdr_cseq_parse(struct usipy_msg_heap *mhp,
 }
 
 #define DUMP_UINT(sname) \
-    ESP_LOGI(log_tag, "  parsed->cseq." #sname " = %u", csp->sname)
+    ESP_LOGI(log_tag, "  .parsed->cseq." #sname " = %u", csp->sname)
 
 void
 usipy_sip_hdr_cseq_dump(const union usipy_sip_hdr_parsed *up, const char *log_tag)

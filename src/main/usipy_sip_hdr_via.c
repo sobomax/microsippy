@@ -56,9 +56,9 @@ usipy_sip_hdr_via_parse(struct usipy_msg_heap *mhp,
 }
 
 #define DUMP_STR(sname) \
-    ESP_LOGI(log_tag, "  parsed->via." #sname " = \"%.*s\"", vp->sname.l, vp->sname.s.ro)
+    ESP_LOGI(log_tag, "  .parsed->via." #sname " = \"%.*s\"", vp->sname.l, vp->sname.s.ro)
 #define DUMP_UINT(sname) \
-    ESP_LOGI(log_tag, "  parsed->via." #sname " = %u", vp->sname)
+    ESP_LOGI(log_tag, "  .parsed->via." #sname " = %u", vp->sname)
 
 void
 usipy_sip_hdr_via_dump(const union usipy_sip_hdr_parsed *up, const char *log_tag)
