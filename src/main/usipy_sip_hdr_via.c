@@ -23,11 +23,11 @@ usipy_sip_hdr_via_parse(struct usipy_msg_heap *mhp,
     if (usipy_str_split3(hvp, '/', &tv.sent_protocol.name, &tv.sent_protocol.version, &s4) != 0) {
         return (NULL);
     }
-    ESP_LOGI("foobar", "s4 = \"%.*s\"", s4.l, s4.s.ro);
     usipy_str_ltrm_b(&s4); /* UDP */
     if (usipy_str_splitlws(&s4, &tv.sent_protocol.transport, &s4) != 0) {
         return (NULL);
     }
+    ESP_LOGI("foobar", "s4 = \"%.*s\"", s4.l, s4.s.ro);
     usipy_str_ltrm_e(&tv.sent_protocol.name); /* SIP */
     usipy_str_ltrm_b(&tv.sent_protocol.version); /* 2.0 */
     usipy_str_ltrm_e(&tv.sent_protocol.version);
