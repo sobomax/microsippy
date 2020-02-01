@@ -8,6 +8,10 @@
 #include "usipy_sip_hdr.h"
 #include "usipy_sip_hdr_via.h"
 
+#define VH_SIZEOF(nparams) ( \
+  sizeof(struct usipy_sip_hdr_via) + (sizeof(struct usipy_sip_param) * (nparams)) \
+)
+
 struct usipy_sip_hdr_via *
 usipy_sip_hdr_via_parse(struct usipy_msg_heap *mhp,
   const struct usipy_str *hvp)
@@ -49,6 +53,23 @@ usipy_sip_hdr_via_parse(struct usipy_msg_heap *mhp,
     vp = usipy_msg_heap_alloc(mhp, sizeof(struct usipy_sip_hdr_via));
     if (vp == NULL) {
         return (NULL);
+    }
+    tv.nparams = 0;
+    for (struct usipy_str paramspace = s4; paramspace.l != 0;) {
+        struct usipy_str thisparam;
+        if (usipy_str_split(&paramspace, ';', &thisparam, &paramspace) == 0) {
+            usipy_str_ltrm_e(&thisparam);
+            usipy_str_ltrm_b(&paramspace);
+        } else {
+            thisparam = paramspace;
+            paramspace.l = 0;
+        }
+        if (usipy_msg_heap_aextend(mhp, vp, VH_SIZEOF(tv.nparams),
+          VH_SIZEOF(tv.nparams + 1)) != 0) {
+            return (NULL);
+        }
+        vp->params[tv.nparams].token = thisparam;
+        tv.nparams++;
     }
     *vp = tv;
 
