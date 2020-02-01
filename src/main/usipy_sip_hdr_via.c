@@ -44,6 +44,9 @@ usipy_sip_hdr_via_parse(struct usipy_msg_heap *mhp,
     if (usipy_str_split(&sent_by, ':', &vp->sent_by.host, &sent_by_port) == 0) {
         usipy_str_ltrm_e(&vp->sent_by.host);
         usipy_str_ltrm_b(&sent_by_port);
+        if (usipy_str_atoui_range(&sent_by_port, &vp->sent_by.port, 1, 65535) != 0) {
+            return (NULL);
+        }
     } else {
         vp->sent_by.host = sent_by;
     }
@@ -53,6 +56,8 @@ usipy_sip_hdr_via_parse(struct usipy_msg_heap *mhp,
 
 #define DUMP_STR(sname) \
     ESP_LOGI(log_tag, "  ." #sname " = \"%.*s\"", vp->sname.l, vp->sname.s.ro)
+#define DUMP_UINT(sname) \
+    ESP_LOGI(log_tag, "  ." #sname " = %u", vp->sname)
 
 void
 usipy_sip_hdr_via_dump(const char *log_tag, const union usipy_sip_hdr_parsed *up)
@@ -63,4 +68,6 @@ usipy_sip_hdr_via_dump(const char *log_tag, const union usipy_sip_hdr_parsed *up
     DUMP_STR(sent_protocol.version);
     DUMP_STR(sent_protocol.transport);
     DUMP_STR(sent_by.host);
+    if (vp->sent_by.port > 0)
+        DUMP_UINT(sent_by.port);
 }
