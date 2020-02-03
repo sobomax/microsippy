@@ -170,18 +170,17 @@ usipy_sip_msg_dump(const struct usipy_msg *msg, const char *log_tag)
     switch (msg->kind) {
     case USIPY_SIP_MSG_RES:
         ESP_LOGI(log_tag, "Message[%p] is SIP RESPONSE: status_code = %u, "
-          "reason_phrase = \"%.*s\", heap remaining %d", msg,
+          "reason_phrase = \"%.*s\"", msg,
           msg->sline.parsed.sl.status_code, msg->sline.parsed.sl.reason_phrase.l,
-          msg->sline.parsed.sl.reason_phrase.s.ro, usipy_msg_heap_remaining(&msg->heap));
+          msg->sline.parsed.sl.reason_phrase.s.ro);
         break;
 
     case USIPY_SIP_MSG_REQ:
         ESP_LOGI(log_tag, "Message[%p] is SIP REQUEST: method(onwire) = \"%.*s\", "
-          "method(canonic) = \"%.*s\", ruri = \"%.*s\", heap remaining %d", msg,
+          "method(canonic) = \"%.*s\", ruri = \"%.*s\"", msg,
           msg->sline.parsed.rl.onwire.method.l, msg->sline.parsed.rl.onwire.method.s.ro,
           msg->sline.parsed.rl.mtype->name.l, msg->sline.parsed.rl.mtype->name.s.ro,
-          msg->sline.parsed.rl.onwire.ruri.l, msg->sline.parsed.rl.onwire.ruri.s.ro,
-          usipy_msg_heap_remaining(&msg->heap));
+          msg->sline.parsed.rl.onwire.ruri.l, msg->sline.parsed.rl.onwire.ruri.s.ro);
         break;
 
     default:
@@ -202,6 +201,7 @@ usipy_sip_msg_dump(const struct usipy_msg *msg, const char *log_tag)
         }
     }
     ESP_LOGI(log_tag, "body = \"%.*s\"", msg->body.l, msg->body.s.ro);
+    ESP_LOGI(log_tag, "heap remaining %d", usipy_msg_heap_remaining(&msg->heap));
 }
 
 #define USIPY_HF_ISMSET(msk, h) ((msk) & USIPY_HFT_MASK(h))
