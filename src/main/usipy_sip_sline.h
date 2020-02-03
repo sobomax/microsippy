@@ -1,4 +1,5 @@
 struct usipy_method_db_entr;
+struct usipy_msg_heap;
 
 struct usipy_sip_status_line {
     struct usipy_str version;
@@ -21,7 +22,8 @@ struct usipy_sip_sline {
     } parsed;
 };
 
-enum usipy_sip_msg_kind usipy_sip_sline_parse(struct usipy_sip_sline *);
+enum usipy_sip_msg_kind usipy_sip_sline_parse(struct usipy_msg_heap *,
+  struct usipy_sip_sline *);
 
 #define USIPY_SIP_SCODE_MIN 100
 #define USIPY_SIP_SCODE_MAX 999

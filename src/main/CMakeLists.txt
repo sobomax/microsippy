@@ -6,7 +6,7 @@ set(COMPONENT_SRCS "udp_server.c" "usipy_sip_tm.c" "usipy_sip_tm.h"
  "usipy_sip_sline.h" "usipy_misc.c" "usipy_misc.h" "usipy_sip_method_db.c"
  "usipy_sip_method_db.h" "usipy_sip_method_types.h" "usipy_sip_hdr_cseq.c"
  "usipy_sip_hdr_cseq.h" "usipy_esp8266_timer1.h" "usipy_sip_hdr_via.c"
- "usipy_sip_hdr_via.h" "usipy_types.h"
+ "usipy_sip_hdr_via.h" "usipy_types.h" "usipy_sip_uri.c" "usipy_sip_uri.h"
 )
 set(COMPONENT_ADD_INCLUDEDIRS ".")
 

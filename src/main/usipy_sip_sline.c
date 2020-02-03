@@ -9,7 +9,7 @@
 #include "usipy_sip_method_db.h"
 
 enum usipy_sip_msg_kind
-usipy_sip_sline_parse(struct usipy_sip_sline *slp)
+usipy_sip_sline_parse(struct usipy_msg_heap *mhp, struct usipy_sip_sline *slp)
 {
     struct usipy_str s1, s2, s3, s4;
     enum usipy_sip_msg_kind r;

@@ -90,7 +90,7 @@ usipy_sip_msg_ctor_fromwire(const char *buf, size_t len,
             if (rp->sline.onwire.l == 0) {
                 rp->sline.onwire.s.ro = cp.s.ro;
                 rp->sline.onwire.l = crlf_off;
-                rp->kind = usipy_sip_sline_parse(&rp->sline);
+                rp->kind = usipy_sip_sline_parse(&rp->heap, &rp->sline);
                 if (rp->kind == USIPY_SIP_MSG_UNKN)
                     goto e1;
                 goto next_line;
