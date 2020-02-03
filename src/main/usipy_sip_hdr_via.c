@@ -84,6 +84,10 @@ usipy_sip_hdr_via_parse(struct usipy_msg_heap *mhp,
     return (vp);
 }
 
+#define DUMP_PARAM(sname, idx) \
+    ESP_LOGI(log_tag, "  .parsed->via." #sname "[%d] = \"%.*s\"=\"%.*s\"", idx, \
+      vp->sname[i].token.l, vp->sname[i].token.s.ro, vp->sname[i].value.l, \
+      vp->sname[i].value.s.ro)
 #define DUMP_STR(sname) \
     ESP_LOGI(log_tag, "  .parsed->via." #sname " = \"%.*s\"", vp->sname.l, vp->sname.s.ro)
 #define DUMP_UINT(sname) \
@@ -101,7 +105,6 @@ usipy_sip_hdr_via_dump(const union usipy_sip_hdr_parsed *up, const char *log_tag
     if (vp->sent_by.port > 0)
         DUMP_UINT(sent_by.port);
     for (int i = 0; i < vp->nparams; i++) {
-        DUMP_STR(params[i].token);
-        DUMP_STR(params[i].value);
+        DUMP_PARAM(params, i);
     }
 }
