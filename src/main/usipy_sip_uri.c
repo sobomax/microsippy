@@ -58,7 +58,6 @@ usipy_sip_uri_parse(struct usipy_msg_heap *mhp, const struct usipy_str *surip)
         rval.port = 0;
     }
 
-    rval.headers = hspace;
     up = usipy_msg_heap_alloc(mhp, sizeof(struct usipy_sip_uri));
     if (up == NULL) {
         return (NULL);
