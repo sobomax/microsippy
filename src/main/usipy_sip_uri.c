@@ -9,7 +9,7 @@
 #include "usipy_sip_uri.h"
 
 #define URI_SIZEOF(nparams) ( \
-  sizeof(struct usipy_sip_uri) + (sizeof(struct usipy_sip_param) * (nparams)) \
+  sizeof(struct usipy_sip_uri) + (sizeof(struct usipy_tvpair) * (nparams)) \
 )
 
 struct usipy_sip_uri *
