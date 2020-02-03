@@ -6,6 +6,7 @@
 #include "usipy_msg_heap.h"
 #include "usipy_str.h"
 #include "usipy_sip_hdr.h"
+#include "usipy_tvpair.h"
 #include "usipy_sip_hdr_via.h"
 
 #define VH_SIZEOF(nparams) ( \

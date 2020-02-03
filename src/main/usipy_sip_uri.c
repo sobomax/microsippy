@@ -5,6 +5,7 @@
 
 #include "usipy_msg_heap.h"
 #include "usipy_str.h"
+#include "usipy_tvpair.h"
 #include "usipy_sip_uri.h"
 
 #define URI_SIZEOF(nparams) ( \

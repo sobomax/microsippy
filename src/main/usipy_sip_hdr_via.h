@@ -1,11 +1,6 @@
 struct usipy_msg_heap;
 union usipy_sip_hdr_parsed;
 
-struct usipy_sip_param {
-    struct usipy_str token;
-    struct usipy_str value;
-};
-
 struct usipy_sip_hdr_via {
     struct {
         struct usipy_str name;      /* "SIP" / token */
@@ -17,7 +12,7 @@ struct usipy_sip_hdr_via {
         unsigned int port;
     } sent_by;
     int nparams;
-    struct usipy_sip_param params[0];
+    struct usipy_tvpair params[0];
 };
 
 struct usipy_sip_hdr_via *usipy_sip_hdr_via_parse(struct usipy_msg_heap *,
