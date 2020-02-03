@@ -14,11 +14,11 @@ usipy_sip_uri_parse(struct usipy_msg_heap *mhp, const struct usipy_str *up)
     struct usipy_sip_uri rval, *rp;
 
     iup = *up;
-    if (usipy_str_split_elem(&iup, ':', &rval.proto) != 0)
+    if (usipy_str_split_elem_nws(&iup, ':', &rval.proto) != 0)
         return (NULL);
-    if (usipy_str_split_elem(&iup, ';', &pnum) != 0) {
+    if (usipy_str_split_elem_nws(&iup, ';', &pnum) != 0) {
         pspace = USIPY_STR_NULL;
-        if (usipy_str_split_elem(&iup, '?', &pnum) != 0) {
+        if (usipy_str_split_elem_nws(&iup, '?', &pnum) != 0) {
             pnum = iup;
             iup = USIPY_STR_NULL;
             hspace = USIPY_STR_NULL;
@@ -26,7 +26,7 @@ usipy_sip_uri_parse(struct usipy_msg_heap *mhp, const struct usipy_str *up)
             hspace = iup;
         }
     } else {
-        if (usipy_str_split_elem(&iup, '?', &pspace) != 0) {
+        if (usipy_str_split_elem_nws(&iup, '?', &pspace) != 0) {
             pspace = iup;
             hspace = USIPY_STR_NULL;
         } else {
@@ -36,15 +36,15 @@ usipy_sip_uri_parse(struct usipy_msg_heap *mhp, const struct usipy_str *up)
     if (pnum.l == 0) {
         return (NULL);
     }
-    if (usipy_str_split_elem(&pnum, '@', &rval.user) == 0) {
-        if (usipy_str_split_elem(&rval.user, ':', &rval.password) != 0) {
+    if (usipy_str_split_elem_nws(&pnum, '@', &rval.user) == 0) {
+        if (usipy_str_split_elem_nws(&rval.user, ':', &rval.password) != 0) {
             rval.password = USIPY_STR_NULL;
         }
     } else {
         rval.user = USIPY_STR_NULL;
         rval.password = USIPY_STR_NULL;
     }
-    if (usipy_str_split_elem(&pnum, ':', &rval.host) == 0) {
+    if (usipy_str_split_elem_nws(&pnum, ':', &rval.host) == 0) {
         if (usipy_str_atoui_range(&pnum, &rval.port, 1, 65535) != 0) {
             return (NULL);
         }
