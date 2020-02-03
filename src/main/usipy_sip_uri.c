@@ -13,12 +13,12 @@
 )
 
 struct usipy_sip_uri *
-usipy_sip_uri_parse(struct usipy_msg_heap *mhp, const struct usipy_str *up)
+usipy_sip_uri_parse(struct usipy_msg_heap *mhp, const struct usipy_str *surip)
 {
     struct usipy_str iup, pspace, hspace, pnum;
     struct usipy_sip_uri rval, *up;
 
-    iup = *up;
+    iup = *surip;
     if (usipy_str_split_elem_nlws(&iup, ':', &rval.proto) != 0)
         return (NULL);
     if (usipy_str_split_elem_nlws(&iup, ';', &pnum) != 0) {
