@@ -16,6 +16,7 @@
 #include "usipy_sip_hdr_db.h"
 #include "usipy_sip_method_db.h"
 #include "usipy_sip_hdr_cseq.h"
+#include "usipy_tvpair.h"
 #include "usipy_sip_hdr_via.h"
 #include "usipy_sip_uri.h"
 
