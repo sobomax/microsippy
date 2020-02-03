@@ -1,4 +1,4 @@
-OPTIONS sip:user@%%BRD_IP%% SIP/2.0
+OPTIONS sip:user@%%BRD_IP%%;security=on SIP/2.0
 To: sip:user@%%BRD_IP%%
 From: sip:caller@example.org;tag=33242
 Max-Forwards: 3
