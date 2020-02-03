@@ -169,6 +169,9 @@ void
 usipy_sip_msg_dump(const struct usipy_msg *msg, const char *log_tag)
 {
 
+    ESP_LOGI(log_tag, "start line = \"%.*s\"", msg->sline.onwire.l,
+      msg->sline.onwire.s.ro);
+
     switch (msg->kind) {
     case USIPY_SIP_MSG_RES:
         ESP_LOGI(log_tag, "Message[%p] is SIP RESPONSE: status_code = %u, "
@@ -190,8 +193,6 @@ usipy_sip_msg_dump(const struct usipy_msg *msg, const char *log_tag)
         abort();
     }
 
-    ESP_LOGI(log_tag, "start line = \"%.*s\"", msg->sline.onwire.l,
-      msg->sline.onwire.s.ro);
     for (int i = 0; i < msg->nhdrs; i++) {
         const struct usipy_sip_hdr *shp = &msg->hdrs[i];
         ESP_LOGI(log_tag, "header[%d @ %p], .hf_type = %p, .onwire.hf_type = %p", i,
