@@ -59,3 +59,24 @@ usipy_sip_uri_parse(struct usipy_msg_heap *mhp, const struct usipy_str *up)
     *rp = rval;
     return (rp);
 }
+
+#define DUMP_STR(sname) \
+    ESP_LOGI(log_tag, "%s" #sname " = \"%.*s\"", log_pref, up->sname.l, \
+      up->sname.s.ro)
+#define DUMP_UINT(sname) \
+    ESP_LOGI(log_tag, "%s" #sname " = %u", log_pref, up->sname)
+
+void
+usipy_sip_uri_dump(const struct usipy_sip_uri *up, const char *log_tag,
+  const char *log_pref)
+{
+
+    DUMP_STR(proto);
+    DUMP_STR(user);
+    DUMP_STR(password);
+    DUMP_STR(host);
+    if (up->port > 0)
+        DUMP_UINT(port);
+    DUMP_STR(parameters);
+    DUMP_STR(headers);
+}

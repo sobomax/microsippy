@@ -12,4 +12,5 @@ struct usipy_sip_uri {
 
 struct usipy_sip_uri *usipy_sip_uri_parse(struct usipy_msg_heap *,
   const struct usipy_str *);
-
+void usipy_sip_uri_dump(const struct usipy_sip_uri *, const char *,
+  const char *);
