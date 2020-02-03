@@ -7,6 +7,7 @@
 #include "usipy_msg_heap.h"
 #include "usipy_sip_msg.h"
 #include "usipy_sip_method_db.h"
+#include "usipy_tvpair.h"
 #include "usipy_sip_uri.h"
 
 enum usipy_sip_msg_kind
