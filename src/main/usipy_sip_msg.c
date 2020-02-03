@@ -126,7 +126,7 @@ usipy_sip_msg_ctor_fromwire(const char *buf, size_t len,
         if (shp == NULL) {
             rp->hdrs = usipy_msg_heap_alloc(&rp->heap, HT_SIZEOF(rp->nhdrs));
             if (rp->hdrs == NULL)
-                    return (NULL);
+                return (NULL);
         } else {
             if (usipy_msg_heap_aextend(&rp->heap, rp->hdrs,
               HT_SIZEOF(rp->nhdrs)) != 0)
