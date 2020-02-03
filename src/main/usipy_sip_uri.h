@@ -6,8 +6,10 @@ struct usipy_sip_uri {
     struct usipy_str password;
     struct usipy_str host;
     unsigned int port;
-    struct usipy_str parameters;
+    int nparams;
+    struct usipy_sip_param *parameters;
     struct usipy_str headers;
+    struct usipy_sip_param params[0];
 };
 
 struct usipy_sip_uri *usipy_sip_uri_parse(struct usipy_msg_heap *,

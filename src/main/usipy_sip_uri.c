@@ -7,11 +7,15 @@
 #include "usipy_str.h"
 #include "usipy_sip_uri.h"
 
+#define URI_SIZEOF(nparams) ( \
+  sizeof(struct usipy_sip_uri) + (sizeof(struct usipy_sip_param) * (nparams)) \
+)
+
 struct usipy_sip_uri *
 usipy_sip_uri_parse(struct usipy_msg_heap *mhp, const struct usipy_str *up)
 {
     struct usipy_str iup, pspace, hspace, pnum;
-    struct usipy_sip_uri rval, *rp;
+    struct usipy_sip_uri rval, *up;
 
     iup = *up;
     if (usipy_str_split_elem_nlws(&iup, ':', &rval.proto) != 0)
@@ -53,13 +57,37 @@ usipy_sip_uri_parse(struct usipy_msg_heap *mhp, const struct usipy_str *up)
         rval.port = 0;
     }
 
-    rval.parameters = pspace;
     rval.headers = hspace;
-    rp = usipy_msg_heap_alloc(mhp, sizeof(struct usipy_sip_uri));
-    if (rp == NULL) {
+    up = usipy_msg_heap_alloc(mhp, sizeof(struct usipy_sip_uri));
+    if (up == NULL) {
         return (NULL);
     }
-    *rp = rval;
+    rval.nparams = 0;
+    rval.parameters = NULL;
+    while (pspace.l != 0) {
+        if (rval.nparams == 0)
+            rval.parameters = &rp->params[0];
+        struct usipy_str thisparam;
+        if (usipy_str_split_elem_nlws(&pspace, ';', &thisparam) != 0) {
+            thisparam = paramspace;
+            paramspace.l = 0;
+        }
+        struct usipy_str param_token, param_value;
+        if (usipy_str_split(&thisparam, '=', &param_token, &param_value) != 0) {
+            param_token = thisparam;
+            param_value = USIPY_STR_NULL;
+        }
+        if (usipy_msg_heap_aextend(mhp, up, URI_SIZEOF(rval.nparams + 1)) != 0) {
+            return (NULL);
+        }
+        up->parameters[rval.nparams].token = param_token;
+        up->params[rval.nparams].value = param_value;
+        rval.nparams++;
+    } else {
+        rval.parameters = NULL;
+    }
+
+    *up = rval;
     return (rp);
 }
 
@@ -68,6 +96,10 @@ usipy_sip_uri_parse(struct usipy_msg_heap *mhp, const struct usipy_str *up)
       up->sname.s.ro)
 #define DUMP_UINT(sname) \
     ESP_LOGI(log_tag, "%s" #sname " = %u", log_pref, up->sname)
+#define DUMP_PARAM(sname, idx) \
+    ESP_LOGI(log_tag, "%svia." #sname "[%d] = \"%.*s\"=\"%.*s\"", log_pref, \
+      idx, vp->sname[i].token.l, vp->sname[i].token.s.ro, vp->sname[i].value.l, \
+      vp->sname[i].value.s.ro)
 
 void
 usipy_sip_uri_dump(const struct usipy_sip_uri *up, const char *log_tag,
@@ -80,6 +112,8 @@ usipy_sip_uri_dump(const struct usipy_sip_uri *up, const char *log_tag,
     DUMP_STR(host);
     if (up->port > 0)
         DUMP_UINT(port);
-    DUMP_STR(parameters);
+    for (int i = 0; i < up->nparams; i++) {
+        DUMP_PARAM(parameters, i);
+    }
     DUMP_STR(headers);
 }
