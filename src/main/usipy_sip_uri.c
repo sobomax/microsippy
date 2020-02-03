@@ -33,6 +33,7 @@ usipy_sip_uri_parse(struct usipy_msg_heap *mhp, const struct usipy_str *up)
             hspace = iup;
         }
     }
+    ESP_LOGI("foobar", "host = \"%.*s\"", rval.host.l, rval.host.s.ro);
     if (rval.host.l == 0) {
         return (NULL);
     }
