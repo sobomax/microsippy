@@ -19,7 +19,7 @@
 #include "usipy_sip_hdr_via.h"
 #include "usipy_sip_uri.h"
 
-#define USIPY_HFS_NMIN (20)
+#define USIPY_HFS_NMIN (24)
 
 struct usipy_sip_msg_iterator {
     struct usipy_str msg_onwire;
