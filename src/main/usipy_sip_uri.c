@@ -57,5 +57,5 @@ usipy_sip_uri_parse(struct usipy_msg_heap *mhp, const struct usipy_str *up)
         return (NULL);
     }
     *rp = rval;
-    return (rp)
+    return (rp);
 }
