@@ -90,7 +90,7 @@ usipy_sip_uri_parse(struct usipy_msg_heap *mhp, const struct usipy_str *surip)
         if (rval.nhdrs == 0)
             rval.headers = &up->_tvpstorage[rval.nparams];
         struct usipy_str thishdr;
-        if (usipy_str_split_elem_nlws(&hspace, ';', &thishdr) != 0) {
+        if (usipy_str_split_elem_nlws(&hspace, '&', &thishdr) != 0) {
             thishdr = hspace;
             hspace.l = 0;
         }
