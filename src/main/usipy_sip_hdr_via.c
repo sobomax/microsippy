@@ -71,8 +71,7 @@ usipy_sip_hdr_via_parse(struct usipy_msg_heap *mhp,
             param_token = thisparam;
             param_value = USIPY_STR_NULL;
         }
-        if (usipy_msg_heap_aextend(mhp, vp, VH_SIZEOF(tv.nparams),
-          VH_SIZEOF(tv.nparams + 1)) != 0) {
+        if (usipy_msg_heap_aextend(mhp, vp, VH_SIZEOF(tv.nparams + 1)) != 0) {
             return (NULL);
         }
         vp->params[tv.nparams].token = param_token;

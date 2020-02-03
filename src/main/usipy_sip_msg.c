@@ -40,7 +40,7 @@ static int usipy_sip_msg_break_down(struct usipy_sip_msg_iterator *);
 
 #define MAKE_IMASK(ch) (((ch) << 24) | ((ch) << 16) | ((ch) << 8) | ch)
 
-#define HT_SIZEOF(rp) (sizeof(struct usipy_sip_hdr) * ((rp)->nhdrs + 1))
+#define HT_SIZEOF(nhdrs) (sizeof(struct usipy_sip_hdr) * ((nhdrs) + 1))
 
 struct usipy_msg *
 usipy_sip_msg_ctor_fromwire(const char *buf, size_t len,
@@ -111,6 +111,11 @@ usipy_sip_msg_ctor_fromwire(const char *buf, size_t len,
             }
             rp->hdr_masks.present |= USIPY_HF_MASK(shp);
             rp->nhdrs += 1 + nextra;
+            if (nextra > 0) {
+                if (usipy_msg_heap_aextend(&rp->heap, rp->hdrs,
+                  HT_SIZEOF(rp->nhdrs)) != 0)
+                    return (NULL);
+            }
         }
         if (chp == cp.s.ro) {
             cp.l -= 2;
@@ -119,11 +124,12 @@ usipy_sip_msg_ctor_fromwire(const char *buf, size_t len,
             break;
         }
         if (shp == NULL) {
-            rp->hdrs = usipy_msg_heap_alloc(&rp->heap, HT_SIZEOF(rp));
+            rp->hdrs = usipy_msg_heap_alloc(&rp->heap, HT_SIZEOF(rp->nhdrs));
             if (rp->hdrs == NULL)
                     return (NULL);
         } else {
-            if (usipy_msg_heap_aextend(&rp->heap, rp->hdrs, HT_SIZEOF(rp)) != 0)
+            if (usipy_msg_heap_aextend(&rp->heap, rp->hdrs,
+              HT_SIZEOF(rp->nhdrs)) != 0)
                 return (NULL);
         }
         shp = &rp->hdrs[rp->nhdrs];
