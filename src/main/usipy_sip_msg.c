@@ -181,6 +181,7 @@ usipy_sip_msg_dump(const struct usipy_msg *msg, const char *log_tag)
           msg->sline.parsed.rl.onwire.method.l, msg->sline.parsed.rl.onwire.method.s.ro,
           msg->sline.parsed.rl.mtype->name.l, msg->sline.parsed.rl.mtype->name.s.ro,
           msg->sline.parsed.rl.onwire.ruri.l, msg->sline.parsed.rl.onwire.ruri.s.ro);
+        usipy_sip_uri_dump(msg->sline.parsed.rl.ruri, log_tag, "  .parsed.rl.ruri->");
         break;
 
     default:
