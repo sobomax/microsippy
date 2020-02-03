@@ -84,8 +84,6 @@ usipy_sip_uri_parse(struct usipy_msg_heap *mhp, const struct usipy_str *surip)
         up->parameters[rval.nparams].token = param_token;
         up->params[rval.nparams].value = param_value;
         rval.nparams++;
-    } else {
-        rval.parameters = NULL;
     }
 
     *up = rval;
