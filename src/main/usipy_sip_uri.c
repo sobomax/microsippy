@@ -16,10 +16,10 @@ usipy_sip_uri_parse(struct usipy_msg_heap *mhp, const struct usipy_str *up)
     iup = *up;
     if (usipy_str_split_elem(&iup, ':', &rval.proto) != 0)
         return (NULL);
-    if (usipy_str_split_elem(&iup, ';', &rval.host) != 0) {
+    if (usipy_str_split_elem(&iup, ';', &pnum) != 0) {
         pspace = USIPY_STR_NULL;
-        if (usipy_str_split_elem(&iup, '?', &rval.host) != 0) {
-            rval.host = iup;
+        if (usipy_str_split_elem(&iup, '?', &pnum) != 0) {
+            pnum = iup;
             iup = USIPY_STR_NULL;
             hspace = USIPY_STR_NULL;
         } else {
@@ -33,10 +33,10 @@ usipy_sip_uri_parse(struct usipy_msg_heap *mhp, const struct usipy_str *up)
             hspace = iup;
         }
     }
-    if (rval.host.l == 0) {
+    if (pnum.l == 0) {
         return (NULL);
     }
-    if (usipy_str_split_elem(&rval.host, '@', &rval.user) == 0) {
+    if (usipy_str_split_elem(&pnum, '@', &rval.user) == 0) {
         if (usipy_str_split_elem(&rval.user, ':', &rval.password) != 0) {
             rval.password = USIPY_STR_NULL;
         }
@@ -44,12 +44,12 @@ usipy_sip_uri_parse(struct usipy_msg_heap *mhp, const struct usipy_str *up)
         rval.user = USIPY_STR_NULL;
         rval.password = USIPY_STR_NULL;
     }
-    if (usipy_str_split_elem(&rval.host, ':', &pnum) == 0) {
-        ESP_LOGI("foobar", "pnum = \"%.*s\"", pnum.l, pnum.s.ro);
+    if (usipy_str_split_elem(&pnum, ':', &rval.host) == 0) {
         if (usipy_str_atoui_range(&pnum, &rval.port, 1, 65535) != 0) {
             return (NULL);
         }
     } else {
+        rval.host = pnum;
         rval.port = 0;
     }
 
