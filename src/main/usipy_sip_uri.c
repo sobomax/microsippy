@@ -67,11 +67,11 @@ usipy_sip_uri_parse(struct usipy_msg_heap *mhp, const struct usipy_str *surip)
     rval.parameters = NULL;
     while (pspace.l != 0) {
         if (rval.nparams == 0)
-            rval.parameters = &rp->params[0];
+            rval.parameters = &up->params[0];
         struct usipy_str thisparam;
         if (usipy_str_split_elem_nlws(&pspace, ';', &thisparam) != 0) {
-            thisparam = paramspace;
-            paramspace.l = 0;
+            thisparam = pspace;
+            pspace.l = 0;
         }
         struct usipy_str param_token, param_value;
         if (usipy_str_split(&thisparam, '=', &param_token, &param_value) != 0) {
