@@ -89,7 +89,7 @@ usipy_sip_hdr_via_parse(struct usipy_msg_heap *mhp,
       idx, vp->sname[i].token.l, vp->sname[i].token.s.ro, vp->sname[i].value.l, \
       vp->sname[i].value.s.ro)
 #define DUMP_STR(sname) \
-    ESP_LOGI(log_tag, "%svia." #sname " = \"%.*s\"", log_pref, vp->sname.l,
+    ESP_LOGI(log_tag, "%svia." #sname " = \"%.*s\"", log_pref, vp->sname.l, \
       vp->sname.s.ro)
 #define DUMP_UINT(sname) \
     ESP_LOGI(log_tag, "%svia." #sname " = %u", log_pref, vp->sname)
