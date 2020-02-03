@@ -31,7 +31,7 @@ usipy_sip_uri_parse(struct usipy_msg_heap *mhp, const struct usipy_str *up)
             hspace = iup;
         }
     }
-    if (rval.host.l == 0)
+    if (rval.host.l == 0) {
         return (NULL);
     }
     if (usipy_str_split_elem(&rval.host, '@', &rval.user) == 0) {
