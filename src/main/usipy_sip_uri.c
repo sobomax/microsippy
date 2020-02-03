@@ -97,8 +97,8 @@ usipy_sip_uri_parse(struct usipy_msg_heap *mhp, const struct usipy_str *surip)
     ESP_LOGI(log_tag, "%s" #sname " = %u", log_pref, up->sname)
 #define DUMP_PARAM(sname, idx) \
     ESP_LOGI(log_tag, "%svia." #sname "[%d] = \"%.*s\"=\"%.*s\"", log_pref, \
-      idx, vp->sname[i].token.l, vp->sname[i].token.s.ro, vp->sname[i].value.l, \
-      vp->sname[i].value.s.ro)
+      idx, up->sname[i].token.l, up->sname[i].token.s.ro, up->sname[i].value.l, \
+      up->sname[i].value.s.ro)
 
 void
 usipy_sip_uri_dump(const struct usipy_sip_uri *up, const char *log_tag,
