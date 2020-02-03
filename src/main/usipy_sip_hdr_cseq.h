@@ -1,8 +1,9 @@
 struct usipy_msg_heap;
+struct usipy_method_db_entr;
 
 struct usipy_sip_hdr_cseq {
     uint32_t val;
-    unsigned char method;
+    const struct usipy_method_db_entr *method;
 };
 
 struct usipy_sip_hdr_cseq *usipy_sip_hdr_cseq_parse(struct usipy_msg_heap *,

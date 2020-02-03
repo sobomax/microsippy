@@ -31,7 +31,7 @@ usipy_sip_hdr_cseq_parse(struct usipy_msg_heap *mhp,
         return (NULL);
     }
     csp->val = r;
-    csp->method = usipy_method_db_lookup(&s2)->cantype;
+    csp->method = usipy_method_db_lookup(&s2);
     return (csp);
 }
 
@@ -39,7 +39,7 @@ usipy_sip_hdr_cseq_parse(struct usipy_msg_heap *mhp,
     ESP_LOGI(log_tag, "%scseq." #sname " = %u", log_pref, csp->sname)
 #define DUMP_METHOD(sname) \
     ESP_LOGI(log_tag, "%scseq." #sname " = \"%.*s\" (%d)", log_pref, \
-      csp->sname.name.l, csp->sname.name.s.ro, csp->sname.cantype)
+      csp->sname->name.l, csp->sname->name.s.ro, csp->sname->cantype)
 
 void
 usipy_sip_hdr_cseq_dump(const union usipy_sip_hdr_parsed *up, const char *log_tag,
