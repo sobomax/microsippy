@@ -40,6 +40,8 @@ static int usipy_sip_msg_break_down(struct usipy_sip_msg_iterator *);
 
 #define MAKE_IMASK(ch) (((ch) << 24) | ((ch) << 16) | ((ch) << 8) | ch)
 
+#define HT_SIZEOF(rp) (sizeof(struct usipy_sip_hdr) * ((rp)->nhdrs + 1))
+
 struct usipy_msg *
 usipy_sip_msg_ctor_fromwire(const char *buf, size_t len,
   struct usipy_msg_parse_err *perrp)
@@ -64,9 +66,15 @@ usipy_sip_msg_ctor_fromwire(const char *buf, size_t len,
     /*memcpy(rp->_storage, buf, len);*/
     rp->onwire.s.rw = rp->_storage;
     rp->onwire.l = len;
+
     rp->heap.first = (void *)(rp->_storage + USIPY_ALIGNED_SIZE(len));
-    //usipy_sip_msg_break_down(&rp->onwire, rp->_crlf_map);
-    rp->hdrs = (struct usipy_sip_hdr *)(rp->heap.first);
+    ralgn = USIPY_REALIGN((uintptr_t)rp->heap.first);
+    if ((void *)ralgn != rp->heap.first) {
+        rp->heap.first = (void *)(ralgn + (1 << USIPY_MEM_ALIGNOF));
+    }
+    rp->heap.free = rp->heap.first;
+    rp->heap.size = USIPY_REALIGN(alloc_len - (rp->heap.first - (void *)rp));
+
     struct usipy_sip_hdr *shp = NULL, *ehp;
     ehp = (struct usipy_sip_hdr *)((char *)(rp) + alloc_len);
     memset(&mit, '\0', sizeof(mit));
@@ -110,9 +118,15 @@ usipy_sip_msg_ctor_fromwire(const char *buf, size_t len,
             /* End of headers reached */
             break;
         }
+        if (shp == NULL) {
+            rp->hdrs = usipy_msg_heap_alloc(&rp->heap, HT_SIZEOF(rp));
+            if (rp->hdrs == NULL)
+                    return (NULL);
+        } else {
+            if (usipy_msg_heap_aextend(&rp->heap, rp->hdrs, HT_SIZEOF(rp)) != 0)
+                return (NULL);
+        }
         shp = &rp->hdrs[rp->nhdrs];
-        if ((shp + 1) > ehp)
-            goto e1;
 #if 0
         mit.ioffst = &(shp->col_offst);
 #endif
@@ -133,13 +147,6 @@ next_line:
             memcpy(rp->onwire.s.rw + mit.i, buf + mit.i, len - mit.i);
         }
     }
-    rp->heap.first = (void *)&rp->hdrs[rp->nhdrs];
-    ralgn = USIPY_REALIGN((uintptr_t)rp->heap.first);
-    if ((void *)ralgn != rp->heap.first) {
-        rp->heap.first = (void *)(ralgn + (1 << USIPY_MEM_ALIGNOF));
-    }
-    rp->heap.free = rp->heap.first;
-    rp->heap.size = USIPY_REALIGN(alloc_len - (rp->heap.first - (void *)rp));
     return (rp);
 e1:
     free(rp);
