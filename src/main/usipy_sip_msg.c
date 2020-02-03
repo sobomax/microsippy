@@ -28,9 +28,6 @@ struct usipy_sip_msg_iterator {
     uint32_t oword[2];
     char cshift;
     uint32_t imask;
-#if 0
-    const char **ioffst;
-#endif
 };
 static int usipy_sip_msg_break_down(struct usipy_sip_msg_iterator *);
 
@@ -133,9 +130,6 @@ usipy_sip_msg_ctor_fromwire(const char *buf, size_t len,
                 return (NULL);
         }
         shp = &rp->hdrs[rp->nhdrs];
-#if 0
-        mit.ioffst = &(shp->col_offst);
-#endif
         shp->onwire.full.s.ro = cp.s.ro;
 multi_line:
         shp->onwire.full.l = chp - shp->onwire.full.s.ro;
