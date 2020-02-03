@@ -22,4 +22,5 @@ struct usipy_sip_hdr_via {
 
 struct usipy_sip_hdr_via *usipy_sip_hdr_via_parse(struct usipy_msg_heap *,
   const struct usipy_str *);
-void usipy_sip_hdr_via_dump(const union usipy_sip_hdr_parsed *, const char *);
+void usipy_sip_hdr_via_dump(const union usipy_sip_hdr_parsed *, const char *,
+  const char *);
