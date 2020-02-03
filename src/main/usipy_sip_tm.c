@@ -187,10 +187,12 @@ usipy_sip_tm_task(void *pvParameters)
                 ets = timer1_read();
                 ESP_LOGI(cfp->log_tag, "usipy_sip_msg_parse_hdrs(USIPY_HF_TID_MASK) = %d: took %u cycles", rval,
                   tsdiff(bts, ets));
+
+                int err = sendto(sock, rx_buffer, len, 0, (struct sockaddr *)&sourceAddr, socklen);
+
                 usipy_sip_msg_dump(msg, cfp->log_tag);
                 usipy_sip_msg_dtor(msg);
 
-                int err = sendto(sock, rx_buffer, len, 0, (struct sockaddr *)&sourceAddr, socklen);
                 if (err < 0) {
                     ESP_LOGE(cfp->log_tag, "Error occured during sending: errno %d", errno);
                     break;
