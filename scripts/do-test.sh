@@ -9,7 +9,7 @@ TOOLSDIR=`dirname ${TOOLSPATH}`
 . "${TOOLSDIR}/test.common.sub"
 
 MLOG="${BUILDDIR}/monitor.log"
-TESTS="empty foobar 100trying ACK OPTIONS INVITE"
+TESTS="empty foobar 100trying ACK OPTIONS INVITE CANCEL"
 
 cd "${SRCDIR}"
 PATH="${PATH}:${IDF_TOOLCHAIN}/bin" python "${TOOLSDIR}/ptyrun.py" -o "${MLOG}" \
