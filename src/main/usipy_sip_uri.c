@@ -87,7 +87,7 @@ usipy_sip_uri_parse(struct usipy_msg_heap *mhp, const struct usipy_str *surip)
     }
 
     *up = rval;
-    return (rp);
+    return (up);
 }
 
 #define DUMP_STR(sname) \
