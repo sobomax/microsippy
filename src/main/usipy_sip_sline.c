@@ -19,7 +19,7 @@ usipy_sip_sline_parse(struct usipy_msg_heap *mhp, struct usipy_sip_sline *slp)
     if (usipy_str_split(&slp->onwire, USIPY_SP, &s1, &s2) != 0 || s1.l == 0 ||
       s2.l == 0)
         return (USIPY_SIP_MSG_UNKN);
-    if (usipy_str_split(&s2, USIPY_SP, &s3, &s4) != 0) || s3.l == 0)
+    if (usipy_str_split(&s2, USIPY_SP, &s3, &s4) != 0 || s3.l == 0)
         return (USIPY_SIP_MSG_UNKN);
     if (usipy_verify_sip_version(&s1)) {
         if (usipy_str_atoui_range(&s3, &slp->parsed.sl.status_code,
