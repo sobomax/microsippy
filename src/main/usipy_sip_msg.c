@@ -112,8 +112,8 @@ usipy_sip_msg_ctor_fromwire(const char *buf, size_t len,
             rp->hdr_masks.present |= USIPY_HF_MASK(shp);
             rp->nhdrs += 1 + nextra;
             if (nextra > 0) {
-                if (usipy_msg_heap_aextend(&rp->heap, &cnt,
-                  HT_SIZEOF(rp->nhdrs)) != 0)
+                if (usipy_msg_heap_aextend(&rp->heap, HT_SIZEOF(rp->nhdrs),
+                  &cnt) != 0)
                     return (NULL);
             }
         }
@@ -128,8 +128,8 @@ usipy_sip_msg_ctor_fromwire(const char *buf, size_t len,
             if (rp->hdrs == NULL)
                 return (NULL);
         } else {
-            if (usipy_msg_heap_aextend(&rp->heap, &cnt,
-              HT_SIZEOF(rp->nhdrs)) != 0)
+            if (usipy_msg_heap_aextend(&rp->heap, HT_SIZEOF(rp->nhdrs),
+              &cnt) != 0)
                 return (NULL);
         }
         shp = &rp->hdrs[rp->nhdrs];

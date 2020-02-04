@@ -82,7 +82,7 @@ usipy_sip_uri_parse(struct usipy_msg_heap *mhp, const struct usipy_str *surip)
             param_token = thisparam;
             param_value = USIPY_STR_NULL;
         }
-        if (usipy_msg_heap_aextend(mhp, up, URI_SIZEOF(rval.nparams + 1), &cnt) != 0) {
+        if (usipy_msg_heap_aextend(mhp, URI_SIZEOF(rval.nparams + 1), &cnt) != 0) {
             return (NULL);
         }
         rval.parameters[rval.nparams].token = param_token;
@@ -104,7 +104,7 @@ usipy_sip_uri_parse(struct usipy_msg_heap *mhp, const struct usipy_str *surip)
             hdr_token = thishdr;
             hdr_value = USIPY_STR_NULL;
         }
-        if (usipy_msg_heap_aextend(mhp, up, URI_SIZEOF(rval.nhdrs + rval.nparams + 1), &cnt) != 0) {
+        if (usipy_msg_heap_aextend(mhp, URI_SIZEOF(rval.nhdrs + rval.nparams + 1), &cnt) != 0) {
             return (NULL);
         }
         rval.headers[rval.nhdrs].token = hdr_token;
