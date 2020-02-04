@@ -56,7 +56,7 @@ usipy_sip_hdr_via_parse(struct usipy_msg_heap *mhp,
     }
     if (paramspace.l != 0) {
         vp = usipy_msg_heap_alloc_cnt(mhp, sizeof(struct usipy_sip_hdr_via), &cnt);
-    } else
+    } else {
         vp = usipy_msg_heap_alloc(mhp, sizeof(struct usipy_sip_hdr_via));
     }
     if (vp == NULL) {
