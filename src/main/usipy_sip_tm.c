@@ -159,11 +159,13 @@ usipy_sip_tm_task(void *pvParameters)
                 ESP_LOGI(cfp->log_tag, "usipy_sip_msg_parse_hdrs(USIPY_HF_TID_MASK) = %d: took %u cycles", rval,
                   tsdiff(bts, ets));
 
-                bts = timer1_read();
-                rval = usipy_sip_msg_parse_hdrs(msg, USIPY_REQ_RURI_MASK);
-                ets = timer1_read();
-                ESP_LOGI(cfp->log_tag, "usipy_sip_msg_parse_hdrs(USIPY_REQ_RURI_MASK) = %d: took %u cycles", rval,
-                  tsdiff(bts, ets));
+                if (msg->kind == USIPY_SIP_MSG_REQ) {
+                    bts = timer1_read();
+                    rval = usipy_sip_msg_parse_hdrs(msg, USIPY_REQ_RURI_MASK);
+                    ets = timer1_read();
+                    ESP_LOGI(cfp->log_tag, "usipy_sip_msg_parse_hdrs(USIPY_REQ_RURI_MASK) = %d: took %u cycles", rval,
+                      tsdiff(bts, ets));
+                }
 
                 int err = sendto(sock, rx_buffer, len, 0, (struct sockaddr *)&sourceAddr, socklen);
 
