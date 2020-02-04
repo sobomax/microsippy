@@ -34,9 +34,6 @@ tsdiff(unsigned int bts, unsigned int ets)
 }
 
 #include <string.h>
-#if 0
-static uint32_t tmpbub[128];
-#endif
 
 void
 usipy_sip_tm_task(void *pvParameters)
@@ -145,32 +142,6 @@ usipy_sip_tm_task(void *pvParameters)
 
                 struct usipy_msg_parse_err cerror = USIPY_MSG_PARSE_ERR_init;
                 unsigned int bts, ets;
-#if 0
-                memset(tmpbub, '\0', sizeof(tmpbub));
-                struct usipy_sip_msg_iterator mit;
-                memset(&mit, '\0', sizeof(mit));
-                mit.msg_onwire = (struct usipy_str){.s.ro = rx_buffer, .l = len};
-                bts = timer1_read();
-                err = usipy_sip_msg_break_down(&mit, tmpbub);
-                ets = timer1_read();
-                ESP_LOGI(cfp->log_tag, "usipy_sip_msg_break_down() = %d: took %u cycles",
-                  err, tsdiff(bts, ets));
-		int i;
-                while ((i = usipy_sip_msg_break_down(&mit)) != -1) {
-                    ESP_LOGI(cfp->log_tag, "    CRLF @ %d", i);
-                }
-                for (int i = 0; i < err; i++) {
-                    uint32_t cval = tmpbub[i];
-                    ESP_LOGI(cfp->log_tag, "    tmpbub[%d] = %u", i, cval);
-                    int cidx = 0, fset;
-                    while (cval != 0 && ((fset = ffs(cval)) != 0) && (cidx < sizeof(tmpbub[0]) * 8)) {
-                        cidx += fset + 1;
-                        ESP_LOGI(cfp->log_tag, "    fset = %d, CRLF @ %d", fset,
-                          (i * sizeof(tmpbub[0]) * 8) + cidx - 2);
-                        cval = cval >> (fset + 1);
-                    }
-                }
-#endif
                 bts = timer1_read();
                 struct usipy_msg *msg = usipy_sip_msg_ctor_fromwire(rx_buffer, len, &cerror);
                 ets = timer1_read();
@@ -186,6 +157,12 @@ usipy_sip_tm_task(void *pvParameters)
                 int rval = usipy_sip_msg_parse_hdrs(msg, USIPY_HF_TID_MASK);
                 ets = timer1_read();
                 ESP_LOGI(cfp->log_tag, "usipy_sip_msg_parse_hdrs(USIPY_HF_TID_MASK) = %d: took %u cycles", rval,
+                  tsdiff(bts, ets));
+
+                bts = timer1_read();
+                int rval = usipy_sip_msg_parse_hdrs(msg, USIPY_REQ_RURI_MASK);
+                ets = timer1_read();
+                ESP_LOGI(cfp->log_tag, "usipy_sip_msg_parse_hdrs(USIPY_REQ_RURI_MASK) = %d: took %u cycles", rval,
                   tsdiff(bts, ets));
 
                 int err = sendto(sock, rx_buffer, len, 0, (struct sockaddr *)&sourceAddr, socklen);

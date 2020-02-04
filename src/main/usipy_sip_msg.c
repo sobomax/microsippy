@@ -186,7 +186,10 @@ usipy_sip_msg_dump(const struct usipy_msg *msg, const char *log_tag)
           msg->sline.parsed.rl.onwire.method.l, msg->sline.parsed.rl.onwire.method.s.ro,
           msg->sline.parsed.rl.mtype->name.l, msg->sline.parsed.rl.mtype->name.s.ro,
           msg->sline.parsed.rl.onwire.ruri.l, msg->sline.parsed.rl.onwire.ruri.s.ro);
-        usipy_sip_uri_dump(msg->sline.parsed.rl.ruri, log_tag, "  .parsed.rl.ruri->");
+        if (msg->sline.parsed.rl.ruri != NULL) {
+            usipy_sip_uri_dump(msg->sline.parsed.rl.ruri, log_tag,
+              "  .parsed.rl.ruri->");
+        }
         break;
 
     default:
@@ -224,6 +227,13 @@ usipy_sip_msg_parse_hdrs(struct usipy_msg *mp, uint64_t parsemask)
         if (!USIPY_HF_ISMSET(parsemask, shp->hf_type->cantype))
             continue;
         switch (shp->hf_type->cantype) {
+        case USIPY_HF_generic:
+            mp->sline.parsed.rl.ruri = usipy_sip_uri_parse(&mp->heap,
+              &mp->sline.parsed.rl.onwire.ruri);
+            if (mp->sline.parsed.rl.ruri == NULL)
+                return (-1);
+            break;
+
         case USIPY_HF_CSEQ:
             shp->parsed.cseq = usipy_sip_hdr_cseq_parse(&mp->heap, &shp->onwire.value);
             if (shp->parsed.cseq == NULL)
