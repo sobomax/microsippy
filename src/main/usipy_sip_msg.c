@@ -227,13 +227,6 @@ usipy_sip_msg_parse_hdrs(struct usipy_msg *mp, uint64_t parsemask)
         if (!USIPY_HF_ISMSET(parsemask, shp->hf_type->cantype))
             continue;
         switch (shp->hf_type->cantype) {
-        case USIPY_HF_generic:
-            mp->sline.parsed.rl.ruri = usipy_sip_uri_parse(&mp->heap,
-              &mp->sline.parsed.rl.onwire.ruri);
-            if (mp->sline.parsed.rl.ruri == NULL)
-                return (-1);
-            break;
-
         case USIPY_HF_CSEQ:
             shp->parsed.cseq = usipy_sip_hdr_cseq_parse(&mp->heap, &shp->onwire.value);
             if (shp->parsed.cseq == NULL)

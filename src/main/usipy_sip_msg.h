@@ -45,4 +45,3 @@ int usipy_sip_msg_parse_hdrs(struct usipy_msg *, uint64_t);
 
 #define USIPY_HFT_MASK(hft) ((uint64_t)1 << (hft))
 #define USIPY_HF_MASK(shp) (USIPY_HFT_MASK((shp)->hf_type->cantype))
-#define USIPY_REQ_RURI_MASK USIPY_HFT_MASK(USIPY_HF_generic)

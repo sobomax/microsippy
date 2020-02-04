@@ -13,6 +13,7 @@
 #include "usipy_msg_heap.h"
 #include "usipy_sip_sline.h"
 #include "usipy_sip_msg.h"
+#include "usipy_sip_req.h"
 
 #define MAX_UDP_SIZE 1472 /* MTU 1500, no fragmentation */
 
@@ -161,9 +162,9 @@ usipy_sip_tm_task(void *pvParameters)
 
                 if (msg->kind == USIPY_SIP_MSG_REQ) {
                     bts = timer1_read();
-                    rval = usipy_sip_msg_parse_hdrs(msg, USIPY_REQ_RURI_MASK);
+                    rval = usipy_sip_req_parse_ruri(msg);
                     ets = timer1_read();
-                    ESP_LOGI(cfp->log_tag, "usipy_sip_msg_parse_hdrs(USIPY_REQ_RURI_MASK) = %d: took %u cycles", rval,
+                    ESP_LOGI(cfp->log_tag, "usipy_sip_req_parse_ruri() = %d: took %u cycles", rval,
                       tsdiff(bts, ets));
                 }
 
