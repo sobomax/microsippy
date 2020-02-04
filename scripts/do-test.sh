@@ -57,7 +57,7 @@ do
   RESFILE="${BUILDDIR}/${tst}.res"
   ${DIFF} "${EXPFILE}" "${RESFILE}"
 done
-for s in "usipy_sip_msg_ctor_fromwire" "usipy_sip_msg_parse_hdrs" "heap remaining"
+for s in "usipy_sip_msg_ctor_fromwire" "usipy_sip_msg_parse_hdrs" "heap remaining" "usipy_sip_req_parse_ruri"
 do
   grep -w "${s}" "${MLOG}"
 done
