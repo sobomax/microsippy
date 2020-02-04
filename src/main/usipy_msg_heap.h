@@ -6,7 +6,7 @@ struct usipy_msg_heap {
 
 struct usipy_msg_heap_cnt {
     size_t alen;
-    USIPY_DCODE(void *lastalen);
+    USIPY_DCODE(size_t lastalen);
 };
 
 void *usipy_msg_heap_alloc(struct usipy_msg_heap *, size_t);
