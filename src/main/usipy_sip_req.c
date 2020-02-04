@@ -1,7 +1,7 @@
-#include <assert.h>
 #include <stdint.h>
 #include <stdlib.h>
 
+#include "usipy_debug.h"
 #include "usipy_str.h"
 #include "usipy_tvpair.h"
 #include "usipy_sip_sline.h"
@@ -13,7 +13,7 @@
 int
 usipy_sip_req_parse_ruri(struct usipy_msg *mp)
 {
-    assert(mp->kind == USIPY_SIP_MSG_REQ);
+    USIPY_DASSERT(mp->kind == USIPY_SIP_MSG_REQ);
 
     if (mp->sline.parsed.rl.ruri != NULL)
         return (-1);

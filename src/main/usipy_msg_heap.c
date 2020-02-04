@@ -1,7 +1,7 @@
-#include <assert.h>
 #include <errno.h>
 #include <stddef.h>
 
+#include "usippy_debug.h"
 #include "usipy_msg_heap.h"
 
 void *
@@ -33,7 +33,7 @@ usipy_msg_heap_alloc_cnt(struct usipy_msg_heap *hp, size_t len,
     rp = hp->free;
     hp->free += alen;
     cntp->alen = alen;
-    cntp->lastfree = hp->free;
+    USIPY_DCODE(cntp->lastfree = hp->free);
     return (rp);
 }
 
@@ -43,9 +43,9 @@ usipy_msg_heap_aextend(struct usipy_msg_heap *hp, size_t nlen,
 {
     size_t currfree, elen, alen;
 
-    assert(cntp->lastfree == hp->free);
+    USIPY_DASSERT(cntp->lastfree == hp->free);
     alen = USIPY_ALIGNED_SIZE(nlen);
-    assert(alen >= cntp->alen);
+    USIPY_DASSERT(alen >= cntp->alen);
     elen = alen - cntp->alen;
     if (elen == 0) {
         return (0);
@@ -56,6 +56,6 @@ usipy_msg_heap_aextend(struct usipy_msg_heap *hp, size_t nlen,
     }
     hp->free += elen;
     cntp->alen = alen;
-    cntp->lastfree = hp->free;
+    USIPY_DCODE(cntp->lastfree = hp->free);
     return (0);
 }
