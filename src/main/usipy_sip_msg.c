@@ -72,8 +72,7 @@ usipy_sip_msg_ctor_fromwire(const char *buf, size_t len,
     if ((void *)ralgn != rp->heap.first) {
         rp->heap.first = (void *)(ralgn + (1 << USIPY_MEM_ALIGNOF));
     }
-    rp->heap.free = rp->heap.first;
-    rp->heap.size = USIPY_REALIGN(alloc_len - (rp->heap.first - (void *)rp));
+    rp->heap.tsize = USIPY_REALIGN(alloc_len - (rp->heap.first - (void *)rp));
 
     struct usipy_sip_hdr *shp = NULL, *ehp;
     ehp = (struct usipy_sip_hdr *)((char *)(rp) + alloc_len);

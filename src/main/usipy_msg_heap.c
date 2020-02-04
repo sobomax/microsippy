@@ -14,8 +14,8 @@ usipy_msg_heap_alloc(struct usipy_msg_heap *hp, size_t len)
     currfree = usipy_msg_heap_remaining(hp);
     if (currfree < len)
         return (NULL);
-    rp = hp->free;
-    hp->free += alen;
+    rp = hp->first + hp->alen;
+    hp->alen += alen;
     return (rp);
 }
 
@@ -30,10 +30,10 @@ usipy_msg_heap_alloc_cnt(struct usipy_msg_heap *hp, size_t len,
     currfree = usipy_msg_heap_remaining(hp);
     if (currfree < len)
        return (NULL);
-    rp = hp->free;
-    hp->free += alen;
+    rp = hp->first + hp->alen;
+    hp->alen += alen;
     cntp->alen = alen;
-    USIPY_DCODE(cntp->lastfree = hp->free);
+    USIPY_DCODE(cntp->lastalen = hp->alen);
     return (rp);
 }
 
@@ -43,7 +43,7 @@ usipy_msg_heap_aextend(struct usipy_msg_heap *hp, size_t nlen,
 {
     size_t currfree, elen, alen;
 
-    USIPY_DASSERT(cntp->lastfree == hp->free);
+    USIPY_DASSERT(cntp->lastalen == hp->alen);
     alen = USIPY_ALIGNED_SIZE(nlen);
     USIPY_DASSERT(alen >= cntp->alen);
     elen = alen - cntp->alen;
@@ -54,8 +54,8 @@ usipy_msg_heap_aextend(struct usipy_msg_heap *hp, size_t nlen,
     if (currfree < elen) {
         return (-1);
     }
-    hp->free += elen;
+    hp->alen += elen;
     cntp->alen = alen;
-    USIPY_DCODE(cntp->lastfree = hp->free);
+    USIPY_DCODE(cntp->lastalen = hp->alen);
     return (0);
 }

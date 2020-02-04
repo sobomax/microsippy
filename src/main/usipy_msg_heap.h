@@ -1,12 +1,12 @@
 struct usipy_msg_heap {
+    size_t tsize;
+    size_t alen;
     void *first;
-    size_t size;
-    void *free;
 };
 
 struct usipy_msg_heap_cnt {
     size_t alen;
-    USIPY_DCODE(void *lastfree);
+    USIPY_DCODE(void *lastalen);
 };
 
 void *usipy_msg_heap_alloc(struct usipy_msg_heap *, size_t);
@@ -23,4 +23,4 @@ int usipy_msg_heap_aextend(struct usipy_msg_heap *, size_t,
 )
 
 #define usipy_msg_heap_remaining(hp) \
-  ((hp)->size - ((hp)->free - (hp)->first))
+  ((hp)->tsize - (hp)->alen)
