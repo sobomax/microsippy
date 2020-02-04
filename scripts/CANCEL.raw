@@ -1,4 +1,4 @@
-CANCEL sip:bob;day=tuesday@biloxi.example.com SIP/2.0
+CANCEL sip:bob;day=tuesday:s3cre1passwd@biloxi.example.com SIP/2.0
 Via: SIP/2.0/UDP client.atlanta.example.com:5060;branch=z9hG4bK74bf9
 Max-Forwards: 70
 From: Alice <sip:alice@atlanta.example.com>;tag=9fxced76sl
