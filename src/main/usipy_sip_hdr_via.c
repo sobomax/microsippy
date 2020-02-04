@@ -20,6 +20,7 @@ usipy_sip_hdr_via_parse(struct usipy_msg_heap *mhp,
     struct usipy_str s4;
     struct usipy_str sent_by, sent_by_port;
     struct usipy_sip_hdr_via tv, *vp;
+    struct usipy_msg_heap_cnt cnt;
 
     if (usipy_str_split3(hvp, '/', &tv.sent_protocol.name, &tv.sent_protocol.version, &s4) != 0) {
         return (NULL);
@@ -53,7 +54,11 @@ usipy_sip_hdr_via_parse(struct usipy_msg_heap *mhp,
         tv.sent_by.host = sent_by;
         tv.sent_by.port = 0;
     }
-    vp = usipy_msg_heap_alloc(mhp, sizeof(struct usipy_sip_hdr_via));
+    if (paramspace.l != 0) {
+        vp = usipy_msg_heap_alloc_cnt(mhp, sizeof(struct usipy_sip_hdr_via), &cnt);
+    } else
+        vp = usipy_msg_heap_alloc(mhp, sizeof(struct usipy_sip_hdr_via));
+    }
     if (vp == NULL) {
         return (NULL);
     }
@@ -72,7 +77,7 @@ usipy_sip_hdr_via_parse(struct usipy_msg_heap *mhp,
             param_token = thisparam;
             param_value = USIPY_STR_NULL;
         }
-        if (usipy_msg_heap_aextend(mhp, vp, VH_SIZEOF(tv.nparams + 1)) != 0) {
+        if (usipy_msg_heap_aextend(mhp, &cnt, VH_SIZEOF(tv.nparams + 1)) != 0) {
             return (NULL);
         }
         vp->params[tv.nparams].token = param_token;

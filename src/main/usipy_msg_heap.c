@@ -16,19 +16,37 @@ usipy_msg_heap_alloc(struct usipy_msg_heap *hp, size_t len)
         return (NULL);
     rp = hp->free;
     hp->free += alen;
-    hp->lastprov = rp;
+    return (rp);
+}
+
+void *
+usipy_msg_heap_alloc_cnt(struct usipy_msg_heap *hp, size_t len,
+  struct usipy_msg_heap_cnt *cntp)
+{
+    void *rp;
+    size_t currfree, alen;
+
+    alen = USIPY_ALIGNED_SIZE(len);
+    currfree = usipy_msg_heap_remaining(hp);
+    if (currfree < len)
+       return (NULL);
+    rp = hp->free;
+    hp->free += alen;
+    cntp->alen = alen;
+    cntp->lastfree = hp->free;
     return (rp);
 }
 
 int
-usipy_msg_heap_aextend(struct usipy_msg_heap *hp, void *origp, size_t nlen)
+usipy_msg_heap_aextend(struct usipy_msg_heap *hp,
+  struct usipy_msg_heap_cnt *cntp, size_t nlen)
 {
-    size_t currfree, elen, olen;
+    size_t currfree, elen, alen;
 
-    olen = hp->free - hp->lastprov;
-    assert(origp == hp->lastprov);
-    assert(USIPY_ALIGNED_SIZE(nlen) >= olen);
-    elen = USIPY_ALIGNED_SIZE(nlen) - olen;
+    assert(cntp->lastfree == hp->free);
+    alen = USIPY_ALIGNED_SIZE(nlen);
+    assert(alen >= cntp->alen);
+    elen = alen - cntp->alen;
     if (elen == 0) {
         return (0);
     }
@@ -37,5 +55,7 @@ usipy_msg_heap_aextend(struct usipy_msg_heap *hp, void *origp, size_t nlen)
         return (-1);
     }
     hp->free += elen;
+    cntp->alen = alen;
+    cntp->lastfree = hp->free;
     return (0);
 }

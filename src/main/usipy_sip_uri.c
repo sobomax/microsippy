@@ -17,6 +17,7 @@ usipy_sip_uri_parse(struct usipy_msg_heap *mhp, const struct usipy_str *surip)
 {
     struct usipy_str iup, pspace, hspace, pnum;
     struct usipy_sip_uri rval, *up;
+    struct usipy_msg_heap_cnt cnt;
 
     iup = *surip;
     if (usipy_str_split_elem_nlws(&iup, ':', &rval.proto) != 0)
@@ -58,7 +59,11 @@ usipy_sip_uri_parse(struct usipy_msg_heap *mhp, const struct usipy_str *surip)
         rval.port = 0;
     }
 
-    up = usipy_msg_heap_alloc(mhp, sizeof(struct usipy_sip_uri));
+    if (pspace.l == 0 && hspace.l == 0) {
+        up = usipy_msg_heap_alloc(mhp, sizeof(struct usipy_sip_uri));
+    } else {
+        up = usipy_msg_heap_alloc_cnt(mhp, sizeof(struct usipy_sip_uri), &cnt);
+    }
     if (up == NULL) {
         return (NULL);
     }
@@ -77,7 +82,7 @@ usipy_sip_uri_parse(struct usipy_msg_heap *mhp, const struct usipy_str *surip)
             param_token = thisparam;
             param_value = USIPY_STR_NULL;
         }
-        if (usipy_msg_heap_aextend(mhp, up, URI_SIZEOF(rval.nparams + 1)) != 0) {
+        if (usipy_msg_heap_aextend(mhp, up, URI_SIZEOF(rval.nparams + 1), &cnt) != 0) {
             return (NULL);
         }
         rval.parameters[rval.nparams].token = param_token;
@@ -99,7 +104,7 @@ usipy_sip_uri_parse(struct usipy_msg_heap *mhp, const struct usipy_str *surip)
             hdr_token = thishdr;
             hdr_value = USIPY_STR_NULL;
         }
-        if (usipy_msg_heap_aextend(mhp, up, URI_SIZEOF(rval.nhdrs + rval.nparams + 1)) != 0) {
+        if (usipy_msg_heap_aextend(mhp, up, URI_SIZEOF(rval.nhdrs + rval.nparams + 1), &cnt) != 0) {
             return (NULL);
         }
         rval.headers[rval.nhdrs].token = hdr_token;

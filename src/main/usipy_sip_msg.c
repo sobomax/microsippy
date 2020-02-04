@@ -83,6 +83,7 @@ usipy_sip_msg_ctor_fromwire(const char *buf, size_t len,
     mit.imask = MAKE_IMASK(':');
 #endif
     struct usipy_str cp;
+    struct usipy_msg_heap_cnt cnt;
     for (cp = rp->onwire; cp.l > 0;) {
         int crlf_off = usipy_sip_msg_break_down(&mit);
         if (crlf_off < 0)
@@ -111,7 +112,7 @@ usipy_sip_msg_ctor_fromwire(const char *buf, size_t len,
             rp->hdr_masks.present |= USIPY_HF_MASK(shp);
             rp->nhdrs += 1 + nextra;
             if (nextra > 0) {
-                if (usipy_msg_heap_aextend(&rp->heap, rp->hdrs,
+                if (usipy_msg_heap_aextend(&rp->heap, &cnt,
                   HT_SIZEOF(rp->nhdrs)) != 0)
                     return (NULL);
             }
@@ -123,11 +124,11 @@ usipy_sip_msg_ctor_fromwire(const char *buf, size_t len,
             break;
         }
         if (shp == NULL) {
-            rp->hdrs = usipy_msg_heap_alloc(&rp->heap, HT_SIZEOF(rp->nhdrs));
+            rp->hdrs = usipy_msg_heap_alloc_cnt(&rp->heap, HT_SIZEOF(rp->nhdrs), &cnt);
             if (rp->hdrs == NULL)
                 return (NULL);
         } else {
-            if (usipy_msg_heap_aextend(&rp->heap, rp->hdrs,
+            if (usipy_msg_heap_aextend(&rp->heap, &cnt,
               HT_SIZEOF(rp->nhdrs)) != 0)
                 return (NULL);
         }
