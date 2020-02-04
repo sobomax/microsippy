@@ -38,7 +38,7 @@ usipy_msg_heap_alloc_cnt(struct usipy_msg_heap *hp, size_t len,
 }
 
 int
-usipy_msg_heap_aextend(struct usipy_msg_heap *hp, size_t nlen
+usipy_msg_heap_aextend(struct usipy_msg_heap *hp, size_t nlen,
   struct usipy_msg_heap_cnt *cntp)
 {
     size_t currfree, elen, alen;
