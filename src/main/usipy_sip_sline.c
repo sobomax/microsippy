@@ -1,6 +1,7 @@
 #include <stdint.h>
 #include <stdlib.h>
 
+#include "usipy_debug.h"
 #include "usipy_misc.h"
 #include "usipy_str.h"
 #include "usipy_sip_sline.h"
