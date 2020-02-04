@@ -3,12 +3,12 @@
 #include <stdlib.h>
 
 #include "usipy_str.h"
+#include "usipy_tvpair.h"
 #include "usipy_sip_sline.h"
 #include "usipy_sip_uri.h"
 #include "usipy_msg_heap.h"
 #include "usipy_sip_msg.h"
 #include "usipy_sip_req.h"
-#include "usipy_tvpair.h"
 
 int
 usipy_sip_req_parse_ruri(struct usipy_msg *mp)
