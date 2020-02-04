@@ -3,6 +3,7 @@
 
 #include "esp_log.h"
 
+#include "usipy_debug.h"
 #include "usipy_msg_heap.h"
 #include "usipy_str.h"
 #include "usipy_sip_hdr.h"
