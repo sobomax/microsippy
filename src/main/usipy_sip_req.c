@@ -1,6 +1,6 @@
 #include <stdint.h>
 
-#include "usipy_sip_str.h"
+#include "usipy_str.h"
 #include "usipy_sip_sline.h"
 #include "usipy_sip_msg.h"
 #include "usipy_sip_req.h"
