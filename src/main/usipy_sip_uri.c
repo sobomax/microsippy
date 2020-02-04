@@ -16,15 +16,16 @@
 struct usipy_sip_uri *
 usipy_sip_uri_parse(struct usipy_msg_heap *mhp, const struct usipy_str *surip)
 {
-    struct usipy_str iup, pspace, hspace, pnum;
+    struct usipy_str iup, pspace, hspace, pnum, userpass;
     struct usipy_sip_uri rval, *up;
     struct usipy_msg_heap_cnt cnt;
 
     iup = *surip;
     if (usipy_str_split_elem_nlws(&iup, ':', &rval.proto) != 0)
         return (NULL);
-    if (usipy_str_split_elem_nlws(&iup, '@', &rval.user) == 0) {
-        if (usipy_str_split_elem_nlws(&rval.user, ':', &rval.password) != 0) {
+    if (usipy_str_split_elem_nlws(&iup, '@', &userpass) == 0) {
+        if (usipy_str_split(&userpass, ':', &rval.user, &rval.password) != 0) {
+            rval.user = userpass;
             rval.password = USIPY_STR_NULL;
         }
     } else {
