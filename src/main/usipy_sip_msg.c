@@ -86,6 +86,7 @@ usipy_sip_msg_ctor_fromwire(const char *buf, size_t len,
 #endif
     struct usipy_str cp;
     struct usipy_msg_heap_cnt cnt;
+    memset(&cnt, '\0', sizeof(cnt));
     for (cp = rp->onwire; cp.l > 0;) {
         int crlf_off = usipy_sip_msg_break_down(&mit);
         if (crlf_off < 0)
