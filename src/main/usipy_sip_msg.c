@@ -11,6 +11,7 @@
 #include "usipy_str.h"
 #include "usipy_msg_heap.h"
 #include "usipy_msg_heap_rb.h"
+#include "usipy_msg_heap_inl.h"
 #include "usipy_sip_sline.h"
 #include "usipy_sip_msg.h"
 #include "usipy_sip_hdr.h"
