@@ -80,7 +80,7 @@ usipy_sip_uri_parse(struct usipy_msg_heap *mhp, const struct usipy_str *surip)
             param_value = USIPY_STR_NULL;
         }
         if (usipy_msg_heap_aextend(mhp, URI_SIZEOF(rval.nparams + 1), &cnt) != 0) {
-            return (NULL);
+            goto rollback;
         }
         rval.parameters[rval.nparams].token = param_token;
         rval.parameters[rval.nparams].value = param_value;
@@ -100,7 +100,7 @@ usipy_sip_uri_parse(struct usipy_msg_heap *mhp, const struct usipy_str *surip)
             hdr_value = USIPY_STR_NULL;
         }
         if (usipy_msg_heap_aextend(mhp, URI_SIZEOF(rval.nhdrs + rval.nparams + 1), &cnt) != 0) {
-            return (NULL);
+            goto rollback;
         }
         rval.headers[rval.nhdrs].token = hdr_token;
         rval.headers[rval.nhdrs].value = hdr_value;
@@ -109,6 +109,9 @@ usipy_sip_uri_parse(struct usipy_msg_heap *mhp, const struct usipy_str *surip)
 
     *up = rval;
     return (up);
+rollback:
+    usipy_msg_heap_rollback(mhp, &cnt);
+    return (NULL);
 }
 
 #define DUMP_STR(sname) \
