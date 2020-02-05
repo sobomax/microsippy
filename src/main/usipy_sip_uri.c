@@ -22,9 +22,9 @@ usipy_sip_uri_parse(struct usipy_msg_heap *mhp, const struct usipy_str *surip)
     struct usipy_msg_heap_cnt cnt;
 
     iup = *surip;
+    memset(&rval, '\0', sizeof(rval));
     if (usipy_str_split_elem_nlws(&iup, ':', &rval.proto) != 0)
         return (NULL);
-    memset(&rval, '\0', sizeof(rval));
     if (usipy_str_split_elem_nlws(&iup, '@', &userpass) == 0) {
         if (usipy_str_split(&userpass, ':', &rval.user, &rval.password) != 0) {
             rval.user = userpass;
