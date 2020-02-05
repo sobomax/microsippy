@@ -1,5 +1,6 @@
 #include <errno.h>
 #include <stddef.h>
+#include <string.h>
 
 #include "usipy_debug.h"
 #include "usipy_msg_heap.h"
