@@ -1,7 +1,7 @@
 #ifndef _USIPY_DEBUG_H
 #define _USIPY_DEBUG_H
 
-#if 1
+#if 0
 # include <assert.h>
 
 # define USIPY_DASSERT(x) assert(x)
