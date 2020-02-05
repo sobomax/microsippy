@@ -6,6 +6,8 @@
 
 #include "usipy_debug.h"
 #include "usipy_msg_heap.h"
+#include "usipy_msg_heap_rb.h"
+#include "usipy_msg_heap_inl.h"
 #include "usipy_str.h"
 #include "usipy_tvpair.h"
 #include "usipy_sip_uri.h"
