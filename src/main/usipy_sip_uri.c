@@ -23,7 +23,7 @@ usipy_sip_uri_parse(struct usipy_msg_heap *mhp, const struct usipy_str *surip)
     struct usipy_sip_uri *up;
     struct usipy_msg_heap_cnt cnt;
 
-    up = usipy_msg_heap_alloc_cnt(mhp, sizeof(struct usipy_sip_uri), &cnt);
+    up = usipy_msg_heap_alloc_cnt(mhp, URI_SIZEOF(0), &cnt);
     if (up == NULL) {
         return (NULL);
     }
