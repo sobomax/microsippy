@@ -1,4 +1,6 @@
 union usipy_sip_hdr_parsed;
+struct usipy_msg_heap;
+struct usipy_str;
 
 DEFINE_RAW_METHOD(usipy_sip_hdr_dump, void, const union usipy_sip_hdr_parsed *,
   const char *, const char *);
