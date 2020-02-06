@@ -14,22 +14,24 @@
 #include "usipy_sip_hdr_via.h"
 
 #define VH_SIZEOF(nparams) ( \
-  sizeof(struct usipy_sip_hdr_via) + (sizeof(struct usipy_tvpair) * (nparams)) \
+  sizeof(union usipy_sip_hdr_via) + (sizeof(struct usipy_tvpair) * (nparams)) \
 )
 
-struct usipy_sip_hdr_via *
+union usipy_sip_hdr_parsed
 usipy_sip_hdr_via_parse(struct usipy_msg_heap *mhp,
   const struct usipy_str *hvp)
 {
     struct usipy_str s4;
     struct usipy_str sent_by, sent_by_port;
+    union usipy_sip_hdr_parsed usp;
     struct usipy_sip_hdr_via *vp;
     struct usipy_msg_heap_cnt cnt;
 
-    vp = usipy_msg_heap_alloc_cnt(mhp, VH_SIZEOF(0), &cnt);
-    if (vp == NULL) {
-        return (NULL);
+    usp.via = usipy_msg_heap_alloc_cnt(mhp, VH_SIZEOF(0), &cnt);
+    if (usp.via == NULL) {
+        return (usp);
     }
+    vp = usp.via;
 
     if (usipy_str_split3(hvp, '/', &vp->sent_protocol.name, &vp->sent_protocol.version, &s4) != 0) {
         goto rollback;
@@ -83,10 +85,11 @@ usipy_sip_hdr_via_parse(struct usipy_msg_heap *mhp,
         vp->nparams++;
     }
 
-    return (vp);
+    return (usp);
 rollback:
     usipy_msg_heap_rollback(mhp, &cnt);
-    return (NULL);
+    usp.via = NULL;
+    return (usp);
 }
 
 #define DUMP_PARAM(sname, idx) \
