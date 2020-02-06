@@ -44,7 +44,7 @@ usipy_sip_hdr_cseq_parse(struct usipy_msg_heap *mhp,
 
 void
 usipy_sip_hdr_cseq_dump(const union usipy_sip_hdr_parsed *up, const char *log_tag,
-  const char *log_pref)
+  const char *log_pref, const char *canname)
 {
     const struct usipy_sip_hdr_cseq *csp = up->cseq;
 

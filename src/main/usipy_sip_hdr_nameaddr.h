@@ -11,4 +11,4 @@ struct usipy_sip_hdr_nameaddr {
 union usipy_sip_hdr_parsed usipy_sip_hdr_nameaddr_parse(struct usipy_msg_heap *,
   const struct usipy_str *);
 void usipy_sip_hdr_nameaddr_dump(const union usipy_sip_hdr_parsed *, const char *,
-  const char *);
+  const char *, const char *);
