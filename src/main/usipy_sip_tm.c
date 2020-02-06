@@ -163,7 +163,7 @@ usipy_sip_tm_task(void *pvParameters)
                   tsdiff(bts, ets));
 
                 bts = timer1_read();
-                int rval = usipy_sip_msg_parse_hdrs(msg, USIPY_HFT_MASK(USIPY_HF_CONTACT));
+                rval = usipy_sip_msg_parse_hdrs(msg, USIPY_HFT_MASK(USIPY_HF_CONTACT));
                 ets = timer1_read();
                 ESP_LOGI(cfp->log_tag, "usipy_sip_msg_parse_hdrs(USIPY_HF_CONTACT) = %d: took %u cycles", rval,
                   tsdiff(bts, ets));
