@@ -40,7 +40,6 @@ usipy_sip_hdr_nameaddr_parse(struct usipy_msg_heap *mhp,
             nap->addr_spec = iup;
         }
     } else {
-         ESP_LOGI("foobar", "iup = \"%.*s\"", iup.l, iup.s.ro);
          if (usipy_str_split_elem(&iup, '>', &nap->addr_spec) != 0) {
             /* No closing '>' */
             goto rollback;
