@@ -232,13 +232,13 @@ usipy_sip_msg_parse_hdrs(struct usipy_msg *mp, uint64_t parsemask)
             continue;
         switch (shp->hf_type->cantype) {
         case USIPY_HF_CSEQ:
-            shp->parsed = usipy_sip_hdr_cseq_parse(&mp->heap, &shp->onwire.value);
+            shp->parsed = shp->hf_type->parse(&mp->heap, &shp->onwire.value);
             if (shp->parsed.cseq == NULL)
                 return (-1);
             break;
 
         case USIPY_HF_VIA:
-            shp->parsed = usipy_sip_hdr_via_parse(&mp->heap, &shp->onwire.value);
+            shp->parsed = shp->hf_type->parse(&mp->heap, &shp->onwire.value);
             if (shp->parsed.via == NULL)
                 return (-1);
             break;
