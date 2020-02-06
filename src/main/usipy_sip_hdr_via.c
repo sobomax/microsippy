@@ -14,7 +14,7 @@
 #include "usipy_sip_hdr_via.h"
 
 #define VH_SIZEOF(nparams) ( \
-  sizeof(union usipy_sip_hdr_via) + (sizeof(struct usipy_tvpair) * (nparams)) \
+  sizeof(struct usipy_sip_hdr_via) + (sizeof(struct usipy_tvpair) * (nparams)) \
 )
 
 union usipy_sip_hdr_parsed
