@@ -230,26 +230,11 @@ usipy_sip_msg_parse_hdrs(struct usipy_msg *mp, uint64_t parsemask)
         struct usipy_sip_hdr *shp = &mp->hdrs[i];
         if (!USIPY_HF_ISMSET(parsemask, shp->hf_type->cantype))
             continue;
-        switch (shp->hf_type->cantype) {
-        case USIPY_HF_CSEQ:
-            shp->parsed = shp->hf_type->parse(&mp->heap, &shp->onwire.value);
-            if (shp->parsed.cseq == NULL)
-                return (-1);
-            break;
-
-        case USIPY_HF_VIA:
-            shp->parsed = shp->hf_type->parse(&mp->heap, &shp->onwire.value);
-            if (shp->parsed.via == NULL)
-                return (-1);
-            break;
-
-        case USIPY_HF_CALLID:
-            shp->parsed.generic = &shp->onwire.value;
-	    break;
-
-        default:
+        if (shp->hf_type->parse == NULL)
             return (-1);
-	}
+        shp->parsed = shp->hf_type->parse(&mp->heap, &shp->onwire.value);
+        if (shp->parsed.generic == NULL)
+            return (-1);
     }
     mp->hdr_masks.parsed |= parsemask;
     return (0);
@@ -261,7 +246,7 @@ usipy_sip_msg_parse_hdrs(struct usipy_msg *mp, uint64_t parsemask)
 #error BYTE_ORER is unknown
 #endif
 
-#if BYTE_ORDER == LITTLE_ENDIAN || 1
+#if BYTE_ORDER == LITTLE_ENDIAN
 #  define LE32TOH(dp, sp) /* Nop */
 #else
 #  define LE32TOH(dp, sp) { \

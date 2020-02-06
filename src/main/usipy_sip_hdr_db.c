@@ -9,6 +9,7 @@
 #include "usipy_tvpair.h"
 #include "usipy_sip_hdr_via.h"
 #include "usipy_sip_hdr_cseq.h"
+#include "usipy_sip_hdr_onetoken.h"
 
 #include "usipy_sip_hdr_db_pdata.h"
 
@@ -23,7 +24,8 @@ static const struct usipy_hdr_db_entr usipy_hdr_db[USIPY_HF_max + 1] = {
     {.cantype = USIPY_HF_CCDIVERSION, .name = {.s.ro = "CC-Diversion", .l = 12}},
     {.cantype = USIPY_HF_CSEQ, .name = {.s.ro = "CSeq", .l = 4}, .dump = usipy_sip_hdr_cseq_dump,
      .parse = usipy_sip_hdr_cseq_parse},
-    {.cantype = USIPY_HF_CALLID, .name = {.s.ro = "Call-ID", .l = 7}},
+    {.cantype = USIPY_HF_CALLID, .name = {.s.ro = "Call-ID", .l = 7},
+     .parse = usipy_sip_hdr_1token_parse},
     {.cantype = USIPY_HF_CONTACT, .name = {.s.ro = "Contact", .l = 7},
      .flags.csl_allowed = 1},
     {.cantype = USIPY_HF_CONTENTLENGTH, .name = {.s.ro = "Content-Length", .l = 14}},
@@ -55,7 +57,8 @@ static const struct usipy_hdr_db_entr usipy_hdr_db[USIPY_HF_max + 1] = {
     {.cantype = USIPY_HF_WWWAUTHENTICATE, .name = {.s.ro = "WWW-Authenticate", .l = 16}},
     {.cantype = USIPY_HF_WARNING, .name = {.s.ro = "Warning", .l = 7},
      .flags.csl_allowed = 1},
-    {.cantype = USIPY_HF_CALLID, .name = {.s.ro = "i", .l = 1}},
+    {.cantype = USIPY_HF_CALLID, .name = {.s.ro = "i", .l = 1},
+     .parse = usipy_sip_hdr_1token_parse},
     {.cantype = USIPY_HF_CONTACT, .name = {.s.ro = "m", .l = 1},
      .flags.csl_allowed = 1},
     {.cantype = USIPY_HF_CONTENTLENGTH, .name = {.s.ro = "l", .l = 1}},
