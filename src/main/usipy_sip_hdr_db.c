@@ -51,13 +51,23 @@ static const struct usipy_hdr_db_entr usipy_hdr_db[USIPY_HF_max + 1] = {
     {.cantype = USIPY_HF_RACK, .name = {.s.ro = "RAck", .l = 4}},
     {.cantype = USIPY_HF_RSEQ, .name = {.s.ro = "RSeq", .l = 4}},
     {.cantype = USIPY_HF_REASON, .name = {.s.ro = "Reason", .l = 6}},
-    {.cantype = USIPY_HF_RECORDROUTE, .name = {.s.ro = "Record-Route", .l = 12},
-     .flags.csl_allowed = 1},
+    {
+      .cantype = USIPY_HF_RECORDROUTE,
+      .name = {.s.ro = "Record-Route", .l = 12},
+      .parse = usipy_sip_hdr_nameaddr_parse,
+      .dump = usipy_sip_hdr_nameaddr_dump,
+      .flags.csl_allowed = 1
+    },
     {.cantype = USIPY_HF_REFERTO, .name = {.s.ro = "Refer-To", .l = 8}},
     {.cantype = USIPY_HF_REFERREDBY, .name = {.s.ro = "Referred-By", .l = 11}},
     {.cantype = USIPY_HF_REPLACES, .name = {.s.ro = "Replaces", .l = 8}},
-    {.cantype = USIPY_HF_ROUTE, .name = {.s.ro = "Route", .l = 5},
-     .flags.csl_allowed = 1},
+    {
+      .cantype = USIPY_HF_ROUTE,
+      .name = {.s.ro = "Route", .l = 5},
+      .parse = usipy_sip_hdr_nameaddr_parse,
+      .dump = usipy_sip_hdr_nameaddr_dump,
+      .flags.csl_allowed = 1
+    },
     {.cantype = USIPY_HF_SERVER, .name = {.s.ro = "Server", .l = 6}},
     {.cantype = USIPY_HF_SUPPORTED, .name = {.s.ro = "Supported", .l = 9},
      .flags.csl_allowed = 1},
