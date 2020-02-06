@@ -10,6 +10,7 @@
 #include "usipy_sip_hdr_via.h"
 #include "usipy_sip_hdr_cseq.h"
 #include "usipy_sip_hdr_onetoken.h"
+#include "usipy_sip_hdr_nameaddr.h"
 
 #include "usipy_sip_hdr_db_pdata.h"
 
@@ -26,8 +27,13 @@ static const struct usipy_hdr_db_entr usipy_hdr_db[USIPY_HF_max + 1] = {
      .parse = usipy_sip_hdr_cseq_parse},
     {.cantype = USIPY_HF_CALLID, .name = {.s.ro = "Call-ID", .l = 7},
      .parse = usipy_sip_hdr_1token_parse},
-    {.cantype = USIPY_HF_CONTACT, .name = {.s.ro = "Contact", .l = 7},
-     .flags.csl_allowed = 1},
+    {
+      .cantype = USIPY_HF_CONTACT,
+      .name = {.s.ro = "Contact", .l = 7},
+      .parse = usipy_sip_hdr_nameaddr_parse,
+      .dump = usipy_sip_hdr_nameaddr_dump,
+      .flags.csl_allowed = 1
+    },
     {.cantype = USIPY_HF_CONTENTLENGTH, .name = {.s.ro = "Content-Length", .l = 14}},
     {.cantype = USIPY_HF_CONTENTTYPE, .name = {.s.ro = "Content-Type", .l = 12}},
     {.cantype = USIPY_HF_DIVERSION, .name = {.s.ro = "Diversion", .l = 9}},
@@ -59,8 +65,13 @@ static const struct usipy_hdr_db_entr usipy_hdr_db[USIPY_HF_max + 1] = {
      .flags.csl_allowed = 1},
     {.cantype = USIPY_HF_CALLID, .name = {.s.ro = "i", .l = 1},
      .parse = usipy_sip_hdr_1token_parse},
-    {.cantype = USIPY_HF_CONTACT, .name = {.s.ro = "m", .l = 1},
-     .flags.csl_allowed = 1},
+    {
+      .cantype = USIPY_HF_CONTACT,
+      .name = {.s.ro = "m", .l = 1},
+      .parse = usipy_sip_hdr_nameaddr_parse,
+      .dump = usipy_sip_hdr_nameaddr_dump,
+      .flags.csl_allowed = 1
+    },
     {.cantype = USIPY_HF_CONTENTLENGTH, .name = {.s.ro = "l", .l = 1}},
     {.cantype = USIPY_HF_CONTENTTYPE, .name = {.s.ro = "c", .l = 1}},
     {.cantype = USIPY_HF_FROM, .name = {.s.ro = "f", .l = 1}},

@@ -9,7 +9,7 @@ set(COMPONENT_SRCS "udp_server.c" "usipy_sip_tm.c" "usipy_sip_tm.h"
  "usipy_sip_hdr_via.h" "usipy_types.h" "usipy_sip_uri.c" "usipy_sip_uri.h"
  "usipy_sip_req.c" "usipy_sip_req.h" "usipy_debug.h" "usipy_msg_heap_rb.h"
  "usipy_msg_heap_inl.h" "usipy_sip_hdr_db_pdata.h" "usipy_sip_hdr_onetoken.c"
- "usipy_sip_hdr_onetoken.h"
+ "usipy_sip_hdr_onetoken.h" "usipy_sip_hdr_nameaddr.c" "usipy_sip_hdr_nameaddr.h"
 )
 set(COMPONENT_ADD_INCLUDEDIRS ".")
 

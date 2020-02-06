@@ -1,10 +1,14 @@
 struct usipy_hdr_db_entr;
 struct usipy_sip_hdr_cseq;
 struct usipy_sip_hdr_via;
+struct usipy_sip_hdr_nameaddr;
 
 union usipy_sip_hdr_parsed {
     struct usipy_sip_hdr_via *via;
     struct usipy_sip_hdr_cseq *cseq;
+    struct usipy_sip_hdr_nameaddr *to;
+    struct usipy_sip_hdr_nameaddr *from;
+    struct usipy_sip_hdr_nameaddr *contact;
     const struct usipy_str *generic;
 };
 
