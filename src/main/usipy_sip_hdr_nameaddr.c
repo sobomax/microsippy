@@ -94,7 +94,7 @@ rollback:
 
 void
 usipy_sip_hdr_nameaddr_dump(const union usipy_sip_hdr_parsed *up, const char *log_tag,
-  const char *log_pref, const char *canname)
+  const char *log_pref, const struct usipy_str *canname)
 {
     const struct usipy_sip_hdr_nameaddr *nap = up->contact;
 
