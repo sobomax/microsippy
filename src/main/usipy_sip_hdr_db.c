@@ -23,14 +23,24 @@ static const struct usipy_hdr_db_entr usipy_hdr_db[USIPY_HF_max + 1] = {
     {.cantype = USIPY_HF_ALSO, .name = {.s.ro = "Also", .l = 4}},
     {.cantype = USIPY_HF_AUTHORIZATION, .name = {.s.ro = "Authorization", .l = 13}},
     {.cantype = USIPY_HF_CCDIVERSION, .name = {.s.ro = "CC-Diversion", .l = 12}},
-    {.cantype = USIPY_HF_CSEQ, .name = {.s.ro = "CSeq", .l = 4}, .dump = usipy_sip_hdr_cseq_dump,
-     .parse = usipy_sip_hdr_cseq_parse},
-    {.cantype = USIPY_HF_CALLID, .name = {.s.ro = "Call-ID", .l = 7},
-     .parse = usipy_sip_hdr_1token_parse},
+    {
+     .cantype = USIPY_HF_CSEQ,
+     .name = {.s.ro = "CSeq", .l = 4},
+     .dump = usipy_sip_hdr_cseq_dump,
+     .parse = usipy_sip_hdr_cseq_parse,
+     .parsed_memb_name = "cseq"
+    },
+    {
+     .cantype = USIPY_HF_CALLID,
+     .name = {.s.ro = "Call-ID", .l = 7},
+     .parse = usipy_sip_hdr_1token_parse,
+     .parsed_memb_name = "generic"
+    },
     {
       .cantype = USIPY_HF_CONTACT,
       .name = {.s.ro = "Contact", .l = 7},
       .parse = usipy_sip_hdr_nameaddr_parse,
+      .parsed_memb_name = "contact",
       .dump = usipy_sip_hdr_nameaddr_dump,
       .flags.csl_allowed = 1
     },
@@ -42,6 +52,7 @@ static const struct usipy_hdr_db_entr usipy_hdr_db[USIPY_HF_max + 1] = {
       .cantype = USIPY_HF_FROM,
       .name = {.s.ro = "From", .l = 4},
       .parse = usipy_sip_hdr_nameaddr_parse,
+      .parsed_memb_name = "from",
       .dump = usipy_sip_hdr_nameaddr_dump
     },
     {.cantype = USIPY_HF_MAXFORWARDS, .name = {.s.ro = "Max-Forwards", .l = 12}},
@@ -55,6 +66,7 @@ static const struct usipy_hdr_db_entr usipy_hdr_db[USIPY_HF_max + 1] = {
       .cantype = USIPY_HF_RECORDROUTE,
       .name = {.s.ro = "Record-Route", .l = 12},
       .parse = usipy_sip_hdr_nameaddr_parse,
+      .parsed_memb_name = "recordroute",
       .dump = usipy_sip_hdr_nameaddr_dump,
       .flags.csl_allowed = 1
     },
@@ -65,6 +77,7 @@ static const struct usipy_hdr_db_entr usipy_hdr_db[USIPY_HF_max + 1] = {
       .cantype = USIPY_HF_ROUTE,
       .name = {.s.ro = "Route", .l = 5},
       .parse = usipy_sip_hdr_nameaddr_parse,
+      .parsed_memb_name = "route",
       .dump = usipy_sip_hdr_nameaddr_dump,
       .flags.csl_allowed = 1
     },
@@ -75,20 +88,32 @@ static const struct usipy_hdr_db_entr usipy_hdr_db[USIPY_HF_max + 1] = {
       .cantype = USIPY_HF_TO,
       .name = {.s.ro = "To", .l = 2},
       .parse = usipy_sip_hdr_nameaddr_parse,
+      .parsed_memb_name = "to",
       .dump = usipy_sip_hdr_nameaddr_dump
     },
     {.cantype = USIPY_HF_USERAGENT, .name = {.s.ro = "User-Agent", .l = 10}},
-    {.cantype = USIPY_HF_VIA, .name = {.s.ro = "Via", .l = 3}, .dump = usipy_sip_hdr_via_dump,
-     .parse = usipy_sip_hdr_via_parse, .flags.csl_allowed = 1},
+    {
+      .cantype = USIPY_HF_VIA,
+      .name = {.s.ro = "Via", .l = 3},
+      .dump = usipy_sip_hdr_via_dump,
+      .parse = usipy_sip_hdr_via_parse,
+      .parsed_memb_name = "via",
+      .flags.csl_allowed = 1
+    },
     {.cantype = USIPY_HF_WWWAUTHENTICATE, .name = {.s.ro = "WWW-Authenticate", .l = 16}},
     {.cantype = USIPY_HF_WARNING, .name = {.s.ro = "Warning", .l = 7},
      .flags.csl_allowed = 1},
-    {.cantype = USIPY_HF_CALLID, .name = {.s.ro = "i", .l = 1},
-     .parse = usipy_sip_hdr_1token_parse},
+    {
+      .cantype = USIPY_HF_CALLID,
+      .name = {.s.ro = "i", .l = 1},
+      .parse = usipy_sip_hdr_1token_parse,
+      .parsed_memb_name = "generic",
+    },
     {
       .cantype = USIPY_HF_CONTACT,
       .name = {.s.ro = "m", .l = 1},
       .parse = usipy_sip_hdr_nameaddr_parse,
+      .parsed_memb_name = "contact",
       .dump = usipy_sip_hdr_nameaddr_dump,
       .flags.csl_allowed = 1
     },
@@ -98,6 +123,7 @@ static const struct usipy_hdr_db_entr usipy_hdr_db[USIPY_HF_max + 1] = {
       .cantype = USIPY_HF_FROM,
       .name = {.s.ro = "f", .l = 1},
       .parse = usipy_sip_hdr_nameaddr_parse,
+      .parsed_memb_name = "from",
       .dump = usipy_sip_hdr_nameaddr_dump
     },
     {.cantype = USIPY_HF_REFERTO, .name = {.s.ro = "r", .l = 1}},
@@ -107,10 +133,17 @@ static const struct usipy_hdr_db_entr usipy_hdr_db[USIPY_HF_max + 1] = {
       .cantype = USIPY_HF_TO,
       .name = {.s.ro = "t", .l = 1},
       .parse = usipy_sip_hdr_nameaddr_parse,
+      .parsed_memb_name = "to",
       .dump = usipy_sip_hdr_nameaddr_dump
     },
-    {.cantype = USIPY_HF_VIA, .name = {.s.ro = "v", .l = 1}, .dump = usipy_sip_hdr_via_dump,
-     .parse = usipy_sip_hdr_via_parse, .flags.csl_allowed = 1 }
+    {
+      .cantype = USIPY_HF_VIA,
+      .name = {.s.ro = "v", .l = 1},
+      .dump = usipy_sip_hdr_via_dump,
+      .parse = usipy_sip_hdr_via_parse,
+      .parsed_memb_name = "via",
+      .flags.csl_allowed = 1
+    }
 };
 
 const struct usipy_hdr_db_entr *

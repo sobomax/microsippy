@@ -9,6 +9,8 @@ union usipy_sip_hdr_parsed {
     struct usipy_sip_hdr_nameaddr *to;
     struct usipy_sip_hdr_nameaddr *from;
     struct usipy_sip_hdr_nameaddr *contact;
+    struct usipy_sip_hdr_nameaddr *route;
+    struct usipy_sip_hdr_nameaddr *recordroute;
     const struct usipy_str *generic;
 };
 

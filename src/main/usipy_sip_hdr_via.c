@@ -97,14 +97,14 @@ rollback:
       idx, vp->sname[i].token.l, vp->sname[i].token.s.ro, vp->sname[i].value.l, \
       vp->sname[i].value.s.ro)
 #define DUMP_STR(sname) \
-    ESP_LOGI(log_tag, "%svia." #sname " = \"%.*s\"", log_pref, vp->sname.l, \
+    ESP_LOGI(log_tag, "%s%s." #sname " = \"%.*s\"", log_pref, caname, vp->sname.l, \
       vp->sname.s.ro)
 #define DUMP_UINT(sname) \
-    ESP_LOGI(log_tag, "%svia." #sname " = %u", log_pref, vp->sname)
+    ESP_LOGI(log_tag, "%s%s." #sname " = %u", log_pref, canname, vp->sname)
 
 void
 usipy_sip_hdr_via_dump(const union usipy_sip_hdr_parsed *up, const char *log_tag,
-  const char *log_pref, const struct usipy_str *canname)
+  const char *log_pref, const char *canname)
 {
     const struct usipy_sip_hdr_via *vp = up->via;
 

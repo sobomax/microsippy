@@ -19,6 +19,7 @@ struct usipy_hdr_db_entr {
     } flags;
     usipy_sip_hdr_dump_f dump;
     usipy_sip_hdr_parse_f parse;
+    const char *parsed_memb_name;
 };
 
 const struct usipy_hdr_db_entr *usipy_hdr_db_lookup(const struct usipy_str *);
