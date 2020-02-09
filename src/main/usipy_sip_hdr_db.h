@@ -3,9 +3,9 @@ struct usipy_msg_heap;
 struct usipy_str;
 
 DEFINE_RAW_METHOD(usipy_sip_hdr_dump, void, const union usipy_sip_hdr_parsed *,
-  const char *, const char *, const struct usipy_str *);
+  const char *, const char *, const char *);
 DEFINE_RAW_METHOD(usipy_sip_hdr_parse, union usipy_sip_hdr_parsed,
-  struct usipy_msg_heap *, const char *);
+  struct usipy_msg_heap *, const struct usipy_str *);
 
 struct usipy_hdr_db_entr {
     struct usipy_str name;
