@@ -209,7 +209,7 @@ usipy_sip_msg_dump(const struct usipy_msg *msg, const char *log_tag)
 	ESP_LOGI(log_tag, "  .value = \"%.*s\"", shp->onwire.value.l, shp->onwire.value.s.ro);
         if (shp->parsed.generic != NULL && shp->hf_type->dump != NULL) {
             shp->hf_type->dump(&shp->parsed, log_tag, "  .parsed->",
-              shp->hf_type->parsed_memb_name, &shp->hf_type->name);
+              shp->hf_type->parsed_memb_name);
         }
     }
     ESP_LOGI(log_tag, "body = \"%.*s\"", msg->body.l, msg->body.s.ro);
