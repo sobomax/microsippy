@@ -97,7 +97,7 @@ rollback:
       idx, vp->sname[i].token.l, vp->sname[i].token.s.ro, vp->sname[i].value.l, \
       vp->sname[i].value.s.ro)
 #define DUMP_STR(sname) \
-    ESP_LOGI(log_tag, "%s%s." #sname " = \"%.*s\"", log_pref, caname, vp->sname.l, \
+    ESP_LOGI(log_tag, "%s%s." #sname " = \"%.*s\"", log_pref, canname, vp->sname.l, \
       vp->sname.s.ro)
 #define DUMP_UINT(sname) \
     ESP_LOGI(log_tag, "%s%s." #sname " = %u", log_pref, canname, vp->sname)
