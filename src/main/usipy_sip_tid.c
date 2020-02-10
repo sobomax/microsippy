@@ -1,5 +1,6 @@
 #include <stdint.h>
 #include <stdlib.h>
+#include <string.h>
 
 #include "esp_log.h"
 
@@ -22,6 +23,7 @@ getblock32(const uint32_t *p, int i)
     uint32_t r;
 
     memcpy(&r, &p[i], sizeof(r));
+    return (r);
 }
 
 static inline uint32_t
