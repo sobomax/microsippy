@@ -167,6 +167,14 @@ usipy_sip_tm_task(void *pvParameters)
                     continue;
 
                 int rval;
+
+                struct usipy_sip_tid tid;
+                bts = timer1_read();
+                rval = usipy_sip_msg_get_tid(msg, &tid);
+                ets = timer1_read();
+                ESP_LOGI(cfp->log_tag, "usipy_sip_msg_get_tid() = %d: took %u cycles", rval,
+                  tsdiff(bts, ets));
+
                 TIME_HDR_PARSE(USIPY_HF_TID_MASK, 1);
                 usipy_sip_msg_dtor(msg);
                 msg = usipy_sip_msg_ctor_fromwire(rx_buffer, len, &cerror);

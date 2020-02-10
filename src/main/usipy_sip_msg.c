@@ -22,6 +22,7 @@
 #include "usipy_tvpair.h"
 #include "usipy_sip_hdr_via.h"
 #include "usipy_sip_uri.h"
+#include "usipy_sip_tid.h"
 
 #define USIPY_HFS_NMIN (24)
 
@@ -251,6 +252,64 @@ usipy_sip_msg_parse_hdrs(struct usipy_msg *mp, uint64_t parsemask, int toponly)
     } else {
        mp->hdr_masks.parsed |= parsemask;
     }
+    return (0);
+}
+
+int
+usipy_sip_msg_get_tid(struct usipy_msg *mp, struct usipy_sip_tid *tp)
+{
+    uint64_t seenmask = ~USIPY_HF_TID_MASK;
+
+    if (usipy_sip_msg_parse_hdrs(msg, USIPY_HF_TID_MASK, 1) != 0)
+        return (-1);
+    for (int i = 0; i < mp->nhdrs; i++) {
+        struct usipy_sip_hdr *shp = &mp->hdrs[i];
+        int j;
+
+        if (USIPY_HF_ISMSET(seenmask, shp->hf_type->cantype))
+            continue;
+        USIPY_DASSERT(shp->parsed.generic != NULL);
+        switch (shp->hf_type->cantype) {
+        case USIPY_HF_CSEQ:
+            tp->cseq = shp->parsed.cseq;
+            break;
+        case USIPY_HF_CALLID:
+            tp->call_id = shp->parsed.generic;
+            break;
+        case USIPY_HF_VIA:
+            for (j = 0; j < shp->parsed.via->nparams; j++) {
+                const struct usipy_tvpair *pp = &shp->parsed.via->params[j];
+                if (pp->token.l != 6 && memcmp(pp->token.s.ro, "branch", 6) != 0)
+                   continue;
+                if (pp->value.l == 0)
+                   return (-1);
+                tp->vbranch = &pp->value;
+                break;
+            }
+            if (j == shp->parsed.via->nparams)
+                return (-1);
+            break;
+        case USIPY_HF_FROM:
+            for (j = 0; j < shp->parsed.from->nparams; j++) {
+                const struct usipy_tvpair *pp = &shp->parsed.from->params[j];
+                if (pp->token.l != 3 && memcmp(pp->token.s.ro, "tag", 3) != 0)
+                   continue;
+                if (pp->value.l == 0)
+                   return (-1);
+                tp->from_tag = &pp->value;
+                break;
+            }
+            if (j == shp->parsed.from->nparams)
+                return (-1);
+            break;
+        default:
+            USIPY_DABORT();
+            break;
+        }
+        seenmask |= USIPY_HFT_MASK(shp->hf_type->cantype);
+    }
+    if ((~seenmask) != 0)
+        return (-1);
     return (0);
 }
 

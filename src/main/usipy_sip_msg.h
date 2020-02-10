@@ -1,4 +1,5 @@
 struct usipy_sip_hdr;
+struct usipy_sip_tid;
 
 enum usipy_sip_msg_kind {
   USIPY_SIP_MSG_UNKN = -1,
@@ -42,6 +43,7 @@ struct usipy_msg *usipy_sip_msg_ctor_fromwire(const char *, size_t,
 void usipy_sip_msg_dtor(struct usipy_msg *);
 void usipy_sip_msg_dump(const struct usipy_msg *, const char *);
 int usipy_sip_msg_parse_hdrs(struct usipy_msg *, uint64_t, int);
+int usipy_sip_msg_get_tid(struct usipy_msg *, struct usipy_sip_tid *);
 
 #define USIPY_HFT_MASK(hft) ((uint64_t)1 << (hft))
 #define USIPY_HF_MASK(shp) (USIPY_HFT_MASK((shp)->hf_type->cantype))
