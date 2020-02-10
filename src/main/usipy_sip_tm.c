@@ -25,6 +25,8 @@
 
 #include "usipy_esp8266_timer1.h"
 
+USIPY_DCODE(#include <stdlib.h>)
+
 static unsigned int
 tsdiff(unsigned int bts, unsigned int ets)
 {
@@ -38,11 +40,11 @@ tsdiff(unsigned int bts, unsigned int ets)
 
 #include <string.h>
 
-#define TIME_HDR_PARSE(hm) do { \
+#define TIME_HDR_PARSE(hm, to) do { \
         bts = timer1_read(); \
-        rval = usipy_sip_msg_parse_hdrs(msg, hm, 0); \
+        rval = usipy_sip_msg_parse_hdrs(msg, hm, to); \
         ets = timer1_read(); \
-        ESP_LOGI(cfp->log_tag, "usipy_sip_msg_parse_hdrs(" #hm ") = %d: took %u cycles", \
+        ESP_LOGI(cfp->log_tag, "usipy_sip_msg_parse_hdrs(" #hm ", " #to ") = %d: took %u cycles", \
           rval, tsdiff(bts, ets)); \
     } while (0);
 
@@ -166,11 +168,19 @@ usipy_sip_tm_task(void *pvParameters)
                     continue;
 
                 int rval;
-                TIME_HDR_PARSE(USIPY_HF_TID_MASK);
-                TIME_HDR_PARSE(USIPY_HFT_MASK(USIPY_HF_CONTACT));
-                TIME_HDR_PARSE(USIPY_HFT_MASK(USIPY_HF_TO));
-                TIME_HDR_PARSE(USIPY_HFT_MASK(USIPY_HF_FROM));
-                TIME_HDR_PARSE(USIPY_HFT_MASK(USIPY_HF_ROUTE));
+                TIME_HDR_PARSE(USIPY_HF_TID_MASK, 1);
+                usipy_sip_msg_dtor(msg);
+                struct usipy_msg *msg = usipy_sip_msg_ctor_fromwire(rx_buffer, len, &cerror);
+                if (msg == NULL) {
+                    USIPY_DCODE(abort());
+                    continue;
+                }
+                TIME_HDR_PARSE(USIPY_HFT_MASK(USIPY_HF_VIA, 0));
+                TIME_HDR_PARSE(USIPY_HFT_MASK(USIPY_HF_CONTACT, 0));
+                TIME_HDR_PARSE(USIPY_HFT_MASK(USIPY_HF_TO, 0));
+                TIME_HDR_PARSE(USIPY_HFT_MASK(USIPY_HF_FROM, 0));
+                TIME_HDR_PARSE(USIPY_HFT_MASK(USIPY_HF_ROUTE, 0));
+                TIME_HDR_PARSE(USIPY_HFT_MASK(USIPY_HF_RECORDROUTE, 0));
 
                 if (msg->kind == USIPY_SIP_MSG_REQ) {
                     bts = timer1_read();
