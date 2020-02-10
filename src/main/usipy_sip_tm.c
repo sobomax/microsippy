@@ -25,8 +25,6 @@
 
 #include "usipy_esp8266_timer1.h"
 
-USIPY_DCODE(#include <stdlib.h>)
-
 static unsigned int
 tsdiff(unsigned int bts, unsigned int ets)
 {
@@ -172,7 +170,7 @@ usipy_sip_tm_task(void *pvParameters)
                 usipy_sip_msg_dtor(msg);
                 struct usipy_msg *msg = usipy_sip_msg_ctor_fromwire(rx_buffer, len, &cerror);
                 if (msg == NULL) {
-                    USIPY_DCODE(abort());
+                    USIPY_DABORT();
                     continue;
                 }
                 TIME_HDR_PARSE(USIPY_HFT_MASK(USIPY_HF_VIA, 0));
