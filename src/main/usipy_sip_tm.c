@@ -168,7 +168,7 @@ usipy_sip_tm_task(void *pvParameters)
                 int rval;
                 TIME_HDR_PARSE(USIPY_HF_TID_MASK, 1);
                 usipy_sip_msg_dtor(msg);
-                struct usipy_msg *msg = usipy_sip_msg_ctor_fromwire(rx_buffer, len, &cerror);
+                msg = usipy_sip_msg_ctor_fromwire(rx_buffer, len, &cerror);
                 if (msg == NULL) {
                     USIPY_DABORT();
                     continue;
