@@ -2,6 +2,9 @@ struct usipy_msg_heap;
 struct usipy_method_db_entr;
 
 struct usipy_sip_hdr_cseq {
+    struct {
+        struct usipy_str method;
+    } onwire;
     uint32_t val;
     const struct usipy_method_db_entr *method;
 };

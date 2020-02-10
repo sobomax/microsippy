@@ -33,6 +33,7 @@ usipy_sip_hdr_cseq_parse(struct usipy_msg_heap *mhp,
     }
     usp.cseq->val = r;
     usp.cseq->method = usipy_method_db_lookup(&s2);
+    usp.cseq->onwire.method = s2;
     return (usp);
 }
 
