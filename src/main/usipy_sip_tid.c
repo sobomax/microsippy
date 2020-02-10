@@ -105,7 +105,7 @@ usipy_sip_tid_dump(const struct usipy_sip_tid *tp, const char *log_tag,
     DUMP_UINT(hash);
 }
 
-#define HASH_STR(sp, sd, ot) MurmurHash3_32(sp->s.ro, sp->s.l, sd, ot)
+#define HASH_STR(sp, sd, ot) MurmurHash3_32(sp->s.ro, sp->l, sd, ot)
 
 uint32_t
 usipy_sip_tid_hash(const struct usipy_sip_tid *tp)
