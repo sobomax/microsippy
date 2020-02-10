@@ -221,23 +221,35 @@ usipy_sip_msg_dump(const struct usipy_msg *msg, const char *log_tag)
 #define USIPY_MSG_HDR_PRESENT(msp, h) (USIPY_HF_ISMSET(msp->hdr_masks.present, (h)))
 
 int
-usipy_sip_msg_parse_hdrs(struct usipy_msg *mp, uint64_t parsemask)
+usipy_sip_msg_parse_hdrs(struct usipy_msg *mp, uint64_t parsemask, int toponly)
 {
+    uint64_t topparsed = 0;
 
     if ((mp->hdr_masks.present & parsemask) != parsemask)
         return(-1);
     parsemask &= ~(mp->hdr_masks.parsed);
     for (int i = 0; i < mp->nhdrs; i++) {
         struct usipy_sip_hdr *shp = &mp->hdrs[i];
-        if (!USIPY_HF_ISMSET(parsemask, shp->hf_type->cantype))
+        if (!USIPY_HF_ISMSET(parsemask, shp->hf_type->cantype)) {
+            if (toponly && USIPY_HF_ISMSET(topparsed, shp->hf_type->cantype)) {
+                topparsed &= ~USIPY_HFT_MASK(shp->hf_type->cantype);
+            }
             continue;
         if (shp->hf_type->parse == NULL)
             return (-1);
         shp->parsed = shp->hf_type->parse(&mp->heap, &shp->onwire.value);
         if (shp->parsed.generic == NULL)
             return (-1);
+        if (toponly) {
+            parsemask &= ~USIPY_HFT_MASK(shp->hf_type->cantype);
+            topparsed |= USIPY_HFT_MASK(shp->hf_type->cantype);
+        }
     }
-    mp->hdr_masks.parsed |= parsemask;
+    if (toponly) {
+       mp->hdr_masks.parsed |= topparsed;
+    } else {
+       mp->hdr_masks.parsed |= parsemask;
+    }
     return (0);
 }
 
