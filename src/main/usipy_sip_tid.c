@@ -21,6 +21,5 @@ usipy_sip_tid_dump(const struct usipy_sip_tid *tp, const char *log_tag,
     DUMP_STR(call_id);
     DUMP_STR(from_tag);
     DUMP_STR(vbranch);
-    usipy_sip_hdr_cseq_dump(&up, log_tag, log_pref, "");
+    usipy_sip_hdr_cseq_dump(&up, log_tag, log_pref, "cseq");
 }
-
