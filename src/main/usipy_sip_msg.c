@@ -235,6 +235,7 @@ usipy_sip_msg_parse_hdrs(struct usipy_msg *mp, uint64_t parsemask, int toponly)
                 topparsed &= ~USIPY_HFT_MASK(shp->hf_type->cantype);
             }
             continue;
+        }
         if (shp->hf_type->parse == NULL)
             return (-1);
         shp->parsed = shp->hf_type->parse(&mp->heap, &shp->onwire.value);
