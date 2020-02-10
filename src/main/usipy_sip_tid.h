@@ -14,3 +14,6 @@ struct usipy_sip_tid {
   USIPY_HFT_MASK(USIPY_HF_VIA) | \
   USIPY_HFT_MASK(USIPY_HF_FROM) \
 )
+
+void usipy_sip_tid_dump(const struct usipy_sip_tid *, const char *,
+  const char *);

@@ -174,6 +174,9 @@ usipy_sip_tm_task(void *pvParameters)
                 ets = timer1_read();
                 ESP_LOGI(cfp->log_tag, "usipy_sip_msg_get_tid() = %d: took %u cycles", rval,
                   tsdiff(bts, ets));
+                if (rval == 0) {
+                    usipy_sip_tid_dump(&tid, cfp->log_tag, "  tid.");
+                }
 
                 TIME_HDR_PARSE(USIPY_HF_TID_MASK, 1);
                 usipy_sip_msg_dtor(msg);
