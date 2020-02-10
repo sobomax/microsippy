@@ -173,12 +173,12 @@ usipy_sip_tm_task(void *pvParameters)
                     USIPY_DABORT();
                     continue;
                 }
-                TIME_HDR_PARSE(USIPY_HFT_MASK(USIPY_HF_VIA, 0));
-                TIME_HDR_PARSE(USIPY_HFT_MASK(USIPY_HF_CONTACT, 0));
-                TIME_HDR_PARSE(USIPY_HFT_MASK(USIPY_HF_TO, 0));
-                TIME_HDR_PARSE(USIPY_HFT_MASK(USIPY_HF_FROM, 0));
-                TIME_HDR_PARSE(USIPY_HFT_MASK(USIPY_HF_ROUTE, 0));
-                TIME_HDR_PARSE(USIPY_HFT_MASK(USIPY_HF_RECORDROUTE, 0));
+                TIME_HDR_PARSE(USIPY_HFT_MASK(USIPY_HF_VIA), 0);
+                TIME_HDR_PARSE(USIPY_HFT_MASK(USIPY_HF_CONTACT), 0);
+                TIME_HDR_PARSE(USIPY_HFT_MASK(USIPY_HF_TO), 0);
+                TIME_HDR_PARSE(USIPY_HFT_MASK(USIPY_HF_FROM), 0);
+                TIME_HDR_PARSE(USIPY_HFT_MASK(USIPY_HF_ROUTE), 0);
+                TIME_HDR_PARSE(USIPY_HFT_MASK(USIPY_HF_RECORDROUTE), 0);
 
                 if (msg->kind == USIPY_SIP_MSG_REQ) {
                     bts = timer1_read();
