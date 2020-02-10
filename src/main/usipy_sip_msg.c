@@ -260,7 +260,7 @@ usipy_sip_msg_get_tid(struct usipy_msg *mp, struct usipy_sip_tid *tp)
 {
     uint64_t seenmask = ~USIPY_HF_TID_MASK;
 
-    if (usipy_sip_msg_parse_hdrs(msg, USIPY_HF_TID_MASK, 1) != 0)
+    if (usipy_sip_msg_parse_hdrs(mp, USIPY_HF_TID_MASK, 1) != 0)
         return (-1);
     for (int i = 0; i < mp->nhdrs; i++) {
         struct usipy_sip_hdr *shp = &mp->hdrs[i];
