@@ -19,7 +19,9 @@ ROTL32(uint32_t x, int8_t r)
 static inline uint32_t
 getblock32(const uint32_t *p, int i)
 {
-    return p[i];
+    uint32_t r;
+
+    memcpy(&r, &p[i], sizeof(r));
 }
 
 static inline uint32_t
