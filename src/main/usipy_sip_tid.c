@@ -6,6 +6,7 @@
 #include "usipy_str.h"
 #include "usipy_sip_hdr.h"
 #include "usipy_sip_hdr_cseq.h"
+#include "usipy_sip_method_db.h"
 #include "usipy_sip_tid.h"
 
 static inline uint32_t
