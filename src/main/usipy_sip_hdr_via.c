@@ -94,11 +94,10 @@ rollback:
 
 #define DUMP_PARAM(sname, idx) \
     ESP_LOGI(log_tag, "%svia." #sname "[%d] = \"%.*s\"=\"%.*s\"", log_pref, \
-      idx, vp->sname[i].token.l, vp->sname[i].token.s.ro, vp->sname[i].value.l, \
-      vp->sname[i].value.s.ro)
+      idx, USIPY_SFMT(&vp->sname[i].token), USIPY_SFMT(&vp->sname[i].value))
 #define DUMP_STR(sname) \
-    ESP_LOGI(log_tag, "%s%s." #sname " = \"%.*s\"", log_pref, canname, vp->sname.l, \
-      vp->sname.s.ro)
+    ESP_LOGI(log_tag, "%s%s." #sname " = \"%.*s\"", log_pref, canname, \
+      USIPY_SFMT(&vp->sname))
 #define DUMP_UINT(sname) \
     ESP_LOGI(log_tag, "%s%s." #sname " = %u", log_pref, canname, vp->sname)
 

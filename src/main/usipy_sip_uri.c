@@ -111,14 +111,13 @@ rollback:
 }
 
 #define DUMP_STR(sname) \
-    ESP_LOGI(log_tag, "%s" #sname " = \"%.*s\"", log_pref, up->sname.l, \
-      up->sname.s.ro)
+    ESP_LOGI(log_tag, "%s" #sname " = \"%.*s\"", log_pref, \
+      USIPY_SFMT(&up->sname))
 #define DUMP_UINT(sname) \
     ESP_LOGI(log_tag, "%s" #sname " = %u", log_pref, up->sname)
 #define DUMP_PARAM(sname, idx) \
     ESP_LOGI(log_tag, "%s" #sname "[%d] = \"%.*s\"=\"%.*s\"", log_pref, \
-      idx, up->sname[i].token.l, up->sname[i].token.s.ro, up->sname[i].value.l, \
-      up->sname[i].value.s.ro)
+      idx, USIPY_SFMT(&up->sname[i].token), USIPY_SFMT(&up->sname[i].value))
 
 void
 usipy_sip_uri_dump(const struct usipy_sip_uri *up, const char *log_tag,

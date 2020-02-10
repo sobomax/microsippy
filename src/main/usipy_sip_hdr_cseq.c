@@ -40,7 +40,7 @@ usipy_sip_hdr_cseq_parse(struct usipy_msg_heap *mhp,
     ESP_LOGI(log_tag, "%s%s." #sname " = %u", log_pref, canname, csp->sname)
 #define DUMP_METHOD(sname) \
     ESP_LOGI(log_tag, "%s%s." #sname " = \"%.*s\" (%d)", log_pref, canname, \
-      csp->sname->name.l, csp->sname->name.s.ro, csp->sname->cantype)
+      USIPY_SFMT(&csp->sname->name), csp->sname->cantype)
 
 void
 usipy_sip_hdr_cseq_dump(const union usipy_sip_hdr_parsed *up, const char *log_tag,

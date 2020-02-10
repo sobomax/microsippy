@@ -175,23 +175,21 @@ void
 usipy_sip_msg_dump(const struct usipy_msg *msg, const char *log_tag)
 {
 
-    ESP_LOGI(log_tag, "start line = \"%.*s\"", msg->sline.onwire.l,
-      msg->sline.onwire.s.ro);
+    ESP_LOGI(log_tag, "start line = \"%.*s\"", USIPY_SFMT(&msg->sline.onwire));
 
     switch (msg->kind) {
     case USIPY_SIP_MSG_RES:
         ESP_LOGI(log_tag, "Message[%p] is SIP RESPONSE: status_code = %u, "
           "reason_phrase = \"%.*s\"", msg,
-          msg->sline.parsed.sl.status_code, msg->sline.parsed.sl.reason_phrase.l,
-          msg->sline.parsed.sl.reason_phrase.s.ro);
+          msg->sline.parsed.sl.status_code, USIPY_SFMT(&msg->sline.parsed.sl.reason_phrase));
         break;
 
     case USIPY_SIP_MSG_REQ:
         ESP_LOGI(log_tag, "Message[%p] is SIP REQUEST: method(onwire) = \"%.*s\", "
           "method(canonic) = \"%.*s\", ruri = \"%.*s\"", msg,
-          msg->sline.parsed.rl.onwire.method.l, msg->sline.parsed.rl.onwire.method.s.ro,
-          msg->sline.parsed.rl.mtype->name.l, msg->sline.parsed.rl.mtype->name.s.ro,
-          msg->sline.parsed.rl.onwire.ruri.l, msg->sline.parsed.rl.onwire.ruri.s.ro);
+          USIPY_SFMT(&msg->sline.parsed.rl.onwire.method),
+          USIPY_SFMT(&msg->sline.parsed.rl.mtype->name),
+          USIPY_SFMT(&msg->sline.parsed.rl.onwire.ruri));
         if (msg->sline.parsed.rl.ruri != NULL) {
             usipy_sip_uri_dump(msg->sline.parsed.rl.ruri, log_tag,
               "  .parsed.rl.ruri->");
@@ -207,14 +205,14 @@ usipy_sip_msg_dump(const struct usipy_msg *msg, const char *log_tag)
         ESP_LOGI(log_tag, "header[%d @ %p], .hf_type = %p, .onwire.hf_type = %p", i,
           shp, shp->hf_type, shp->onwire.hf_type);
         ESP_LOGI(log_tag, "  .onwire.type = %u", shp->onwire.hf_type->cantype);
-	ESP_LOGI(log_tag, "  .name = \"%.*s\"", shp->onwire.name.l, shp->onwire.name.s.ro);
-	ESP_LOGI(log_tag, "  .value = \"%.*s\"", shp->onwire.value.l, shp->onwire.value.s.ro);
+	ESP_LOGI(log_tag, "  .name = \"%.*s\"", USIPY_SFMT(&shp->onwire.name));
+	ESP_LOGI(log_tag, "  .value = \"%.*s\"", USIPY_SFMT(&shp->onwire.value));
         if (shp->parsed.generic != NULL && shp->hf_type->dump != NULL) {
             shp->hf_type->dump(&shp->parsed, log_tag, "  .parsed->",
               shp->hf_type->parsed_memb_name);
         }
     }
-    ESP_LOGI(log_tag, "body = \"%.*s\"", msg->body.l, msg->body.s.ro);
+    ESP_LOGI(log_tag, "body = \"%.*s\"", USIPY_SFMT(&msg->body));
     ESP_LOGI(log_tag, "heap remaining %d", usipy_msg_heap_remaining(&msg->heap));
 }
 
