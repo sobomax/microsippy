@@ -16,12 +16,11 @@ void
 usipy_sip_tid_dump(const struct usipy_sip_tid *tp, const char *log_tag,
   const char *log_pref)
 {
-    union usipy_sip_hdr_parsed up;
+    const union usipy_sip_hdr_parsed up = {.cseq = tp->cseq};
 
     DUMP_STR(call_id);
     DUMP_STR(from_tag);
     DUMP_STR(vbranch);
-    up.cseq = tp->cseq;
     usipy_sip_hdr_cseq_dump(&up, log_tag, log_pref, "");
 }
 
