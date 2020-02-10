@@ -4,7 +4,7 @@
 #if 1
 # include <assert.h>
 
-# define USIPY_DABORT() assert(1 == 0)
+# define USIPY_DABORT() assert(0 != 0)
 # define USIPY_DASSERT(x) assert(x)
 # define USIPY_DCODE(code) code
 #else
