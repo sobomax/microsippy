@@ -1,6 +1,8 @@
 #include <stdint.h>
 #include <stdlib.h>
 
+#include "esp_log.h"
+
 #include "usipy_str.h"
 #include "usipy_sip_hdr.h"
 #include "usipy_sip_hdr_cseq.h"
