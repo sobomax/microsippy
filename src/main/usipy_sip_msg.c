@@ -309,6 +309,7 @@ usipy_sip_msg_get_tid(struct usipy_msg *mp, struct usipy_sip_tid *tp)
     }
     if ((~seenmask) != 0)
         return (-1);
+    tp->hash = usipy_sip_tid_hash(tp);
     return (0);
 }
 

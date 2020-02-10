@@ -2,6 +2,7 @@ struct usipy_str;
 struct usipy_sip_hdr_cseq;
 
 struct usipy_sip_tid {
+    uint32_t hash;
     const struct usipy_str *call_id;
     const struct usipy_str *from_tag;
     const struct usipy_sip_hdr_cseq *cseq;
@@ -17,3 +18,4 @@ struct usipy_sip_tid {
 
 void usipy_sip_tid_dump(const struct usipy_sip_tid *, const char *,
   const char *);
+uint32_t usipy_sip_tid_hash(const struct usipy_sip_tid *);
