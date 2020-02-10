@@ -175,6 +175,8 @@ usipy_sip_tm_task(void *pvParameters)
                 }
                 TIME_HDR_PARSE(USIPY_HFT_MASK(USIPY_HF_VIA), 0);
                 TIME_HDR_PARSE(USIPY_HFT_MASK(USIPY_HF_CONTACT), 0);
+                TIME_HDR_PARSE(USIPY_HFT_MASK(USIPY_HF_CSEQ), 0);
+                TIME_HDR_PARSE(USIPY_HFT_MASK(USIPY_HF_CALLID), 0);
                 TIME_HDR_PARSE(USIPY_HFT_MASK(USIPY_HF_TO), 0);
                 TIME_HDR_PARSE(USIPY_HFT_MASK(USIPY_HF_FROM), 0);
                 TIME_HDR_PARSE(USIPY_HFT_MASK(USIPY_HF_ROUTE), 0);
