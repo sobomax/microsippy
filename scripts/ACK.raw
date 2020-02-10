@@ -4,5 +4,5 @@ To: Bob <sip:bob@%%BRD_IP%%>;tag=99sa0xk
 From: Alice <sip:alice@atlanta.com>;tag=88sja8y
 Max-Forwards: 70
 Call-ID: 987asjd97y7ath
-CSeq: 986758 ACK
+CSeq: 986758 AcK
 
