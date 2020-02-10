@@ -90,7 +90,7 @@ MurmurHash3_32(const void *key, size_t len, uint32_t seed, uint32_t *out)
     ESP_LOGI(log_tag, "%s" #sname " = \"%.*s\"", log_pref, \
       USIPY_SFMT(tp->sname))
 #define DUMP_UINT(sname) \
-    ESP_LOGI(log_tag, "%s" #sname " = 0x%.8x", log_pref, csp->sname)
+    ESP_LOGI(log_tag, "%s" #sname " = 0x%.8x", log_pref, tp->sname)
 
 void
 usipy_sip_tid_dump(const struct usipy_sip_tid *tp, const char *log_tag,
