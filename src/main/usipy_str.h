@@ -34,7 +34,7 @@ int usipy_str_split_elem_nlws(struct usipy_str *, unsigned char,
 
 #define USIPY_STR_NULL (struct usipy_str){.l = 0, .s.ro = NULL}
 #define USIPY_2STR(cstring) \
-    (struct usipy_str){.l = (sizeof(cstring) - 1), .s.ro = (cstring)}
+    {.l = (sizeof(cstring) - 1), .s.ro = (cstring)}
 
 #define usipy_str_trm_e(sp) \
     while ((sp)->l > 0 && USIPY_ISWS((sp)->s.ro[(sp)->l - 1])) { \
