@@ -6,16 +6,16 @@
 
 static const struct usipy_method_db_entr usipy_method_db[USIPY_SIP_METHOD_max + 1] = {
     {.cantype = USIPY_SIP_METHOD_generic},
-    {.cantype = USIPY_SIP_METHOD_ACK, .name = {.s.ro = "ACK", .l = 3}},
-    {.cantype = USIPY_SIP_METHOD_BYE, .name = {.s.ro = "BYE", .l = 3}},
-    {.cantype = USIPY_SIP_METHOD_CANCEL, .name = {.s.ro = "CANCEL", .l = 6}},
-    {.cantype = USIPY_SIP_METHOD_INFO, .name = {.s.ro = "INFO", .l = 4}},
-    {.cantype = USIPY_SIP_METHOD_INVITE, .name = {.s.ro = "INVITE", .l = 6}},
-    {.cantype = USIPY_SIP_METHOD_OPTIONS, .name = {.s.ro = "OPTIONS", .l = 7}},
-    {.cantype = USIPY_SIP_METHOD_PRACK, .name = {.s.ro = "PRACK", .l = 4}},
-    {.cantype = USIPY_SIP_METHOD_REFER, .name = {.s.ro = "REFER", .l = 5}},
-    {.cantype = USIPY_SIP_METHOD_REGISTER, .name = {.s.ro = "REGISTER", .l = 8}},
-    {.cantype = USIPY_SIP_METHOD_SUBSCRIBE, .name = {.s.ro = "SUBSCRIBE", .l = 9}},
+    {.cantype = USIPY_SIP_METHOD_ACK, .name = USIPY_2STR("ACK")},
+    {.cantype = USIPY_SIP_METHOD_BYE, .name = USIPY_2STR("BYE")},
+    {.cantype = USIPY_SIP_METHOD_CANCEL, .name = USIPY_2STR("CANCEL")},
+    {.cantype = USIPY_SIP_METHOD_INFO, .name = USIPY_2STR("INFO")},
+    {.cantype = USIPY_SIP_METHOD_INVITE, .name = USIPY_2STR("INVITE")},
+    {.cantype = USIPY_SIP_METHOD_OPTIONS, .name = USIPY_2STR("OPTIONS")},
+    {.cantype = USIPY_SIP_METHOD_PRACK, .name = USIPY_2STR("PRACK")},
+    {.cantype = USIPY_SIP_METHOD_REFER, .name = USIPY_2STR("REFER")},
+    {.cantype = USIPY_SIP_METHOD_REGISTER, .name = USIPY_2STR("REGISTER")},
+    {.cantype = USIPY_SIP_METHOD_SUBSCRIBE, .name = USIPY_2STR("SUBSCRIBE")},
 };
 
 #define TOTAL_KEYWORDS 10
