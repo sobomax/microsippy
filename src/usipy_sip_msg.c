@@ -25,7 +25,7 @@
 #include "usipy_sip_uri.h"
 #include "usipy_sip_tid.h"
 
-#define USIPY_HFS_NMIN (24)
+#define USIPY_HFS_NMIN (30)
 
 struct usipy_sip_msg_iterator {
     struct usipy_str msg_onwire;
