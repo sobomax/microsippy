@@ -9,6 +9,6 @@ then
   exit 1
 fi
 
-SRCDIR="${TOOLSDIR}/../src"
-BUILDDIR="${TOOLSDIR}/../src/build"
+SRCDIR="${TOOLSDIR}/../platforms/freertos/esp8266"
+BUILDDIR="${TOOLSDIR}/../build"
 DIFF="diff -u"
