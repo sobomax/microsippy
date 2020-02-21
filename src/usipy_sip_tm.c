@@ -155,36 +155,13 @@ usipy_sip_tm_task(void *pvParameters)
                 struct usipy_msg_parse_err cerror = USIPY_MSG_PARSE_ERR_init;
                 unsigned int bts, ets;
                 bts = timer1_read();
-                struct usipy_msg *msg = usipy_sip_msg_ctor_fromwire(rx_buffer, len, &cerror);
-                ets = timer1_read();
-                ESP_LOGI(cfp->log_tag, "usipy_sip_msg_ctor_fromwire() = %p: took tsdiff(%u, %u) = %u cycles",
-                  msg, bts, ets, tsdiff(bts, ets));
-#if 0
-                ESP_LOGI(cfp->log_tag, "timer1_enabled() = %u, timer1_read() = %u:%u",
-                  timer1_enabled(), timer1_read(), timer1_read());
-#endif
-                if (msg == NULL)
-                    continue;
-
                 int rval;
-
-                struct usipy_sip_tid tid;
-                bts = timer1_read();
-                rval = usipy_sip_msg_get_tid(msg, &tid);
-                ets = timer1_read();
-                ESP_LOGI(cfp->log_tag, "usipy_sip_msg_get_tid() = %d: took %u cycles", rval,
-                  tsdiff(bts, ets));
-                if (rval == 0) {
-                    usipy_sip_tid_dump(&tid, cfp->log_tag, "  tid.");
-                }
-
-                TIME_HDR_PARSE(USIPY_HF_TID_MASK, 1);
-                usipy_sip_msg_dtor(msg);
-                msg = usipy_sip_msg_ctor_fromwire(rx_buffer, len, &cerror);
+                struct usipy_msg *msg = usipy_sip_msg_ctor_fromwire(rx_buffer, len, &cerror);
                 if (msg == NULL) {
-                    USIPY_DABORT();
                     continue;
                 }
+                int err = sendto(sock, rx_buffer, len, 0, (struct sockaddr *)&sourceAddr, socklen);
+
                 TIME_HDR_PARSE(USIPY_HFT_MASK(USIPY_HF_VIA), 0);
                 TIME_HDR_PARSE(USIPY_HFT_MASK(USIPY_HF_CONTACT), 0);
                 TIME_HDR_PARSE(USIPY_HFT_MASK(USIPY_HF_CSEQ), 0);
@@ -202,8 +179,6 @@ usipy_sip_tm_task(void *pvParameters)
                       tsdiff(bts, ets));
                 }
 
-                int err = sendto(sock, rx_buffer, len, 0, (struct sockaddr *)&sourceAddr, socklen);
-
                 usipy_sip_msg_dump(msg, cfp->log_tag);
                 usipy_sip_msg_dtor(msg);
 
@@ -211,6 +186,30 @@ usipy_sip_tm_task(void *pvParameters)
                     ESP_LOGE(cfp->log_tag, "Error occured during sending: errno %d", errno);
                     break;
                 }
+                cerror = USIPY_MSG_PARSE_ERR_init;
+
+                bts = timer1_read();
+                msg = usipy_sip_msg_ctor_fromwire(rx_buffer, len, &cerror);
+                ets = timer1_read();
+                ESP_LOGI(cfp->log_tag, "usipy_sip_msg_ctor_fromwire() = %p: took tsdiff(%u, %u) = %u cycles",
+                  msg, bts, ets, tsdiff(bts, ets));
+                if (msg == NULL) {
+                    USIPY_DABORT();
+                    continue;
+                }
+
+                struct usipy_sip_tid tid;
+                bts = timer1_read();
+                rval = usipy_sip_msg_get_tid(msg, &tid);
+                ets = timer1_read();
+                ESP_LOGI(cfp->log_tag, "usipy_sip_msg_get_tid() = %d: took %u cycles", rval,
+                  tsdiff(bts, ets));
+                if (rval == 0) {
+                    usipy_sip_tid_dump(&tid, cfp->log_tag, "  tid.");
+                }
+
+                TIME_HDR_PARSE(USIPY_HF_TID_MASK, 1);
+                usipy_sip_msg_dtor(msg);
             }
         }
 
