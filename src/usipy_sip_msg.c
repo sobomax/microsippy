@@ -38,10 +38,6 @@ struct usipy_sip_msg_iterator {
 };
 static int usipy_sip_msg_break_down(struct usipy_sip_msg_iterator *);
 
-#define USIPY_MSG_PARSE_ERR_init { \
-  .erRNo = 0, .loc.fname = NULL, .loc.linen = 0, .loc.funcn = NULL \
-}
-
 #define MAKE_IMASK(ch) (((ch) << 24) | ((ch) << 16) | ((ch) << 8) | ch)
 
 #define HT_SIZEOF(nhdrs) (sizeof(struct usipy_sip_hdr) * ((nhdrs) + 1))

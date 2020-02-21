@@ -34,7 +34,7 @@ struct usipy_msg_parse_err {
     const char *reason;
 };
 
-#define USIPY_MSG_PARSE_ERR_init { \
+#define USIPY_MSG_PARSE_ERR_init (struct usipy_msg_parse_err){ \
   .erRNo = 0, .loc.fname = NULL, .loc.linen = 0, .loc.funcn = NULL \
 }
 
