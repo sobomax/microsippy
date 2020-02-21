@@ -10,5 +10,5 @@ then
 fi
 
 SRCDIR="${TOOLSDIR}/../platforms/freertos/esp8266"
-BUILDDIR="${TOOLSDIR}/../build"
+BUILDDIR="${SRCDIR}/build"
 DIFF="diff -u"
