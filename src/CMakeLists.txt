@@ -1,4 +1,5 @@
-set(COMPONENT_SRCS "udp_server.c" "usipy_sip_tm.c" "usipy_sip_tm.h"
+set(src_microsippy
+ "usipy_sip_tm.c" "usipy_sip_tm.h"
  "usipy_str.h" "usipy_sip_hdr_types.h" "usipy_sip_msg.h" "usipy_sip_msg.c"
  "usipy_msg_heap.c" "usipy_msg_heap.h" "usipy_str.c" "usipy_sip_hdr.c"
  "usipy_sip_hdr.h" "usipy_fast_parser.c" "usipy_fast_parser.h"
@@ -12,6 +13,8 @@ set(COMPONENT_SRCS "udp_server.c" "usipy_sip_tm.c" "usipy_sip_tm.h"
  "usipy_sip_hdr_onetoken.h" "usipy_sip_hdr_nameaddr.c" "usipy_sip_hdr_nameaddr.h"
  "usipy_sip_tid.c" "usipy_sip_tid.h"
 )
-set(COMPONENT_ADD_INCLUDEDIRS ".")
+add_library(microsippy STATIC ${src_microsippy})
 
-register_component()
+target_include_directories(microsippy PRIVATE
+  "."
+)
