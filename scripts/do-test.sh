@@ -13,7 +13,7 @@ TESTS="empty foobar 100trying ACK OPTIONS INVITE CANCEL 200OK"
 
 cd "${SRCDIR}"
 PATH="${PATH}:${IDF_TOOLCHAIN}/bin" python "${TOOLSDIR}/ptyrun.py" -o "${MLOG}" \
-  ${IDF_PATH}/tools/idf.py -b 460800 monitor &
+  ${IDF_PATH}/tools/idf.py monitor &
 MON_RC=${?}
 MON_PID=${!}
 i=0
