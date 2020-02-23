@@ -5,6 +5,7 @@
 #include <string.h>
 
 #include "usipy_port/log.h"
+#include "usipy_port/byteorder.h"
 
 #include "usipy_debug.h"
 #include "usipy_types.h"
@@ -308,12 +309,6 @@ usipy_sip_msg_get_tid(struct usipy_msg *mp, struct usipy_sip_tid *tp)
     tp->hash = usipy_sip_tid_hash(tp);
     return (0);
 }
-
-#include <lwip/def.h>
-
-#ifndef BYTE_ORDER
-#error BYTE_ORER is unknown
-#endif
 
 #if BYTE_ORDER == LITTLE_ENDIAN
 #  define LE32TOH(dp, sp) /* Nop */
