@@ -25,6 +25,32 @@ enum TIM_DIV_ENUM {
 #define TIM_LOOP        1 //on interrupt the counter will start with the same value again
 #define TIM_EDGE        0
 
+struct timer_opduration {
+    uint32_t bts;
+    uint32_t ets;
+};
+
+static inline void
+timer_opbegin(struct timer_opduration *odp)
+{
+
+    odp->bts = timer1_read();
+}
+
+static inline uint32_t
+timer_opend(struct timer_opduration *odp)
+{
+    uint32_t r;
+
+    odp->ets = timer1_read();
+    if (odp->ets <= odp->bts) {
+        r = odp->bts - odp->ets;
+    } else {
+        r = (uint32_t)T1VMAX - odp->ets + odp->bts + 1;
+    }
+    return (r * 1000000 / 80000000);
+}
+
 static inline void
 timer1_enable(uint8_t divider, uint8_t int_type, uint8_t reload){
     T1C = (1 << TCTE) | ((divider & 3) << TCPD) | ((int_type & 1) << TCIT) | ((reload & 1) << TCAR);

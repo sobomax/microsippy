@@ -26,25 +26,14 @@
 
 #include "usipy_esp8266_timer1.h"
 
-static unsigned int
-tsdiff(unsigned int bts, unsigned int ets)
-{
-    unsigned int r;
-
-    if (ets <= bts)
-        return (bts - ets);
-    r = (unsigned int)T1VMAX - ets;
-    return (r + bts + 1);
-}
-
 #include <string.h>
 
 #define TIME_HDR_PARSE(hm, to) do { \
-        bts = timer1_read(); \
+        timer_opbegin(&ods); \
         rval = usipy_sip_msg_parse_hdrs(msg, hm, to); \
-        ets = timer1_read(); \
-        ESP_LOGI(cfp->log_tag, "usipy_sip_msg_parse_hdrs(" #hm ", " #to ") = %d: took %u cycles", \
-          rval, tsdiff(bts, ets)); \
+        opd = timer_opend(&ods); \
+        ESP_LOGI(cfp->log_tag, "usipy_sip_msg_parse_hdrs(" #hm ", " #to ") = %d: took %u ms", \
+          rval, opd); \
     } while (0);
 
 void
@@ -151,8 +140,8 @@ usipy_sip_tm_task(void *pvParameters)
 		ESP_LOGI(cfp->log_tag, "%.*s", len, rx_buffer);
 
                 struct usipy_msg_parse_err cerror = USIPY_MSG_PARSE_ERR_init;
-                unsigned int bts, ets;
-                bts = timer1_read();
+                struct timer_opduration ods;
+                unsigned int opd;
                 int rval;
                 struct usipy_msg *msg = usipy_sip_msg_ctor_fromwire(rx_buffer, len, &cerror);
                 if (msg == NULL) {
@@ -170,11 +159,11 @@ usipy_sip_tm_task(void *pvParameters)
                 TIME_HDR_PARSE(USIPY_HFT_MASK(USIPY_HF_RECORDROUTE), 0);
 
                 if (msg->kind == USIPY_SIP_MSG_REQ) {
-                    bts = timer1_read();
+                    timer_opbegin(&ods);
                     rval = usipy_sip_req_parse_ruri(msg);
-                    ets = timer1_read();
-                    ESP_LOGI(cfp->log_tag, "usipy_sip_req_parse_ruri() = %d: took %u cycles", rval,
-                      tsdiff(bts, ets));
+                    opd = timer_opend(&ods);
+                    ESP_LOGI(cfp->log_tag, "usipy_sip_req_parse_ruri() = %d: took %u ms", rval,
+                      opd);
                 }
 
                 usipy_sip_msg_dump(msg, cfp->log_tag);
@@ -186,22 +175,22 @@ usipy_sip_tm_task(void *pvParameters)
                 }
                 cerror = USIPY_MSG_PARSE_ERR_init;
 
-                bts = timer1_read();
+                timer_opbegin(&ods);
                 msg = usipy_sip_msg_ctor_fromwire(rx_buffer, len, &cerror);
-                ets = timer1_read();
-                ESP_LOGI(cfp->log_tag, "usipy_sip_msg_ctor_fromwire() = %p: took tsdiff(%u, %u) = %u cycles",
-                  msg, bts, ets, tsdiff(bts, ets));
+                opd = timer_opend(&ods);
+                ESP_LOGI(cfp->log_tag, "usipy_sip_msg_ctor_fromwire() = %p: took %u ms",
+                  msg, opd);
                 if (msg == NULL) {
                     USIPY_DABORT();
                     continue;
                 }
 
                 struct usipy_sip_tid tid;
-                bts = timer1_read();
+                timer_opbegin(&ods);
                 rval = usipy_sip_msg_get_tid(msg, &tid);
-                ets = timer1_read();
-                ESP_LOGI(cfp->log_tag, "usipy_sip_msg_get_tid() = %d: took %u cycles", rval,
-                  tsdiff(bts, ets));
+                opd = timer_opend(&ods);
+                ESP_LOGI(cfp->log_tag, "usipy_sip_msg_get_tid() = %d: took %u ms", rval,
+                  opd);
                 if (rval == 0) {
                     usipy_sip_tid_dump(&tid, cfp->log_tag, "  tid.");
                 }
