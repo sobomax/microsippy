@@ -1,5 +1,7 @@
 #include <sys/param.h>
+#include <errno.h>
 #include <strings.h>
+#include <unistd.h>
 
 #include "usipy_port/log.h"
 #include "usipy_port/network.h"
@@ -56,7 +58,7 @@ usipy_sip_tm_task(void *pvParameters)
             inet_ntoa_r(destAddr.v4.sin_addr, addr_str, sizeof(addr_str) - 1);
 	} else {
 #ifdef IPPROTO_IPV6
-            bzero(&destAddr.v6.sin6_addr.un, sizeof(destAddr.v6.sin6_addr.un));
+            bzero(&destAddr.v6.sin6_addr, sizeof(destAddr.v6.sin6_addr));
             destAddr.v6.sin6_family = AF_INET6;
             destAddr.v6.sin6_port = htons(cfp->sip_port);
             addr_family = AF_INET6;
@@ -121,7 +123,7 @@ usipy_sip_tm_task(void *pvParameters)
             else {
                 // Get the sender's ip address as string
                 if (sourceAddr.v4.sin_family == AF_INET) {
-                    inet_ntoa_r(sourceAddr.v4.sin_addr.s_addr, addr_str, sizeof(addr_str) - 1);
+                    inet_ntoa_r(sourceAddr.v4.sin_addr, addr_str, sizeof(addr_str) - 1);
 #ifdef IPPROTO_IPV6
                 } else if (sourceAddr.v6.sin6_family == AF_INET6) {
                     inet6_ntoa_r(sourceAddr.v6.sin6_addr, addr_str, sizeof(addr_str) - 1);
