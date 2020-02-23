@@ -142,12 +142,19 @@ usipy_sip_tm_task(void *pvParameters)
                 struct usipy_msg_parse_err cerror = USIPY_MSG_PARSE_ERR_init;
                 struct timer_opduration ods;
                 unsigned int opd;
-                int rval;
+                int rval, err;
+
+                timer_opbegin(&ods);
                 struct usipy_msg *msg = usipy_sip_msg_ctor_fromwire(rx_buffer, len, &cerror);
+                opd = timer_opend(&ods);
+                if (msg != NULL) {
+                    err = sendto(sock, rx_buffer, len, 0, (struct sockaddr *)&sourceAddr, socklen);
+                }
+                ESP_LOGI(cfp->log_tag, "usipy_sip_msg_ctor_fromwire() = %p: took %u us",
+                  msg, opd);
                 if (msg == NULL) {
                     continue;
                 }
-                int err = sendto(sock, rx_buffer, len, 0, (struct sockaddr *)&sourceAddr, socklen);
 
                 TIME_HDR_PARSE(USIPY_HFT_MASK(USIPY_HF_VIA), 0);
                 TIME_HDR_PARSE(USIPY_HFT_MASK(USIPY_HF_CONTACT), 0);
@@ -175,11 +182,7 @@ usipy_sip_tm_task(void *pvParameters)
                 }
                 cerror = USIPY_MSG_PARSE_ERR_init;
 
-                timer_opbegin(&ods);
                 msg = usipy_sip_msg_ctor_fromwire(rx_buffer, len, &cerror);
-                opd = timer_opend(&ods);
-                ESP_LOGI(cfp->log_tag, "usipy_sip_msg_ctor_fromwire() = %p: took %u us",
-                  msg, opd);
                 if (msg == NULL) {
                     USIPY_DABORT();
                     continue;
