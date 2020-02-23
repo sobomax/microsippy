@@ -1,7 +1,7 @@
 #ifndef _USIPY_MSG_HEAP_INL_H
 #define _USIPY_MSG_HEAP_INL_H
 
-inline void
+static inline void
 usipy_msg_heap_rollback(struct usipy_msg_heap *hp, const struct usipy_msg_heap_cnt *cntp)
 {
 
@@ -11,7 +11,7 @@ usipy_msg_heap_rollback(struct usipy_msg_heap *hp, const struct usipy_msg_heap_c
     memset(hp->first + hp->alen, '\0', cntp->alen);
 }
 
-inline void *
+static inline void *
 usipy_msg_heap_alloc_cnt(struct usipy_msg_heap *hp, size_t len,
   struct usipy_msg_heap_cnt *cntp)
 {
@@ -29,7 +29,7 @@ usipy_msg_heap_alloc_cnt(struct usipy_msg_heap *hp, size_t len,
     return (rp);
 }
 
-inline int
+static inline int
 usipy_msg_heap_aextend(struct usipy_msg_heap *hp, size_t nlen,
   struct usipy_msg_heap_cnt *cntp)
 {
