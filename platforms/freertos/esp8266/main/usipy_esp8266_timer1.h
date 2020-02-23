@@ -25,7 +25,7 @@ enum TIM_DIV_ENUM {
 #define TIM_LOOP        1 //on interrupt the counter will start with the same value again
 #define TIM_EDGE        0
 
-static void
+static inline void
 timer1_enable(uint8_t divider, uint8_t int_type, uint8_t reload){
     T1C = (1 << TCTE) | ((divider & 3) << TCPD) | ((int_type & 1) << TCIT) | ((reload & 1) << TCAR);
     T1I = 0;
