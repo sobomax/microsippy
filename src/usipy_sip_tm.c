@@ -6,8 +6,8 @@
 
 #include "lwip/sockets.h"
 #include "lwip/inet.h"
-#include "esp_log.h"
 
+#include "usipy_port/log.h"
 #include "usipy_port/perftimer.h"
 
 #include "usipy_debug.h"
@@ -31,7 +31,7 @@
         timer_opbegin(&ods); \
         rval = usipy_sip_msg_parse_hdrs(msg, hm, to); \
         opd = timer_opend(&ods); \
-        ESP_LOGI(cfp->log_tag, "usipy_sip_msg_parse_hdrs(" #hm ", " #to ") = %d: took %u us", \
+        USIPY_LOGI(cfp->log_tag, "usipy_sip_msg_parse_hdrs(" #hm ", " #to ") = %d: took %u us", \
           rval, opd); \
     } while (0);
 
@@ -68,17 +68,17 @@ usipy_sip_tm_task(void *pvParameters)
             ip_protocol = IPPROTO_IPV6;
             inet6_ntoa_r(destAddr.v6.sin6_addr, addr_str, sizeof(addr_str) - 1);
 #else
-            ESP_LOGE(cfp->log_tag, "IPv6 is NOT compiled in");
+            USIPY_LOGE(cfp->log_tag, "IPv6 is NOT compiled in");
             break;
 #endif
         }
 
         int sock = socket(addr_family, SOCK_DGRAM, ip_protocol);
         if (sock < 0) {
-            ESP_LOGE(cfp->log_tag, "Unable to create socket: errno %d", errno);
+            USIPY_LOGE(cfp->log_tag, "Unable to create socket: errno %d", errno);
             break;
         }
-        ESP_LOGI(cfp->log_tag, "Socket created");
+        USIPY_LOGI(cfp->log_tag, "Socket created");
 
         int err;
         if (cfp->sip_af == AF_INET) {
@@ -92,14 +92,14 @@ usipy_sip_tm_task(void *pvParameters)
 #endif
         }
         if (err < 0) {
-            ESP_LOGE(cfp->log_tag, "Socket unable to bind: errno %d", errno);
+            USIPY_LOGE(cfp->log_tag, "Socket unable to bind: errno %d", errno);
             break;
         }
-        ESP_LOGI(cfp->log_tag, "Socket binded");
+        USIPY_LOGI(cfp->log_tag, "Socket binded");
 
         while (1) {
 
-            ESP_LOGI(cfp->log_tag, "Waiting for data");
+            USIPY_LOGI(cfp->log_tag, "Waiting for data");
             union {
                 struct sockaddr_in v4;
 #ifdef IPPROTO_IPV6
@@ -119,7 +119,7 @@ usipy_sip_tm_task(void *pvParameters)
 
             // Error occured during receiving
             if (len < 0) {
-                ESP_LOGE(cfp->log_tag, "recvfrom failed: errno %d", errno);
+                USIPY_LOGE(cfp->log_tag, "recvfrom failed: errno %d", errno);
                 break;
             }
             // Data received
@@ -132,11 +132,11 @@ usipy_sip_tm_task(void *pvParameters)
                     inet6_ntoa_r(sourceAddr.v6.sin6_addr, addr_str, sizeof(addr_str) - 1);
 #endif
                 } else {
-                    ESP_LOGE(cfp->log_tag, "recvfrom unknown AF: %d", sourceAddr.v4.sin_family);
+                    USIPY_LOGE(cfp->log_tag, "recvfrom unknown AF: %d", sourceAddr.v4.sin_family);
                     break;
                 }
-                ESP_LOGI(cfp->log_tag, "Received %d bytes from %s:", len, addr_str);
-		ESP_LOGI(cfp->log_tag, "%.*s", len, rx_buffer);
+                USIPY_LOGI(cfp->log_tag, "Received %d bytes from %s:", len, addr_str);
+		USIPY_LOGI(cfp->log_tag, "%.*s", len, rx_buffer);
 
                 struct usipy_msg_parse_err cerror = USIPY_MSG_PARSE_ERR_init;
                 struct timer_opduration ods;
@@ -149,7 +149,7 @@ usipy_sip_tm_task(void *pvParameters)
                 if (msg != NULL) {
                     err = sendto(sock, rx_buffer, len, 0, (struct sockaddr *)&sourceAddr, socklen);
                 }
-                ESP_LOGI(cfp->log_tag, "usipy_sip_msg_ctor_fromwire() = %p: took %u us",
+                USIPY_LOGI(cfp->log_tag, "usipy_sip_msg_ctor_fromwire() = %p: took %u us",
                   msg, opd);
                 if (msg == NULL) {
                     continue;
@@ -168,7 +168,7 @@ usipy_sip_tm_task(void *pvParameters)
                     timer_opbegin(&ods);
                     rval = usipy_sip_req_parse_ruri(msg);
                     opd = timer_opend(&ods);
-                    ESP_LOGI(cfp->log_tag, "usipy_sip_req_parse_ruri() = %d: took %u us", rval,
+                    USIPY_LOGI(cfp->log_tag, "usipy_sip_req_parse_ruri() = %d: took %u us", rval,
                       opd);
                 }
 
@@ -176,7 +176,7 @@ usipy_sip_tm_task(void *pvParameters)
                 usipy_sip_msg_dtor(msg);
 
                 if (err < 0) {
-                    ESP_LOGE(cfp->log_tag, "Error occured during sending: errno %d", errno);
+                    USIPY_LOGE(cfp->log_tag, "Error occured during sending: errno %d", errno);
                     break;
                 }
                 cerror = USIPY_MSG_PARSE_ERR_init;
@@ -191,7 +191,7 @@ usipy_sip_tm_task(void *pvParameters)
                 timer_opbegin(&ods);
                 rval = usipy_sip_msg_get_tid(msg, &tid);
                 opd = timer_opend(&ods);
-                ESP_LOGI(cfp->log_tag, "usipy_sip_msg_get_tid() = %d: took %u us", rval,
+                USIPY_LOGI(cfp->log_tag, "usipy_sip_msg_get_tid() = %d: took %u us", rval,
                   opd);
                 if (rval == 0) {
                     usipy_sip_tid_dump(&tid, cfp->log_tag, "  tid.");
@@ -203,7 +203,7 @@ usipy_sip_tm_task(void *pvParameters)
         }
 
         if (sock != -1) {
-            ESP_LOGE(cfp->log_tag, "Shutting down socket and restarting...");
+            USIPY_LOGE(cfp->log_tag, "Shutting down socket and restarting...");
             shutdown(sock, 0);
             close(sock);
         }

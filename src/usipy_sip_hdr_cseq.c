@@ -1,7 +1,7 @@
 #include <stdint.h>
 #include <stdlib.h>
 
-#include "esp_log.h"
+#include "usipy_port/log.h"
 
 #include "usipy_debug.h"
 #include "usipy_msg_heap.h"
@@ -38,9 +38,9 @@ usipy_sip_hdr_cseq_parse(struct usipy_msg_heap *mhp,
 }
 
 #define DUMP_UINT(sname) \
-    ESP_LOGI(log_tag, "%s%s." #sname " = %u", log_pref, canname, csp->sname)
+    USIPY_LOGI(log_tag, "%s%s." #sname " = %u", log_pref, canname, csp->sname)
 #define DUMP_METHOD(sname) \
-    ESP_LOGI(log_tag, "%s%s." #sname " = \"%.*s\" (%d)", log_pref, canname, \
+    USIPY_LOGI(log_tag, "%s%s." #sname " = \"%.*s\" (%d)", log_pref, canname, \
       USIPY_SFMT(&csp->sname->name), csp->sname->cantype)
 
 void

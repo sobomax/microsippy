@@ -2,7 +2,7 @@
 #include <stdlib.h>
 #include <string.h>
 
-#include "esp_log.h"
+#include "usipy_port/log.h"
 
 #include "usipy_str.h"
 #include "usipy_sip_hdr.h"
@@ -93,10 +93,10 @@ MurmurHash3_32(const void *key, size_t len, uint32_t seed, uint32_t *out)
 }
 
 #define DUMP_STR(sname) \
-    ESP_LOGI(log_tag, "%s" #sname " = \"%.*s\"", log_pref, \
+    USIPY_LOGI(log_tag, "%s" #sname " = \"%.*s\"", log_pref, \
       USIPY_SFMT(tp->sname))
 #define DUMP_UINT(sname) \
-    ESP_LOGI(log_tag, "%s" #sname " = 0x%.8x", log_pref, tp->sname)
+    USIPY_LOGI(log_tag, "%s" #sname " = 0x%.8x", log_pref, tp->sname)
 
 void
 usipy_sip_tid_dump(const struct usipy_sip_tid *tp, const char *log_tag,

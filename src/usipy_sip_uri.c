@@ -2,7 +2,7 @@
 #include <stdlib.h>
 #include <string.h>
 
-#include "esp_log.h"
+#include "usipy_port/log.h"
 
 #include "usipy_debug.h"
 #include "usipy_msg_heap.h"
@@ -111,12 +111,12 @@ rollback:
 }
 
 #define DUMP_STR(sname) \
-    ESP_LOGI(log_tag, "%s" #sname " = \"%.*s\"", log_pref, \
+    USIPY_LOGI(log_tag, "%s" #sname " = \"%.*s\"", log_pref, \
       USIPY_SFMT(&up->sname))
 #define DUMP_UINT(sname) \
-    ESP_LOGI(log_tag, "%s" #sname " = %u", log_pref, up->sname)
+    USIPY_LOGI(log_tag, "%s" #sname " = %u", log_pref, up->sname)
 #define DUMP_PARAM(sname, idx) \
-    ESP_LOGI(log_tag, "%s" #sname "[%d] = \"%.*s\"=\"%.*s\"", log_pref, \
+    USIPY_LOGI(log_tag, "%s" #sname "[%d] = \"%.*s\"=\"%.*s\"", log_pref, \
       idx, USIPY_SFMT(&up->sname[i].token), USIPY_SFMT(&up->sname[i].value))
 
 void

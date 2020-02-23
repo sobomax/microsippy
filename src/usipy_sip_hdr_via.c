@@ -2,7 +2,7 @@
 #include <stdlib.h>
 #include <string.h>
 
-#include "esp_log.h"
+#include "usipy_port/log.h"
 
 #include "usipy_debug.h"
 #include "usipy_msg_heap.h"
@@ -93,13 +93,13 @@ rollback:
 }
 
 #define DUMP_PARAM(sname, idx) \
-    ESP_LOGI(log_tag, "%svia." #sname "[%d] = \"%.*s\"=\"%.*s\"", log_pref, \
+    USIPY_LOGI(log_tag, "%svia." #sname "[%d] = \"%.*s\"=\"%.*s\"", log_pref, \
       idx, USIPY_SFMT(&vp->sname[i].token), USIPY_SFMT(&vp->sname[i].value))
 #define DUMP_STR(sname) \
-    ESP_LOGI(log_tag, "%s%s." #sname " = \"%.*s\"", log_pref, canname, \
+    USIPY_LOGI(log_tag, "%s%s." #sname " = \"%.*s\"", log_pref, canname, \
       USIPY_SFMT(&vp->sname))
 #define DUMP_UINT(sname) \
-    ESP_LOGI(log_tag, "%s%s." #sname " = %u", log_pref, canname, vp->sname)
+    USIPY_LOGI(log_tag, "%s%s." #sname " = %u", log_pref, canname, vp->sname)
 
 void
 usipy_sip_hdr_via_dump(const union usipy_sip_hdr_parsed *up, const char *log_tag,
