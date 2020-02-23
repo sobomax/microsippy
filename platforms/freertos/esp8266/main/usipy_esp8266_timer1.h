@@ -48,7 +48,7 @@ timer_opend(struct timer_opduration *odp)
     } else {
         r = (uint32_t)T1VMAX - odp->ets + odp->bts + 1;
     }
-    return (r * 1000000 / 80000000);
+    return (r / 80);
 }
 
 static inline void
