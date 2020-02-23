@@ -20,4 +20,3 @@ a=rtpmap:8 PCMA/8000
 a=rtpmap:101 telephone-event/8000
 a=ptime:20
 a=fmtp:101 0-15
-
