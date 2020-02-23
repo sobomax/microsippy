@@ -7,3 +7,5 @@ target_include_directories(microsippy PRIVATE
   ${CMAKE_CURRENT_SOURCE_DIR}/..
 )
 target_link_libraries(${COMPONENT_LIB} PRIVATE microsippy)
+set_property(TARGET microsippy PROPERTY C_STANDARD 11)
+set_property(TARGET ${COMPONENT_LIB} PROPERTY C_STANDARD 11)
