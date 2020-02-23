@@ -24,4 +24,3 @@ m=audio 25282 RTP/AVP 100 6 0 8 3 18 5 101
 a=rtpmap:0 pcmu/8000
 a=rtpmap:101 telephone-event/8000
 a=fmtp:101 0-11
-
