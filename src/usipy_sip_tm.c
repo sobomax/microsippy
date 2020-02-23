@@ -32,7 +32,7 @@
         timer_opbegin(&ods); \
         rval = usipy_sip_msg_parse_hdrs(msg, hm, to); \
         opd = timer_opend(&ods); \
-        ESP_LOGI(cfp->log_tag, "usipy_sip_msg_parse_hdrs(" #hm ", " #to ") = %d: took %u ms", \
+        ESP_LOGI(cfp->log_tag, "usipy_sip_msg_parse_hdrs(" #hm ", " #to ") = %d: took %u us", \
           rval, opd); \
     } while (0);
 
@@ -162,7 +162,7 @@ usipy_sip_tm_task(void *pvParameters)
                     timer_opbegin(&ods);
                     rval = usipy_sip_req_parse_ruri(msg);
                     opd = timer_opend(&ods);
-                    ESP_LOGI(cfp->log_tag, "usipy_sip_req_parse_ruri() = %d: took %u ms", rval,
+                    ESP_LOGI(cfp->log_tag, "usipy_sip_req_parse_ruri() = %d: took %u us", rval,
                       opd);
                 }
 
@@ -178,7 +178,7 @@ usipy_sip_tm_task(void *pvParameters)
                 timer_opbegin(&ods);
                 msg = usipy_sip_msg_ctor_fromwire(rx_buffer, len, &cerror);
                 opd = timer_opend(&ods);
-                ESP_LOGI(cfp->log_tag, "usipy_sip_msg_ctor_fromwire() = %p: took %u ms",
+                ESP_LOGI(cfp->log_tag, "usipy_sip_msg_ctor_fromwire() = %p: took %u us",
                   msg, opd);
                 if (msg == NULL) {
                     USIPY_DABORT();
@@ -189,7 +189,7 @@ usipy_sip_tm_task(void *pvParameters)
                 timer_opbegin(&ods);
                 rval = usipy_sip_msg_get_tid(msg, &tid);
                 opd = timer_opend(&ods);
-                ESP_LOGI(cfp->log_tag, "usipy_sip_msg_get_tid() = %d: took %u ms", rval,
+                ESP_LOGI(cfp->log_tag, "usipy_sip_msg_get_tid() = %d: took %u us", rval,
                   opd);
                 if (rval == 0) {
                     usipy_sip_tid_dump(&tid, cfp->log_tag, "  tid.");
