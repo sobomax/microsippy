@@ -13,7 +13,7 @@ CSeq: 1 INVITE
 Contact: <sip:987654321@10.0.0.1:65223>
 User-Agent: pplsip
 Content-Type: application/sdp
-Content-Length: 203
+Content-Length: 200
 
 v=0
 o=987654321 16264 18299 IN IP4 10.0.0.1
