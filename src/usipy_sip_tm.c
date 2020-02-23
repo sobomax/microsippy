@@ -1,10 +1,8 @@
 #include <sys/param.h>
 #include <strings.h>
 
-#include "lwip/sockets.h"
-#include "lwip/inet.h"
-
 #include "usipy_port/log.h"
+#include "usipy_port/network.h"
 #include "usipy_port/perftimer.h"
 
 #include "usipy_debug.h"
