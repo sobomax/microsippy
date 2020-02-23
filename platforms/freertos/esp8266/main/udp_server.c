@@ -152,5 +152,5 @@ void app_main()
 #endif
     };
 
-    xTaskCreate(usipy_sip_tm_task, "sip_tm", 4096, &stc, 5, NULL);
+    xTaskCreate((TaskFunction_t)usipy_sip_tm_task, "sip_tm", 4096, &stc, 5, NULL);
 }
