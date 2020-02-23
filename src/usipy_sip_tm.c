@@ -57,8 +57,6 @@ usipy_sip_tm_task(void *pvParameters)
     const struct usipy_sip_tm_conf *cfp;
 
     cfp = (struct usipy_sip_tm_conf *)pvParameters;
-    timer1_enable(TIM_DIV1, TIM_EDGE, TIM_LOOP);
-    timer1_write(0xffffffff);
     while (1) {
         union {
             struct sockaddr_in v4;

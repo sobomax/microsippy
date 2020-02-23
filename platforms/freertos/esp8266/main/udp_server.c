@@ -23,7 +23,7 @@
 #include <lwip/netdb.h>
 
 #include "usipy_sip_tm.h"
-
+#include "usipy_esp8266_timer1.h"
 
 /* The examples use simple WiFi configuration that you can set via
    'make menuconfig'.
@@ -135,6 +135,9 @@ void app_main()
     ESP_ERROR_CHECK( nvs_flash_init() );
     initialise_wifi();
     wait_for_ip();
+
+    timer1_enable(TIM_DIV1, TIM_EDGE, TIM_LOOP);
+    timer1_write(0xffffffff);
 
 #ifdef CONFIG_EXAMPLE_IPV6
     struct usipy_sip_tm_conf stc = {.sip_port = EXAMPLE_SIP_PORT, .sip_af = AF_INET6, .log_tag = TAG};
