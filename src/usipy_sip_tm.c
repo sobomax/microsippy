@@ -142,7 +142,7 @@ usipy_sip_tm_task(void *pvParameters)
                 struct usipy_msg_parse_err cerror = USIPY_MSG_PARSE_ERR_init;
                 struct timer_opduration ods;
                 unsigned int opd;
-                int rval, err;
+                int rval;
 
                 timer_opbegin(&ods);
                 struct usipy_msg *msg = usipy_sip_msg_ctor_fromwire(rx_buffer, len, &cerror);
