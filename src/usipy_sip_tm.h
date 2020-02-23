@@ -8,4 +8,4 @@ struct usipy_sip_tm_conf {
     void *faterr_arg;
 };
 
-void usipy_sip_tm_task(void *);
+void *usipy_sip_tm_task(void *);

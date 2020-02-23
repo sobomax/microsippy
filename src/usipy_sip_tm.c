@@ -32,7 +32,7 @@
           rval, opd); \
     } while (0);
 
-void
+void *
 usipy_sip_tm_task(void *pvParameters)
 {
     char rx_buffer[MAX_UDP_SIZE];
@@ -55,7 +55,7 @@ usipy_sip_tm_task(void *pvParameters)
             destAddr.v4.sin_port = htons(cfp->sip_port);
             addr_family = AF_INET;
             ip_protocol = IPPROTO_IP;
-            inet_ntoa_r(destAddr.v4.sin_addr, addr_str, sizeof(addr_str) - 1);
+            inet_ntop(AF_INET, &destAddr.v4.sin_addr, addr_str, sizeof(addr_str) - 1);
 	} else {
 #ifdef IPPROTO_IPV6
             bzero(&destAddr.v6.sin6_addr, sizeof(destAddr.v6.sin6_addr));
@@ -63,7 +63,7 @@ usipy_sip_tm_task(void *pvParameters)
             destAddr.v6.sin6_port = htons(cfp->sip_port);
             addr_family = AF_INET6;
             ip_protocol = IPPROTO_IPV6;
-            inet6_ntoa_r(destAddr.v6.sin6_addr, addr_str, sizeof(addr_str) - 1);
+            inet_ntop(AF_INET6, &destAddr.v6.sin6_addr, addr_str, sizeof(addr_str) - 1);
 #else
             USIPY_LOGE(cfp->log_tag, "IPv6 is NOT compiled in");
             break;
@@ -123,10 +123,10 @@ usipy_sip_tm_task(void *pvParameters)
             else {
                 // Get the sender's ip address as string
                 if (sourceAddr.v4.sin_family == AF_INET) {
-                    inet_ntoa_r(sourceAddr.v4.sin_addr, addr_str, sizeof(addr_str) - 1);
+                    inet_ntop(AF_INET, &sourceAddr.v4.sin_addr, addr_str, sizeof(addr_str) - 1);
 #ifdef IPPROTO_IPV6
                 } else if (sourceAddr.v6.sin6_family == AF_INET6) {
-                    inet6_ntoa_r(sourceAddr.v6.sin6_addr, addr_str, sizeof(addr_str) - 1);
+                    inet_ntop(AF_INET6, &sourceAddr.v6.sin6_addr, addr_str, sizeof(addr_str) - 1);
 #endif
                 } else {
                     USIPY_LOGE(cfp->log_tag, "recvfrom unknown AF: %d", sourceAddr.v4.sin_family);
@@ -206,4 +206,5 @@ usipy_sip_tm_task(void *pvParameters)
         }
     }
     cfp->faterr(cfp->faterr_arg);
+    return (NULL);
 }
