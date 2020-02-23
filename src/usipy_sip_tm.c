@@ -8,6 +8,8 @@
 #include "lwip/inet.h"
 #include "esp_log.h"
 
+#include "usipy_port/perftimer.h"
+
 #include "usipy_debug.h"
 #include "usipy_types.h"
 #include "usipy_str.h"
@@ -17,16 +19,13 @@
 #include "usipy_sip_msg.h"
 #include "usipy_sip_req.h"
 #include "usipy_sip_tid.h"
-
-#define MAX_UDP_SIZE 1472 /* MTU 1500, no fragmentation */
-
 #include "usipy_sip_hdr.h"
 #include "usipy_sip_hdr_types.h"
 #include "usipy_sip_hdr_db.h"
 
-#include "usipy_esp8266_timer1.h"
-
 #include <string.h>
+
+#define MAX_UDP_SIZE 1472 /* MTU 1500, no fragmentation */
 
 #define TIME_HDR_PARSE(hm, to) do { \
         timer_opbegin(&ods); \
