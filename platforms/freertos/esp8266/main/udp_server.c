@@ -22,6 +22,7 @@
 #include "lwip/sys.h"
 #include <lwip/netdb.h>
 
+#include "usipy_types.h"
 #include "usipy_sip_tm.h"
 #include "usipy_esp8266_timer1.h"
 
@@ -139,11 +140,17 @@ void app_main()
     timer1_enable(TIM_DIV1, TIM_EDGE, TIM_LOOP);
     timer1_write(0xffffffff);
 
+    struct usipy_sip_tm_conf stc = {
+      .sip_port = EXAMPLE_SIP_PORT,
+      .log_tag = TAG,
+      .faterr = vTaskDelete,
+      .faterr_arg = NULL,
 #ifdef CONFIG_EXAMPLE_IPV6
-    struct usipy_sip_tm_conf stc = {.sip_port = EXAMPLE_SIP_PORT, .sip_af = AF_INET6, .log_tag = TAG};
+      .sip_af = AF_INET6
 #else
-    struct usipy_sip_tm_conf stc = {.sip_port = EXAMPLE_SIP_PORT, .sip_af = AF_INET, .log_tag = TAG};
+      .sip_af = AF_INET
 #endif
+    };
 
     xTaskCreate(usipy_sip_tm_task, "sip_tm", 4096, &stc, 5, NULL);
 }

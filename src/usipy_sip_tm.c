@@ -1,9 +1,6 @@
 #include <sys/param.h>
 #include <strings.h>
 
-#include "freertos/FreeRTOS.h"
-#include "freertos/task.h"
-
 #include "lwip/sockets.h"
 #include "lwip/inet.h"
 
@@ -208,5 +205,5 @@ usipy_sip_tm_task(void *pvParameters)
             close(sock);
         }
     }
-    vTaskDelete(NULL);
+    cfp->faterr(cfp->faterr_arg);
 }
