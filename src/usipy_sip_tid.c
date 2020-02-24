@@ -131,7 +131,7 @@ usipy_sip_tid_hash(const struct usipy_sip_tid *tp)
           rval, &rval);
     }
     USIPY_LOGI("foobar4", "%u", rval);
-    MurmurHash3_32(&tp->cseq->val, sizeof(&tp->cseq->val), rval, &rval);
+    MurmurHash3_32(&tp->cseq->val, sizeof(tp->cseq->val), rval, &rval);
     USIPY_LOGI("foobar5", "%u", rval);
     return (rval);
 }
