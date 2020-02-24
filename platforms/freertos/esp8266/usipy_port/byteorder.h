@@ -1,5 +1,3 @@
-#include <lwip/def.h>
-
-#ifndef BYTE_ORDER
-#error BYTE_ORER is unknown
+#ifndef USIPY_BIGENDIAN
+#error USIPY_BIGENDIAN is not set
 #endif

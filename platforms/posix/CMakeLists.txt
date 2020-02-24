@@ -1,6 +1,7 @@
 cmake_minimum_required(VERSION 3.5)
 project (usipy_test)
 find_package (Threads)
+
 add_executable(usipy_test usipy_test.c)
 add_subdirectory(../../src microsippy)
 target_include_directories(usipy_test PUBLIC
@@ -15,4 +16,3 @@ target_link_libraries(usipy_test PRIVATE
 )
 set_property(TARGET microsippy PROPERTY C_STANDARD 11)
 set_property(TARGET usipy_test PROPERTY C_STANDARD 11)
-
