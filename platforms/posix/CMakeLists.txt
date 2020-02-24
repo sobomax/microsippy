@@ -5,7 +5,7 @@ find_package (Threads)
 include (TestBigEndian)
 TEST_BIG_ENDIAN(IS_BIG_ENDIAN)
 
-add_executable(usipy_test usipy_test.c)
+add_executable(usipy_test "usipy_test.c" "usipy_log.c")
 add_subdirectory(../../src microsippy)
 target_include_directories(usipy_test PUBLIC
   ${CMAKE_CURRENT_SOURCE_DIR}/../../src

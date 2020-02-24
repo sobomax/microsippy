@@ -58,4 +58,4 @@ int usipy_str_split_elem_nlws(struct usipy_str *, unsigned char,
         (sp)->l -= 1; \
     }
 
-#define USIPY_SFMT(sp) (sp)->l, (sp)->s.ro
+#define USIPY_SFMT(sp) (unsigned int)(sp)->l, (sp)->s.ro
