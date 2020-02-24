@@ -28,8 +28,8 @@
         timer_opbegin(&ods); \
         rval = usipy_sip_msg_parse_hdrs(msg, hm, to); \
         opd = timer_opend(&ods); \
-        USIPY_LOGI(cfp->log_tag, "usipy_sip_msg_parse_hdrs(" #hm ", " #to ") = %d: took %u us", \
-          rval, opd); \
+        USIPY_LOGI(cfp->log_tag, "usipy_sip_msg_parse_hdrs(" #hm ", " #to ") = %d: took %u %s", \
+          rval, opd, ods.dunit); \
     } while (0);
 
 void *
@@ -146,8 +146,8 @@ usipy_sip_tm_task(void *pvParameters)
                 if (msg != NULL) {
                     err = sendto(sock, rx_buffer, len, 0, (struct sockaddr *)&sourceAddr, socklen);
                 }
-                USIPY_LOGI(cfp->log_tag, "usipy_sip_msg_ctor_fromwire() = %p: took %u us",
-                  msg, opd);
+                USIPY_LOGI(cfp->log_tag, "usipy_sip_msg_ctor_fromwire() = %p: took %u %s",
+                  msg, opd, ods.dunit);
                 if (msg == NULL) {
                     continue;
                 }
@@ -165,8 +165,8 @@ usipy_sip_tm_task(void *pvParameters)
                     timer_opbegin(&ods);
                     rval = usipy_sip_req_parse_ruri(msg);
                     opd = timer_opend(&ods);
-                    USIPY_LOGI(cfp->log_tag, "usipy_sip_req_parse_ruri() = %d: took %u us", rval,
-                      opd);
+                    USIPY_LOGI(cfp->log_tag, "usipy_sip_req_parse_ruri() = %d: took %u %s", rval,
+                      opd, ods.dunit);
                 }
 
                 usipy_sip_msg_dump(msg, cfp->log_tag);
@@ -188,8 +188,8 @@ usipy_sip_tm_task(void *pvParameters)
                 timer_opbegin(&ods);
                 rval = usipy_sip_msg_get_tid(msg, &tid);
                 opd = timer_opend(&ods);
-                USIPY_LOGI(cfp->log_tag, "usipy_sip_msg_get_tid() = %d: took %u us", rval,
-                  opd);
+                USIPY_LOGI(cfp->log_tag, "usipy_sip_msg_get_tid() = %d: took %u %s", rval,
+                  opd, ods.dunit);
                 if (rval == 0) {
                     usipy_sip_tid_dump(&tid, cfp->log_tag, "  tid.");
                 }

@@ -3,6 +3,7 @@
 struct timer_opduration {
     uint32_t bts;
     uint32_t ets;
+    const char *dunit;
 };
 
 static inline void
@@ -23,5 +24,6 @@ timer_opend(struct timer_opduration *odp)
     } else {
         r = (uint32_t)T1VMAX - odp->ets + odp->bts + 1;
     }
+    odp->dunit = "us";
     return (r / 80);
 }

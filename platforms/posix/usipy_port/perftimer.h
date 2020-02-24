@@ -2,6 +2,7 @@
 struct timer_opduration {
     uint64_t bts;
     uint64_t ets;
+    const char *dunit;
 };
 
 static inline void
