@@ -1,6 +1,3 @@
-include (TestBigEndian)
-TEST_BIG_ENDIAN(IS_BIG_ENDIAN)
-
 set(src_microsippy
  "usipy_sip_tm.c" "usipy_sip_tm.h"
  "usipy_str.h" "usipy_sip_hdr_types.h" "usipy_sip_msg.h" "usipy_sip_msg.c"
@@ -17,12 +14,6 @@ set(src_microsippy
  "usipy_sip_tid.c" "usipy_sip_tid.h"
 )
 add_library(microsippy STATIC ${src_microsippy})
-
-IF (IS_BIG_ENDIAN)
-    target_compile_definitions(microsippy PRIVATE -DUSIPY_BIGENDIAN=1)
-ELSE (IS_BIG_ENDIAN)
-    target_compile_definitions(microsippy PRIVATE -DUSIPY_BIGENDIAN=0)
-ENDIF (IS_BIG_ENDIAN)
 
 target_include_directories(microsippy PRIVATE
   "."

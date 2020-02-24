@@ -2,6 +2,9 @@ cmake_minimum_required(VERSION 3.5)
 project (usipy_test)
 find_package (Threads)
 
+include (TestBigEndian)
+TEST_BIG_ENDIAN(IS_BIG_ENDIAN)
+
 add_executable(usipy_test usipy_test.c)
 add_subdirectory(../../src microsippy)
 target_include_directories(usipy_test PUBLIC
@@ -16,3 +19,9 @@ target_link_libraries(usipy_test PRIVATE
 )
 set_property(TARGET microsippy PROPERTY C_STANDARD 11)
 set_property(TARGET usipy_test PROPERTY C_STANDARD 11)
+
+IF (IS_BIG_ENDIAN)
+    target_compile_definitions(microsippy PRIVATE -DUSIPY_BIGENDIAN=1)
+ELSE (IS_BIG_ENDIAN)
+    target_compile_definitions(microsippy PRIVATE -DUSIPY_BIGENDIAN=0)
+ENDIF (IS_BIG_ENDIAN)
