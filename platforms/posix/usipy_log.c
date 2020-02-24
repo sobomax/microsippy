@@ -43,6 +43,7 @@ usipy_log_write(int lvl, const char *tag, const char *fmt , ...)
     va_start(ap, fmt);
     vfprintf(stderr, fmt, ap);
     fprintf(stderr, "\n");
+    fflush(stderr);
     _usipy_log_unlock();
     va_end(ap);
     return;
