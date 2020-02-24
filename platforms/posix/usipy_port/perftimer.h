@@ -17,6 +17,7 @@ timer_opbegin(struct timer_opduration *odp)
 static inline uint32_t
 timer_opend(struct timer_opduration *odp)
 {
+    odp->dunit = "ns";
 #if 0
     uint32_t r;
 
