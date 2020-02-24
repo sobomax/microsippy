@@ -119,14 +119,19 @@ usipy_sip_tid_hash(const struct usipy_sip_tid *tp)
     uint32_t rval;
 
     HASH_STR(tp->call_id, 0, &rval);
+    USIPY_LOGI("foobar1", "%u", rval);
     HASH_STR(tp->from_tag, rval, &rval);
+    USIPY_LOGI("foobar2", "%u", rval);
     HASH_STR(tp->vbranch, rval, &rval);
+    USIPY_LOGI("foobar3", "%u", rval);
     if (tp->cseq->method->cantype == USIPY_SIP_METHOD_generic) {
         HASH_STR(&tp->cseq->onwire.method, rval, &rval);
     } else {
         MurmurHash3_32(&tp->cseq->method->cantype, sizeof(tp->cseq->method->cantype),
           rval, &rval);
     }
+    USIPY_LOGI("foobar4", "%u", rval);
     MurmurHash3_32(&tp->cseq->val, sizeof(&tp->cseq->val), rval, &rval);
+    USIPY_LOGI("foobar5", "%u", rval);
     return (rval);
 }
