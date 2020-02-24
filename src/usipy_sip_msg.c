@@ -209,8 +209,10 @@ usipy_sip_msg_dump(const struct usipy_msg *msg, const char *log_tag)
               shp->hf_type->parsed_memb_name);
         }
     }
-    USIPY_LOGI(log_tag, "body[%lu] = \"%.*s\"", msg->body.l, USIPY_SFMT(&msg->body));
-    USIPY_LOGI(log_tag, "heap remaining %lu", usipy_msg_heap_remaining(&msg->heap));
+    USIPY_LOGI(log_tag, "body[%lu] = \"%.*s\"", (unsigned long)msg->body.l,
+      USIPY_SFMT(&msg->body));
+    USIPY_LOGI(log_tag, "heap remaining %lu",
+      (unsigned long)usipy_msg_heap_remaining(&msg->heap));
 }
 
 #define USIPY_HF_ISMSET(msk, h) ((msk) & USIPY_HFT_MASK(h))

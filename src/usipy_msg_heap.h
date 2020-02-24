@@ -17,6 +17,6 @@ void *usipy_msg_heap_alloc(struct usipy_msg_heap *, size_t);
 )
 
 #define usipy_msg_heap_remaining(hp) \
-  (size_t)((hp)->tsize - (hp)->alen)
+  ((hp)->tsize - (hp)->alen)
 
 #endif /* _USIPY_MSG_HEAP_H */
