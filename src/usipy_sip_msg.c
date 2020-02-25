@@ -1,4 +1,5 @@
 #include <errno.h>
+#include <stdbool.h>
 #include <stddef.h>
 #include <stdint.h>
 #include <stdlib.h>
@@ -32,14 +33,11 @@ struct usipy_sip_msg_iterator {
     struct usipy_str msg_onwire;
     struct usipy_str *msg_copy;
     int i;
-    int over;
-    uint32_t oword[2];
+    bool carry;
+    uintptr_t oword[2];
     char cshift;
-    uint32_t imask;
 };
 static int usipy_sip_msg_break_down(struct usipy_sip_msg_iterator *);
-
-#define MAKE_IMASK(ch) (((ch) << 24) | ((ch) << 16) | ((ch) << 8) | ch)
 
 #define HT_SIZEOF(nhdrs) (sizeof(struct usipy_sip_hdr) * ((nhdrs) + 1))
 
@@ -80,9 +78,6 @@ usipy_sip_msg_ctor_fromwire(const char *buf, size_t len,
     memset(&mit, '\0', sizeof(mit));
     mit.msg_onwire = (struct usipy_str){.s.ro = buf, .l = len};
     mit.msg_copy = &rp->onwire;
-#if 1
-    mit.imask = MAKE_IMASK(':');
-#endif
     struct usipy_str cp;
     struct usipy_msg_heap_cnt cnt;
     memset(&cnt, '\0', sizeof(cnt));
@@ -324,6 +319,42 @@ usipy_sip_msg_get_tid(struct usipy_msg *mp, struct usipy_sip_tid *tp)
 #  define LE32TOH(dp, sp) /* Nop */
 #endif
 
+struct crlfres {
+    uint8_t v;
+    bool carry;
+};
+
+#define BFILL(btype, c) (((~(btype)0) / 255) * (c))
+
+static inline struct crlfres
+crlfcompr(uintptr_t cval, bool carry)
+{
+    const uintptr_t mskA = BFILL(typeof(mskA), '\r'); /* '\r' * sizeof(mskA) */
+    const uintptr_t mskB = BFILL(typeof(mskB), '\n'); /* '\n' * sizeof(mskB) */
+    uintptr_t val, mvalA, mvalB;
+    struct crlfres rval = {.v = 0};
+
+    mvalA = cval ^ mskA; /* This produces 0x00 at positions with \r */
+    mvalB = cval ^ mskB; /* This produces 0x00 at positions with \n */
+    rval.carry = ((mvalA >> (sizeof(mvalA) - 1) * 8) == 0);
+
+    mvalA = (((mvalA << 8) | (!carry)) | mvalB);
+    mvalA = (((mvalA) - BFILL(typeof(mvalA), 0x01)) & ~(mvalA) & BFILL(typeof(mvalA), 0x80));
+    /*
+     * The outer for() loop is just our way to hint compiler as to how many iterations
+     * we have, so it can unroll.
+     */
+    for (int i = 0; i < (sizeof(mvalA) / 2); i++) {
+        int nbit = ffsl(mvalA);
+        if (nbit == 0)
+            break;
+        mvalA ^= ((typeof(mskA))1 << (nbit - 1));
+        rval.v |= ((typeof(rval.v))1 << ((nbit / 8) - 1));
+    }
+
+    return (rval);
+}
+
 /*
  * Input string: "foo\r\nbar\r\nfoo\r\nbar\r\nfoo\r\nbar\r\nfoo\r\nbar\r\n"
  * Output offsets: 3 8 13 18 23 28 33 38 -1
@@ -332,87 +363,41 @@ usipy_sip_msg_get_tid(struct usipy_msg *mp, struct usipy_sip_tid *tp)
 static int
 usipy_sip_msg_break_down(struct usipy_sip_msg_iterator *mip)
 {
-    static const uint32_t mskA = ('\r' << 0) | ('\n' << 8) | ('\r' << 16) | ('\n' << 24);
-    static const uint32_t mskB = ('\n' << 0) | ('\r' << 8) | ('\n' << 16) | ('\r' << 24);
-    uint32_t val, mvalA, mvalB;
+    typeof(mip->oword[0]) val;
 
     if (mip->cshift == 0 && mip->oword[0] != 0) {
         char boff;
 gotresult:
-        boff = ffs(mip->oword[0]) - 1;
-        mip->oword[0] ^= (1 << boff);
+        boff = ffsl(mip->oword[0]) - 1;
+        mip->oword[0] ^= ((typeof(val))1 << boff);
         return (mip->i - (sizeof(val) * 8) + boff - 1);
     }
 
+    struct crlfres ms = {.carry = mip->carry};
     for (; mip->i < mip->msg_onwire.l; mip->i += sizeof(val)) {
-        uint8_t obyte;
         int remain = mip->msg_onwire.l - mip->i;
         if (remain < sizeof(val)) {
             val = 0;
-            for (int j = 0; j < remain; j++) {
-                val |= mip->msg_onwire.s.ro[mip->i + j] << (j * 8);
-                mip->msg_copy->s.rw[mip->i + j] = mip->msg_onwire.s.ro[mip->i + j];
-            }
+            memcpy(&val, mip->msg_onwire.s.ro + mip->i, remain);
+            memcpy(mip->msg_copy->s.rw + mip->i, &val, remain);
         } else {
             memcpy(&val, mip->msg_onwire.s.ro + mip->i, sizeof(val));
             memcpy(mip->msg_copy->s.rw + mip->i, &val, sizeof(val));
-            LE32TOH(&val, &val);
         }
-        mvalA = val ^ mskA;
-        mvalB = val ^ mskB;
-        int chkover = 0, chkcarry = 0;
-        if (mvalA == 0) {
-            obyte = 0b1010;
-        } else if ((mvalA & 0x0000FFFF) == 0) {
-            obyte = 0b0010;
-            chkcarry = 1;
-        } else if ((mvalA &0xFFFF0000) == 0) {
-            obyte = 0b1000;
-            chkover = 1;
-        } else if ((mvalB &0x00FFFF00) == 0) {
-            obyte = 0b0100;
-            chkcarry = 1;
-            chkover = 1;
-        } else {
-            obyte = 0b0000;
-            chkcarry = 1;
-            chkover = 1;
+        LE32TOH(&val, &val);
+        ms = crlfcompr(val, ms.carry);
+        if (ms.v != 0) {
+            mip->oword[0] |= (typeof(val))ms.v << mip->cshift;
         }
-#if 0
-        uint32_t tval = val ^ mip->imask;
-        uint8_t tow = 0;
-        for (int j = 0; j < sizeof(tval); j++) {
-            if ((tval & 0xff) == 0) {
-                tow |= (1 << j);
-            }
-            tval >>= 8;
-        }
-        if (tow != 0) {
-            mip->oword[1] |= tow << mip->cshift;
-        }
-#endif
-        if (mip->over) {
-            mip->over = 0;
-            if (chkcarry && (mvalB & 0x000000FF) == 0) {
-                obyte |= 0b0001;
-            }
-        }
-        if (chkover) {
-            if ((mvalB & 0xFF000000) == 0) {
-                mip->over = 1;
-            }
-        }
-        if (obyte != 0) {
-            mip->oword[0] |= obyte << mip->cshift;
-        }
-        if (mip->cshift == 28) {
+        if (mip->cshift == (sizeof(val) * 7)) {
             mip->cshift = 0;
             if (mip->oword[0] != 0) {
                 mip->i += sizeof(val);
+                mip->carry = ms.carry;
                 goto gotresult;
             }
         } else {
-            mip->cshift += 4;
+            mip->cshift += sizeof(val);
         }
     }
     if (mip->cshift != 0 && mip->oword[0] != 0) {
