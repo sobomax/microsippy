@@ -5,6 +5,8 @@
 #include <stdatomic.h>
 #include <unistd.h>
 
+#include "usipy_str.h"
+
 #include "usipy_port/log.h"
 
 static struct {
@@ -33,16 +35,23 @@ _usipy_log_unlock(void)
       memory_order_release);
 }
 
+const static unsigned char _color_pre[]  = {0x1b, 0x5b, 0x30, 0x3b, 0x33, 0x32, 0x6d};
+const static unsigned char _color_post[] = {0x1b, 0x5b, 0x30, 0x6d, '\n'};
+
+const struct usipy_str color_pre = USIPY_B2STR(_color_pre);
+const struct usipy_str color_post = USIPY_B2STR(_color_post);
+
 void
 usipy_log_write(int lvl, const char *tag, const char *fmt , ...)
 {
     va_list ap;
 
     _usipy_log_lock();
-    fprintf(stderr, "%s: ", tag);
+    fwrite(color_pre.s.ro, color_pre.l, 1, stderr);
+    fprintf(stderr, "I %s: ", tag);
     va_start(ap, fmt);
     vfprintf(stderr, fmt, ap);
-    fprintf(stderr, "\n");
+    fwrite(color_post.s.ro, color_post.l, 1, stderr);
     fflush(stderr);
     _usipy_log_unlock();
     va_end(ap);
