@@ -1,6 +1,7 @@
 struct usipy_str {
     union {
         const char *ro;
+        const unsigned char *_uro;
         char *rw;
     } s;
     size_t l;
@@ -9,6 +10,7 @@ struct usipy_str {
 struct usipy_str_ro {
     union {
         const char *ro;
+        const unsigned char *_uro;
     } s;
     size_t l;
 };
@@ -35,6 +37,8 @@ int usipy_str_split_elem_nlws(struct usipy_str *, unsigned char,
 #define USIPY_STR_NULL (struct usipy_str){.l = 0, .s.ro = NULL}
 #define USIPY_2STR(cstring) \
     {.l = (sizeof(cstring) - 1), .s.ro = (cstring)}
+#define USIPY_B2STR(barray) \
+    {.l = (sizeof(barray)), .s._uro = (barray)}
 
 #define usipy_str_trm_e(sp) \
     while ((sp)->l > 0 && USIPY_ISWS((sp)->s.ro[(sp)->l - 1])) { \
