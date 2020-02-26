@@ -4,6 +4,7 @@
 #include <stdint.h>
 #include <stdlib.h>
 #include <string.h>
+#include <strings.h>
 
 #include "usipy_port/log.h"
 #include "usipy_port/byteorder.h"
