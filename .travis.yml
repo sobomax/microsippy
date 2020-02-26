@@ -175,3 +175,5 @@ before_script:
 
 script:
   - make -C build
+  - cd build
+  - ctest -V
