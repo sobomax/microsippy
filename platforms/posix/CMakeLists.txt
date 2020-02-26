@@ -28,7 +28,7 @@ ENDIF (IS_BIG_ENDIAN)
 
 enable_testing()
 
-add_test(basic ${CMAKE_SOURCE_DIR}/../../scripts/do-test.sh)
+add_test(basic ${CMAKE_SOURCE_DIR}/../../scripts/do-test.sh ${CMAKE_SOURCE_DIR})
 
 #set_target_properties(microsippy PROPERTIES COMPILE_FLAGS "-O2")
 #set_target_properties(usipy_test PROPERTIES COMPILE_FLAGS "-O2")

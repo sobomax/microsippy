@@ -35,18 +35,18 @@ node('microsippy') {
         variable: 'WIFI_PASSWORD']
        ]) {
         // Run the  build
-        sh "IDF_PATH=${IDF_PATH} IDF_TOOLCHAIN=${IDF_TOOLCHAIN} ${builderHome}/microsippy/scripts/do-build.sh"
+        sh "IDF_PATH=${IDF_PATH} IDF_TOOLCHAIN=${IDF_TOOLCHAIN} ${builderHome}/microsippy/scripts/do-build.sh ${builderHome}/microsippy/platforms/freertos/esp8266"
       }
     }
 
     stage('Flash') {
       // Flash the board
-      sh "IDF_PATH=${IDF_PATH} IDF_TOOLCHAIN=${IDF_TOOLCHAIN} ${builderHome}/microsippy/scripts/do-build.sh flash"
+      sh "IDF_PATH=${IDF_PATH} IDF_TOOLCHAIN=${IDF_TOOLCHAIN} ${builderHome}/microsippy/scripts/do-build.sh ${builderHome}/microsippy/platforms/freertos/esp8266 flash"
     }
 
     stage('Test') {
       ansiColor('xterm') {
-        sh "IDF_PATH=${IDF_PATH} IDF_TOOLCHAIN=${IDF_TOOLCHAIN} ${builderHome}/microsippy/scripts/do-test.sh"
+        sh "IDF_PATH=${IDF_PATH} IDF_TOOLCHAIN=${IDF_TOOLCHAIN} ${builderHome}/microsippy/scripts/do-test.sh ${builderHome}/microsippy/platforms/freertos/esp8266"
       }
     }
   }

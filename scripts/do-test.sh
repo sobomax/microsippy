@@ -11,26 +11,17 @@ TOOLSDIR=`dirname ${TOOLSPATH}`
 MLOG="${BUILDDIR}/monitor.log"
 TESTS="empty foobar 100trying ACK OPTIONS INVITE CANCEL 200OK"
 
-cd "${SRCDIR}"
 if [ -e "${MLOG}" ]
 then
   rm "${MLOG}"
 fi
-PATH="${PATH}:${IDF_TOOLCHAIN}/bin" python "${TOOLSDIR}/ptyrun.py" -o "${MLOG}" \
-  ${IDF_PATH}/tools/idf.py monitor &
+
+. "${SRCDIR}/scripts/test_start.sub"
 MON_RC=${?}
 MON_PID=${!}
-i=0
-while [ ${i} -lt 10 ]
-do
-  BRD_IP=`grep 'sta ip: ' "${MLOG}" | sed 's|.*sta ip: ||; s|,.*||'`
-  if [ ! -z "${BRD_IP}" ]
-  then
-    break
-  fi
-  sleep 1
-  i=$((${i} + 1))
-done
+
+. "${SRCDIR}/scripts/test_waitready.sub"
+
 if [ ! -z "${BRD_IP}" ]
 then
   for tst in ${TESTS}

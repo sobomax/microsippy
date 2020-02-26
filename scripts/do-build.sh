@@ -7,7 +7,7 @@ TOOLSDIR=`dirname ${TOOLSPATH}`
 
 . "${TOOLSDIR}/test.common.sub"
 
-IDF_TGT=${1:-"build"}
+IDF_TGT=${2:-"build"}
 
 if [ "${IDF_TGT}" = "build" ]
 then
