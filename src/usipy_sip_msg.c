@@ -211,10 +211,6 @@ usipy_sip_msg_dump(const struct usipy_msg *msg, const char *log_tag)
       (unsigned long)usipy_msg_heap_remaining(&msg->heap));
 }
 
-#define USIPY_HF_ISMSET(msk, h) ((msk) & USIPY_HFT_MASK(h))
-#define USIPY_MSG_HDR_PARSED(msp, h) (USIPY_HF_ISMSET(msp->hdr_masks.parsed, (h)))
-#define USIPY_MSG_HDR_PRESENT(msp, h) (USIPY_HF_ISMSET(msp->hdr_masks.present, (h)))
-
 int
 usipy_sip_msg_parse_hdrs(struct usipy_msg *mp, uint64_t parsemask, int toponly)
 {

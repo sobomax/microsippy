@@ -47,3 +47,7 @@ int usipy_sip_msg_get_tid(struct usipy_msg *, struct usipy_sip_tid *);
 
 #define USIPY_HFT_MASK(hft) ((uint64_t)1 << (hft))
 #define USIPY_HF_MASK(shp) (USIPY_HFT_MASK((shp)->hf_type->cantype))
+#define USIPY_HF_ISMSET(msk, h) ((msk) & USIPY_HFT_MASK(h))
+
+#define USIPY_MSG_HDR_PARSED(msp, h) (USIPY_HF_ISMSET(msp->hdr_masks.parsed, (h)))
+#define USIPY_MSG_HDR_PRESENT(msp, h) (USIPY_HF_ISMSET(msp->hdr_masks.present, (h)))
