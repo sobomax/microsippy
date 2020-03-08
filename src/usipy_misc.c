@@ -2,18 +2,18 @@
 
 #include "usipy_str.h"
 
-static const char *sip_version = "SIP/2.0";
+const struct usipy_str usipy_sip_version = USIPY_2STR("SIP/2.0");
 #define CHLOWER(ch) ((ch) | 32)
 #define CHCASECMP(ch1, ch2) ((ch1) == (ch2) || (ch1) == CHLOWER(ch2))
 
 #define chk_sip_version(ch) ( \
-  CHCASECMP((ch)[0], sip_version[0]) && \
-  CHCASECMP((ch)[1], sip_version[1]) && \
-  CHCASECMP((ch)[2], sip_version[2]) && \
-  (ch)[3] == sip_version[3] && \
-  (ch)[4] == sip_version[4] && \
-  (ch)[5] == sip_version[5] && \
-  (ch)[6] == sip_version[6] \
+  CHCASECMP((ch)[0], usipy_sip_version.s.ro[0]) && \
+  CHCASECMP((ch)[1], usipy_sip_version.s.ro[1]) && \
+  CHCASECMP((ch)[2], usipy_sip_version.s.ro[2]) && \
+  (ch)[3] == usipy_sip_version.s.ro[3] && \
+  (ch)[4] == usipy_sip_version.s.ro[4] && \
+  (ch)[5] == usipy_sip_version.s.ro[5] && \
+  (ch)[6] == usipy_sip_version.s.ro[6] \
 )
 
 int
