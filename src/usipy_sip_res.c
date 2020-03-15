@@ -13,13 +13,15 @@
 #include "usipy_sip_res.h"
 
 struct usipy_msg *
-usipy_sip_res_ctor_fromreq(const struct usipy_msg *reqp)
+usipy_sip_res_ctor_fromreq(const struct usipy_msg *reqp,
+  const struct usipy_sip_status *slp)
 {
     uint64_t copyfirst = USIPY_HFT_MASK(USIPY_HF_FROM) | USIPY_HFT_MASK(USIPY_HF_CALLID) | \
       USIPY_HFT_MASK(USIPY_HF_TO) | USIPY_HFT_MASK(USIPY_HF_CSEQ);
     uint64_t copyall = USIPY_HFT_MASK(USIPY_HF_VIA) | USIPY_HFT_MASK(USIPY_HF_RECORDROUTE);
-    size_t tlen = 0;
+    size_t tlen;
 
+    tlen = reqp->sline.parsed.rl.onwire.version.l + 1 + 3 + 1 + slp->reason_phrase.l + 2;
     for (int i = 0; i < reqp->nhdrs; i++) {
         struct usipy_sip_hdr *shp = &reqp->hdrs[i];
 
