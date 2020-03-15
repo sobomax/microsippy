@@ -112,7 +112,7 @@ usipy_sip_msg_ctor_fromwire(const char *buf, size_t len,
             if (nextra > 0) {
                 if (usipy_msg_heap_aextend(&rp->heap, HT_SIZEOF(rp->nhdrs),
                   &cnt) != 0)
-                    return (NULL);
+                    goto e1;
             }
         }
         if (chp == cp.s.ro) {
@@ -124,11 +124,11 @@ usipy_sip_msg_ctor_fromwire(const char *buf, size_t len,
         if (shp == NULL) {
             rp->hdrs = usipy_msg_heap_alloc_cnt(&rp->heap, HT_SIZEOF(rp->nhdrs), &cnt);
             if (rp->hdrs == NULL)
-                return (NULL);
+                goto e1;
         } else {
             if (usipy_msg_heap_aextend(&rp->heap, HT_SIZEOF(rp->nhdrs),
               &cnt) != 0)
-                return (NULL);
+                goto e1;
         }
         shp = &rp->hdrs[rp->nhdrs];
         shp->onwire.full.s.ro = cp.s.ro;
@@ -174,7 +174,7 @@ usipy_sip_msg_dump(const struct usipy_msg *msg, const char *log_tag)
     case USIPY_SIP_MSG_RES:
         USIPY_LOGI(log_tag, "Message[%p] is SIP RESPONSE: status_code = %u, "
           "reason_phrase = \"%.*s\"", msg,
-          msg->sline.parsed.sl.status_code, USIPY_SFMT(&msg->sline.parsed.sl.reason_phrase));
+          msg->sline.parsed.sl.status.code, USIPY_SFMT(&msg->sline.parsed.sl.status.reason_phrase));
         break;
 
     case USIPY_SIP_MSG_REQ:
