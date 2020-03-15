@@ -2,10 +2,14 @@ struct usipy_method_db_entr;
 struct usipy_msg_heap;
 struct usipy_sip_uri;
 
+struct usipy_sip_status {
+    unsigned int code;
+    struct usipy_str reason_phrase;
+};
+
 struct usipy_sip_status_line {
     struct usipy_str version;
-    unsigned int status_code;
-    struct usipy_str reason_phrase;
+    struct usipy_sip_status status;
 };
 
 struct usipy_sip_request_line {

@@ -23,11 +23,11 @@ usipy_sip_sline_parse(struct usipy_msg_heap *mhp, struct usipy_sip_sline *slp)
     if (usipy_str_split(&s2, USIPY_SP, &s3, &s4) != 0 || s3.l == 0)
         return (USIPY_SIP_MSG_UNKN);
     if (usipy_verify_sip_version(&s1)) {
-        if (usipy_str_atoui_range(&s3, &slp->parsed.sl.status_code,
+        if (usipy_str_atoui_range(&s3, &slp->parsed.sl.status.code,
           USIPY_SIP_SCODE_MIN, USIPY_SIP_SCODE_MAX) != 0)
             return (USIPY_SIP_MSG_UNKN);
         slp->parsed.sl.version = s1;
-        slp->parsed.sl.reason_phrase = s4;
+        slp->parsed.sl.status.reason_phrase = s4;
         r = USIPY_SIP_MSG_RES;
     } else if (s4.l != 0 && usipy_verify_sip_version(&s4)) {
         slp->parsed.rl.mtype = usipy_method_db_lookup(&s1);
