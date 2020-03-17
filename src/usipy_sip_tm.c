@@ -10,11 +10,13 @@
 #include "usipy_debug.h"
 #include "usipy_types.h"
 #include "usipy_str.h"
+#include "usipy_misc.h"
 #include "usipy_sip_tm.h"
 #include "usipy_msg_heap.h"
 #include "usipy_sip_sline.h"
 #include "usipy_sip_msg.h"
 #include "usipy_sip_req.h"
+#include "usipy_sip_res.h"
 #include "usipy_sip_tid.h"
 #include "usipy_sip_hdr.h"
 #include "usipy_sip_hdr_types.h"
@@ -40,6 +42,10 @@ usipy_sip_tm_task(void *pvParameters)
     int addr_family;
     int ip_protocol;
     const struct usipy_sip_tm_conf *cfp;
+    const struct usipy_sip_status notb = {
+      .code = 666,
+      .reason_phrase = USIPY_2STR("For it is a human number")
+    };
 
     cfp = (struct usipy_sip_tm_conf *)pvParameters;
     while (1) {
@@ -195,6 +201,16 @@ usipy_sip_tm_task(void *pvParameters)
                 }
 
                 TIME_HDR_PARSE(USIPY_HF_TID_MASK, 1);
+                if (msg->kind == USIPY_SIP_MSG_REQ) {
+                    struct usipy_msg *res;
+                    res = usipy_sip_res_ctor_fromreq(msg, &notb);
+                    USIPY_LOGI(cfp->log_tag, "usipy_sip_res_ctor_fromreq() = %p", res);
+                    if (res != NULL) {
+                        err = sendto(sock, res->onwire.s.ro, res->onwire.l, 0,
+                          (struct sockaddr *)&sourceAddr, socklen);
+                        usipy_sip_msg_dtor(res);
+                    }
+                }
                 usipy_sip_msg_dtor(msg);
             }
         }
