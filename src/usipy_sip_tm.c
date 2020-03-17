@@ -151,6 +151,15 @@ usipy_sip_tm_task(void *pvParameters)
                 opd = timer_opend(&ods);
                 if (msg != NULL) {
                     err = sendto(sock, rx_buffer, len, 0, (struct sockaddr *)&sourceAddr, socklen);
+                    if (err == len && msg->kind == USIPY_SIP_MSG_REQ) {
+                        struct usipy_msg *res;
+                        res = usipy_sip_res_ctor_fromreq(msg, &notb);
+                        if (res != NULL) {
+                            err = sendto(sock, res->onwire.s.ro, res->onwire.l, 0,
+                              (struct sockaddr *)&sourceAddr, socklen);
+                            usipy_sip_msg_dtor(res);
+                        }
+                    }
                 }
                 USIPY_LOGI(cfp->log_tag, "usipy_sip_msg_ctor_fromwire() = %p: took %u %s",
                   msg, opd, ods.dunit);
@@ -206,8 +215,6 @@ usipy_sip_tm_task(void *pvParameters)
                     res = usipy_sip_res_ctor_fromreq(msg, &notb);
                     USIPY_LOGI(cfp->log_tag, "usipy_sip_res_ctor_fromreq() = %p", res);
                     if (res != NULL) {
-                        err = sendto(sock, res->onwire.s.ro, res->onwire.l, 0,
-                          (struct sockaddr *)&sourceAddr, socklen);
                         usipy_sip_msg_dtor(res);
                     }
                 }
