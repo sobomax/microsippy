@@ -48,11 +48,15 @@ for tst in ${TESTS}
 do
   EXPFILE="${TOOLSDIR}/expect/${tst}"
   REQFILE="${BUILDDIR}/${tst}.req"
+  RESFILE="${BUILDDIR}/${tst}.res"
   if [ ! -e "${EXPFILE}" ]
   then
     EXPFILE="${REQFILE}"
+  else
+    RESFILE_pp="${RESFILE}.pp"
+    sed "s|${BRD_IP}|%%BRD_IP%%|g" "${RESFILE}" > "${RESFILE_pp}"
+    RESFILE="${RESFILE_pp}"
   fi
-  RESFILE="${BUILDDIR}/${tst}.res"
   ${DIFF} "${EXPFILE}" "${RESFILE}"
 done
 for s in "usipy_sip_msg_ctor_fromwire" "usipy_sip_msg_parse_hdrs" "heap remaining" "usipy_sip_req_parse_ruri" \
