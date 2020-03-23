@@ -23,24 +23,29 @@ scode2str(unsigned int scode, char *res)
     res[3] = ' ';
 }
 
-static const struct usipy_sip_hdr append_hdrs[] = {
+struct append_hdr {
+    unsigned char type;
+    struct usipy_str value;
+};
+
+static const struct append_hdr append_hdrs[] = {
     {
-        .onwire.name = USIPY_2STR("Server"),
-        .onwire.value = USIPY_2STR("uSippy")
+        .type = USIPY_HF_SERVER,
+        .value = USIPY_2STR("uSippy")
     },
     {
-        .onwire.name = USIPY_2STR("Content-Length"),
-        .onwire.value = USIPY_2STR("0")
+        .type = USIPY_HF_CONTENTLENGTH,
+        .value = USIPY_2STR("0")
     },
     {
-        .onwire.name = USIPY_STR_NULL
+        .value = USIPY_STR_NULL
     }
 };
 
 static const struct {
     uint64_t copyfirst;
     uint64_t copyall;
-    const struct usipy_sip_hdr *append_hdrs;
+    const struct append_hdr *append_hdrs;
 } res_tmpl = {
     .copyfirst = USIPY_HFT_MASK(USIPY_HF_FROM) | USIPY_HFT_MASK(USIPY_HF_CALLID) | \
       USIPY_HFT_MASK(USIPY_HF_TO) | USIPY_HFT_MASK(USIPY_HF_CSEQ),
@@ -134,22 +139,22 @@ usipy_sip_res_ctor_fromreq(const struct usipy_msg *reqp,
     if (copyfirst != 0) {
         goto e0;
     }
-    const struct usipy_sip_hdr *ahdrs = res_tmpl.append_hdrs;
-    for (int i = 0; ahdrs[i].onwire.name.l != 0; i++) {
-        const struct usipy_sip_hdr *shp = &ahdrs[i];
+    const struct append_hdr *ahdrs = res_tmpl.append_hdrs;
+    for (int i = 0; ahdrs[i].value.l != 0; i++) {
+        const struct append_hdr *ahp = &ahdrs[i];
         struct usipy_sip_hdr *ohp = &rp->hdrs[rp->nhdrs];
 
-        ohp->hf_type = ohp->onwire.hf_type = usipy_hdr_db_lookup(&(shp->onwire.name));
-        memcpy(cp, shp->onwire.name.s.ro, shp->onwire.name.l);
+        ohp->hf_type = ohp->onwire.hf_type = usipy_hdr_db_byid(ahp->type);
+        memcpy(cp, ohp->hf_type->name.s.ro, ohp->hf_type->name.l);
         ohp->onwire.name.s.ro = ohp->onwire.full.s.ro = cp;
-        ohp->onwire.name.l = shp->onwire.name.l;
-        cp += shp->onwire.name.l;
+        ohp->onwire.name.l = ohp->hf_type->name.l;
+        cp += ohp->hf_type->name.l;
         memcpy(cp, ": ", 2);
         cp += 2;
-        memcpy(cp, shp->onwire.value.s.ro, shp->onwire.value.l);
+        memcpy(cp, ahp->value.s.ro, ahp->value.l);
         ohp->onwire.value.s.ro = cp;
-        ohp->onwire.value.l = shp->onwire.value.l;
-        cp += shp->onwire.value.l;
+        ohp->onwire.value.l = ahp->value.l;
+        cp += ahp->value.l;
         ohp->onwire.full.l = cp - ohp->onwire.full.s.ro;
         memcpy(cp, USIPY_CRLF, USIPY_CRLF_LEN);
         cp += USIPY_CRLF_LEN;
