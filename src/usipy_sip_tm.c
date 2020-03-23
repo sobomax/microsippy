@@ -212,8 +212,11 @@ usipy_sip_tm_task(void *pvParameters)
                 TIME_HDR_PARSE(USIPY_HF_TID_MASK, 1);
                 if (msg->kind == USIPY_SIP_MSG_REQ) {
                     struct usipy_msg *res;
+                    timer_opbegin(&ods);
                     res = usipy_sip_res_ctor_fromreq(msg, &notb);
-                    USIPY_LOGI(cfp->log_tag, "usipy_sip_res_ctor_fromreq() = %p", res);
+                    opd = timer_opend(&ods);
+                    USIPY_LOGI(cfp->log_tag, "usipy_sip_res_ctor_fromreq() = %p: "
+                      "took %u %s", res, opd, ods.dunit);
                     if (res != NULL) {
                         usipy_sip_msg_dtor(res);
                     }
