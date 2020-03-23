@@ -8,6 +8,7 @@ struct usipy_msg_heap {
 };
 
 void *usipy_msg_heap_alloc(struct usipy_msg_heap *, size_t);
+void usipy_msg_heap_init(struct usipy_msg_heap *, void *, size_t);
 
 #define USIPY_MEM_ALIGNOF  (3) /* alignof(max_align_t) ? */
 #define USIPY_REALIGN(val) ((val) & ~((1 << USIPY_MEM_ALIGNOF) - 1))
