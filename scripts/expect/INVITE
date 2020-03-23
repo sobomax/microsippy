@@ -35,4 +35,6 @@ From: <sip:987654321@%%BRD_IP%%>;tag=2048067038
 To: <sip:1234567890@%%BRD_IP%%>
 Call-ID: 1451908535-1598441708-1788833205
 CSeq: 1 INVITE
+Server: uSippy
+Content-Length: 0
 

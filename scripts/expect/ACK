@@ -12,4 +12,6 @@ To: Bob <sip:bob@%%BRD_IP%%>;tag=99sa0xk
 From: Alice <sip:alice@atlanta.com>;tag=88sja8y
 Call-ID: 987asjd97y7ath
 CSeq: 986758 AcK
+Server: uSippy
+Content-Length: 0
 
