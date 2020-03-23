@@ -23,18 +23,43 @@ scode2str(unsigned int scode, char *res)
     res[3] = ' ';
 }
 
+static const struct usipy_sip_hdr append_hdrs[] = {
+    {
+        .onwire.name = USIPY_2STR("Server"),
+        .onwire.value = USIPY_2STR("uSippy")
+    },
+    {
+        .onwire.name = USIPY_2STR("Content-Length"),
+        .onwire.value = USIPY_2STR("0")
+    },
+    {
+        .onwire.name = USIPY_STR_NULL
+    }
+};
+
+static const struct {
+    uint64_t copyfirst;
+    uint64_t copyall;
+    const struct usipy_sip_hdr *append_hdrs;
+} res_tmpl = {
+    .copyfirst = USIPY_HFT_MASK(USIPY_HF_FROM) | USIPY_HFT_MASK(USIPY_HF_CALLID) | \
+      USIPY_HFT_MASK(USIPY_HF_TO) | USIPY_HFT_MASK(USIPY_HF_CSEQ),
+    .copyall = USIPY_HFT_MASK(USIPY_HF_VIA) | USIPY_HFT_MASK(USIPY_HF_RECORDROUTE),
+    .append_hdrs = append_hdrs
+};
+
 struct usipy_msg *
 usipy_sip_res_ctor_fromreq(const struct usipy_msg *reqp,
   const struct usipy_sip_status *slp)
 {
-    uint64_t copyfirst = USIPY_HFT_MASK(USIPY_HF_FROM) | USIPY_HFT_MASK(USIPY_HF_CALLID) | \
-      USIPY_HFT_MASK(USIPY_HF_TO) | USIPY_HFT_MASK(USIPY_HF_CSEQ);
-    uint64_t copyall = USIPY_HFT_MASK(USIPY_HF_VIA) | USIPY_HFT_MASK(USIPY_HF_RECORDROUTE);
+    uint64_t copyfirst = res_tmpl.copyfirst;
+    uint64_t copyall = res_tmpl.copyall;
     size_t tlen;
     int nhdrs;
     struct usipy_msg *rp;
     const struct usipy_sip_request_line *rlin = &(reqp->sline.parsed.rl);
 
+    {static int _b1=0; while (_b1);}
     tlen = sizeof(struct usipy_msg) + (reqp->heap.first +
       reqp->heap.tsize) - (void *)&(reqp->_storage[0]);
     rp = malloc(tlen);
@@ -62,8 +87,8 @@ usipy_sip_res_ctor_fromreq(const struct usipy_msg *reqp,
     memcpy(cp, slp->reason_phrase.s.ro, slp->reason_phrase.l);
     slout->status.reason_phrase.l = slp->reason_phrase.l;
     cp += slp->reason_phrase.l;
-    memcpy(cp, "\r\n", 2);
-    cp += 2;
+    memcpy(cp, USIPY_CRLF, USIPY_CRLF_LEN);
+    cp += USIPY_CRLF_LEN;
 
     for (int i = 0; i < reqp->nhdrs; i++) {
         const struct usipy_sip_hdr *shp = &reqp->hdrs[i];
@@ -82,8 +107,8 @@ usipy_sip_res_ctor_fromreq(const struct usipy_msg *reqp,
             ohp->onwire.value.l = shp->onwire.value.l;
             cp += shp->onwire.value.l;
             ohp->onwire.full.l = cp - ohp->onwire.full.s.ro;
-            memcpy(cp, "\r\n", 2);
-            cp += 2;
+            memcpy(cp, USIPY_CRLF, USIPY_CRLF_LEN);
+            cp += USIPY_CRLF_LEN;
             rp->nhdrs += 1;
             copyfirst &= ~USIPY_HFT_MASK(shp->hf_type->cantype);
             continue;
@@ -101,17 +126,38 @@ usipy_sip_res_ctor_fromreq(const struct usipy_msg *reqp,
             ohp->onwire.value.l = shp->onwire.value.l;
             cp += shp->onwire.value.l;
             ohp->onwire.full.l = cp - ohp->onwire.full.s.ro;
-            memcpy(cp, "\r\n", 2);
-            cp += 2;
+            memcpy(cp, USIPY_CRLF, USIPY_CRLF_LEN);
+            cp += USIPY_CRLF_LEN;
             rp->nhdrs += 1;
         }
     }
     if (copyfirst != 0) {
         goto e0;
     }
+    const struct usipy_sip_hdr *ahdrs = res_tmpl.append_hdrs;
+    for (int i = 0; ahdrs[i].onwire.name.l != 0; i++) {
+        const struct usipy_sip_hdr *shp = &ahdrs[i];
+        struct usipy_sip_hdr *ohp = &rp->hdrs[rp->nhdrs];
 
-    memcpy(cp, "\r\n", 2);
-    cp += 2;
+        ohp->hf_type = ohp->onwire.hf_type = usipy_hdr_db_lookup(&(shp->onwire.name));
+        memcpy(cp, shp->onwire.name.s.ro, shp->onwire.name.l);
+        ohp->onwire.name.s.ro = ohp->onwire.full.s.ro = cp;
+        ohp->onwire.name.l = shp->onwire.name.l;
+        cp += shp->onwire.name.l;
+        memcpy(cp, ": ", 2);
+        cp += 2;
+        memcpy(cp, shp->onwire.value.s.ro, shp->onwire.value.l);
+        ohp->onwire.value.s.ro = cp;
+        ohp->onwire.value.l = shp->onwire.value.l;
+        cp += shp->onwire.value.l;
+        ohp->onwire.full.l = cp - ohp->onwire.full.s.ro;
+        memcpy(cp, USIPY_CRLF, USIPY_CRLF_LEN);
+        cp += USIPY_CRLF_LEN;
+        rp->nhdrs += 1;
+    }
+
+    memcpy(cp, USIPY_CRLF, USIPY_CRLF_LEN);
+    cp += USIPY_CRLF_LEN;
     rp->onwire.l = cp - rp->onwire.s.rw;
 
     return (rp);
