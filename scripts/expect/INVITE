@@ -25,4 +25,14 @@ a=rtpmap:0 pcmu/8000
 a=rtpmap:101 telephone-event/8000
 a=fmtp:101 0-11
 SIP/2.0 666 For it is a human number
+Via: SIP/2.0/UDP 10.0.0.1:65535;branch=z9hG4bK1237816229
+Via: SIP / 2.0 / UDP first.example.com : 4000;ttl=16
+        ;maddr=224.2.0.1 ;branch=z9hG4bKa7c6a8dlze.1
+Via: SIP/2.0/UDP pc33.atlanta.com;branch=z9hG4bKkjshdyff
+Record-Route: <sip:server10.biloxi.com;lr>
+Record-Route: <sip:bigbox3.site3.atlanta.com;lr>
+From: <sip:987654321@%%BRD_IP%%>;tag=2048067038
+To: <sip:1234567890@%%BRD_IP%%>
+Call-ID: 1451908535-1598441708-1788833205
+CSeq: 1 INVITE
 

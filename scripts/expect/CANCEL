@@ -9,4 +9,9 @@ CSeq: 1 CANCEL
 Content-Length: 0
 
 SIP/2.0 666 For it is a human number
+Via: SIP/2.0/UDP client.atlanta.example.com:5060;branch=z9hG4bK74bf9
+From: Alice <sip:alice@atlanta.example.com>;tag=9fxced76sl
+To: Bob <sip:bob@biloxi.example.com>
+Call-ID: 2xTb9vxSit55XU7p8@atlanta.example.com
+CSeq: 1 CANCEL
 
