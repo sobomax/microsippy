@@ -1,3 +1,4 @@
+#include <stddef.h>
 #include <stdint.h>
 #include <stdlib.h>
 #include <string.h>
@@ -7,6 +8,8 @@
 #include "usipy_str.h"
 #include "usipy_sip_sline.h"
 #include "usipy_msg_heap.h"
+#include "usipy_msg_heap_rb.h"
+#include "usipy_msg_heap_inl.h"
 #include "usipy_sip_msg.h"
 #include "usipy_sip_hdr.h"
 #include "usipy_sip_hdr_types.h"
@@ -77,7 +80,16 @@ usipy_sip_res_ctor_fromreq(const struct usipy_msg *reqp,
     char *cp;
     struct usipy_sip_status_line *slout = &(rp->sline.parsed.sl);
     cp = rp->onwire.s.rw = &(rp->_storage[0]);
-    rp->hdrs = (struct usipy_sip_hdr *)&(rp->_storage[0]) + USIPY_ALIGNED_SIZE(reqp->onwire.l);
+
+    void *heapstart = rp->_storage + reqp->onwire.l;
+    size_t heapsize = tlen - offsetof(typeof(*rp), _storage) - reqp->onwire.l;
+    usipy_msg_heap_init(&rp->heap, heapstart, heapsize);
+
+    struct usipy_msg_heap_cnt cnt;
+    memset(&cnt, '\0', sizeof(cnt));
+    rp->hdrs = usipy_msg_heap_alloc_cnt(&rp->heap, sizeof(rp->hdrs[0]), &cnt);
+    if (rp->hdrs == NULL)
+        goto e0;
 
     slout->version.s.rw = cp;
     memcpy(cp, rlin->onwire.version.s.ro, rlin->onwire.version.l);
