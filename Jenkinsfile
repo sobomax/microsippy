@@ -12,7 +12,33 @@ node('microsippy') {
         git branch: 'master', url: 'https://github.com/espressif/ESP8266_RTOS_SDK.git'
       }
       dir('ESP8266_RTOS_SDK.patched') {
-        git branch: 'master', url: 'https://github.com/sobomax/ESP8266_RTOS_SDK.git'
+        checkout(
+          [
+            $class: 'GitSCM',
+            branches: [
+              [
+                name: '*/master'
+              ]
+            ],
+            doGenerateSubmoduleConfigurations: false,
+            extensions: [
+              [
+                $class: 'SubmoduleOption',
+                disableSubmodules: false,
+                parentCredentials: true,
+                recursiveSubmodules: true,
+                trackingSubmodules: false
+              ],
+              [$class: 'LocalBranch', localBranch: "**"]
+            ],
+            submoduleCfg: [],
+            userRemoteConfigs: [
+              [
+                url: 'https://github.com/sobomax/ESP8266_RTOS_SDK.git'
+              ]
+            ]
+          ]
+        )
       }
     }
 
