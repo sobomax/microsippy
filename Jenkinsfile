@@ -38,33 +38,7 @@ node('microsippy') {
         )
       }
       dir('ESP8266_RTOS_SDK.patched') {
-        checkout(
-          [
-            $class: 'GitSCM',
-            branches: [
-              [
-                name: '*/master'
-              ]
-            ],
-            doGenerateSubmoduleConfigurations: false,
-            extensions: [
-              [
-                $class: 'SubmoduleOption',
-                disableSubmodules: false,
-                parentCredentials: true,
-                recursiveSubmodules: true,
-                trackingSubmodules: false
-              ],
-              [$class: 'LocalBranch', localBranch: "**"]
-            ],
-            submoduleCfg: [],
-            userRemoteConfigs: [
-              [
-                url: 'https://github.com/sobomax/ESP8266_RTOS_SDK.git'
-              ]
-            ]
-          ]
-        )
+        git branch: 'master', url: 'https://github.com/sobomax/ESP8266_RTOS_SDK.git'
       }
     }
 
