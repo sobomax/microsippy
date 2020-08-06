@@ -1,7 +1,7 @@
 i=0
 while [ ${i} -lt 10 ]
 do
-  BRD_IP=`grep 'sta ip: ' "${MLOG}" | sed 's|.*sta ip: ||; s|,.*||'`
+  BRD_IP=`grep -a 'sta ip: ' "${MLOG}" | sed 's|.*sta ip: ||; s|,.*||'`
   if [ ! -z "${BRD_IP}" ]
   then
     break
