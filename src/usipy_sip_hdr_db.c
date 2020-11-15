@@ -12,6 +12,8 @@
 #include "usipy_sip_hdr_onetoken.h"
 #include "usipy_sip_hdr_nameaddr.h"
 
+#include "bits/turbocompare.h"
+
 #include "usipy_sip_hdr_db_pdata.h"
 
 static const struct usipy_hdr_db_entr usipy_hdr_db[USIPY_HF_max + 1] = {
@@ -157,7 +159,7 @@ usipy_hdr_db_lookup(const struct usipy_str *hname)
         return (NULL);
     if (hid != USIPY_HF_generic) {
         r = &usipy_hdr_db[hid];
-        if (r->name.l != hname->l || strncasecmp(r->name.s.ro, hname->s.ro, hname->l) != 0) {
+        if (r->name.l != hname->l || turbo_casebcmp(r->name.s.ro, hname->s.ro, hname->l) != 0) {
             hid = USIPY_HF_generic;
         }
     }
