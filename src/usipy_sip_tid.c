@@ -92,10 +92,7 @@ MurmurHash3_32(const void *key, size_t len, uint32_t seed, uint32_t *out)
   *out = h1;
 }
 
-#define DUMP_STR(sname) \
-    USIPY_LOGI(log_tag, "%s" #sname " = \"%.*s\"", log_pref, \
-      USIPY_SFMT(tp->sname))
-#define DUMP_UINT(sname) \
+#define DUMP_UINTHEX(sname) \
     USIPY_LOGI(log_tag, "%s" #sname " = 0x%.8x", log_pref, tp->sname)
 
 void
@@ -104,11 +101,11 @@ usipy_sip_tid_dump(const struct usipy_sip_tid *tp, const char *log_tag,
 {
     const union usipy_sip_hdr_parsed up = {.cseq = tp->cseq};
 
-    DUMP_STR(call_id);
-    DUMP_STR(from_tag);
-    DUMP_STR(vbranch);
+    DUMP_STR(tp, call_id, "");
+    DUMP_STR(tp, from_tag, "");
+    DUMP_STR(tp, vbranch, "");
     usipy_sip_hdr_cseq_dump(&up, log_tag, log_pref, "cseq");
-    DUMP_UINT(hash);
+    DUMP_UINTHEX(hash);
 }
 
 #define HASH_STR(sp, sd, ot) MurmurHash3_32((sp)->s.ro, (sp)->l, sd, ot)

@@ -83,22 +83,15 @@ rollback:
     return (usp);
 }
 
-#define DUMP_PARAM(sname, idx) \
-    USIPY_LOGI(log_tag, "%s%s." #sname "[%d] = \"%.*s\"=\"%.*s\"", log_pref, \
-      canname, idx, USIPY_SFMT(&nap->sname[i].token), USIPY_SFMT(&nap->sname[i].value))
-#define DUMP_STR(sname) \
-    USIPY_LOGI(log_tag, "%s%s." #sname " = \"%.*s\"", log_pref, \
-      canname, USIPY_SFMT(&nap->sname))
-
 void
 usipy_sip_hdr_nameaddr_dump(const union usipy_sip_hdr_parsed *up, const char *log_tag,
   const char *log_pref, const char *canname)
 {
     const struct usipy_sip_hdr_nameaddr *nap = up->contact;
 
-    DUMP_STR(display_name);
-    DUMP_STR(addr_spec);
+    DUMP_STR(&nap, display_name, canname);
+    DUMP_STR(&nap, addr_spec, canname);
     for (int i = 0; i < nap->nparams; i++) {
-        DUMP_PARAM(params, i);
+        DUMP_PARAM(nap, params, i, canname);
     }
 }

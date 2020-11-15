@@ -63,3 +63,12 @@ int usipy_str_split_elem_nlws(struct usipy_str *, unsigned char,
     }
 
 #define USIPY_SFMT(sp) (unsigned int)(sp)->l, (sp)->s.ro
+
+#define DUMP_STR(vp, sname, canname) \
+    USIPY_LOGI(log_tag, "%s%s." #sname " = \"%.*s\"", log_pref, canname, \
+      USIPY_SFMT(vp->sname))
+#define DUMP_PARAM(vp, sname, idx, canname) \
+    USIPY_LOGI(log_tag, "%s%s." #sname "[%d] = \"%.*s\"=\"%.*s\"", log_pref, \
+      canname, idx, USIPY_SFMT(&vp->sname[i].token), USIPY_SFMT(&vp->sname[i].value))
+#define DUMP_UINT(vp, sname, canname) \
+    USIPY_LOGI(log_tag, "%s%s." #sname " = %u", log_pref, canname, vp->sname)

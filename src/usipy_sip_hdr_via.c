@@ -92,28 +92,19 @@ rollback:
     return (usp);
 }
 
-#define DUMP_PARAM(sname, idx) \
-    USIPY_LOGI(log_tag, "%svia." #sname "[%d] = \"%.*s\"=\"%.*s\"", log_pref, \
-      idx, USIPY_SFMT(&vp->sname[i].token), USIPY_SFMT(&vp->sname[i].value))
-#define DUMP_STR(sname) \
-    USIPY_LOGI(log_tag, "%s%s." #sname " = \"%.*s\"", log_pref, canname, \
-      USIPY_SFMT(&vp->sname))
-#define DUMP_UINT(sname) \
-    USIPY_LOGI(log_tag, "%s%s." #sname " = %u", log_pref, canname, vp->sname)
-
 void
 usipy_sip_hdr_via_dump(const union usipy_sip_hdr_parsed *up, const char *log_tag,
   const char *log_pref, const char *canname)
 {
     const struct usipy_sip_hdr_via *vp = up->via;
 
-    DUMP_STR(sent_protocol.name);
-    DUMP_STR(sent_protocol.version);
-    DUMP_STR(sent_protocol.transport);
-    DUMP_STR(sent_by.host);
+    DUMP_STR(&vp, sent_protocol.name, canname);
+    DUMP_STR(&vp, sent_protocol.version, canname);
+    DUMP_STR(&vp, sent_protocol.transport, canname);
+    DUMP_STR(&vp, sent_by.host, canname);
     if (vp->sent_by.port > 0)
-        DUMP_UINT(sent_by.port);
+        DUMP_UINT(vp, sent_by.port, canname);
     for (int i = 0; i < vp->nparams; i++) {
-        DUMP_PARAM(params, i);
+        DUMP_PARAM(vp, params, i, canname);
     }
 }

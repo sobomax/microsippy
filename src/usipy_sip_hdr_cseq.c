@@ -37,8 +37,6 @@ usipy_sip_hdr_cseq_parse(struct usipy_msg_heap *mhp,
     return (usp);
 }
 
-#define DUMP_UINT(sname) \
-    USIPY_LOGI(log_tag, "%s%s." #sname " = %u", log_pref, canname, csp->sname)
 #define DUMP_METHOD(sname) \
     USIPY_LOGI(log_tag, "%s%s." #sname " = \"%.*s\" (%d)", log_pref, canname, \
       USIPY_SFMT(&csp->sname->name), csp->sname->cantype)
@@ -49,6 +47,6 @@ usipy_sip_hdr_cseq_dump(const union usipy_sip_hdr_parsed *up, const char *log_ta
 {
     const struct usipy_sip_hdr_cseq *csp = up->cseq;
 
-    DUMP_UINT(val);
+    DUMP_UINT(csp, val, canname);
     DUMP_METHOD(method);
 }

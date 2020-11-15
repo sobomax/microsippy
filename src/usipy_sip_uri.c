@@ -110,30 +110,21 @@ rollback:
     return (NULL);
 }
 
-#define DUMP_STR(sname) \
-    USIPY_LOGI(log_tag, "%s" #sname " = \"%.*s\"", log_pref, \
-      USIPY_SFMT(&up->sname))
-#define DUMP_UINT(sname) \
-    USIPY_LOGI(log_tag, "%s" #sname " = %u", log_pref, up->sname)
-#define DUMP_PARAM(sname, idx) \
-    USIPY_LOGI(log_tag, "%s" #sname "[%d] = \"%.*s\"=\"%.*s\"", log_pref, \
-      idx, USIPY_SFMT(&up->sname[i].token), USIPY_SFMT(&up->sname[i].value))
-
 void
 usipy_sip_uri_dump(const struct usipy_sip_uri *up, const char *log_tag,
   const char *log_pref)
 {
 
-    DUMP_STR(proto);
-    DUMP_STR(user);
-    DUMP_STR(password);
-    DUMP_STR(host);
+    DUMP_STR(&up, proto, "");
+    DUMP_STR(&up, user, "");
+    DUMP_STR(&up, password, "");
+    DUMP_STR(&up, host, "");
     if (up->port > 0)
-        DUMP_UINT(port);
+        DUMP_UINT(up, port, "");
     for (int i = 0; i < up->nparams; i++) {
-        DUMP_PARAM(parameters, i);
+        DUMP_PARAM(up, parameters, i, "");
     }
     for (int i = 0; i < up->nhdrs; i++) {
-        DUMP_PARAM(headers, i);
+        DUMP_PARAM(up, headers, i, "");
     }
 }
