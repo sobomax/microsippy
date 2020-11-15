@@ -206,7 +206,7 @@ usipy_sip_tm_task(void *pvParameters)
                 USIPY_LOGI(cfp->log_tag, "usipy_sip_msg_get_tid() = %d: took %u %s", rval,
                   opd, ods.dunit);
                 if (rval == 0) {
-                    usipy_sip_tid_dump(&tid, cfp->log_tag, "  tid.");
+                    usipy_sip_tid_dump(&tid, cfp->log_tag, "  tid");
                 }
 
                 TIME_HDR_PARSE(USIPY_HF_TID_MASK, 1);
