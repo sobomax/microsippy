@@ -12,7 +12,7 @@ matrix:
             - libpcap-dev
             - expect
       env:
-        - MATRIX_EVAL="CC=gcc && CXX=g++"
+        - MATRIX_EVAL="CC=gcc && CXX=g++ && CC_FLAGS=-march=native"
 
     - name: "Ubuntu 16.04 LTS (Xenial Xerus) GCC 6" 
       os: linux
@@ -26,7 +26,7 @@ matrix:
             - libpcap-dev
             - expect
       env:
-        - MATRIX_EVAL="CC=gcc-6 && CXX=g++-6"
+        - MATRIX_EVAL="CC=gcc-6 && CXX=g++-6 && CC_FLAGS=-march=native"
 
     - name: "Ubuntu 16.04 LTS (Xenial Xerus) GCC 7" 
       os: linux
@@ -40,7 +40,7 @@ matrix:
             - libpcap-dev
             - expect
       env:
-        - MATRIX_EVAL="CC=gcc-7 && CXX=g++-7"
+        - MATRIX_EVAL="CC=gcc-7 && CXX=g++-7 && CC_FLAGS=-march=native"
 
     - name: "Ubuntu 16.04 LTS (Xenial Xerus) GCC 8" 
       os: linux
@@ -54,7 +54,7 @@ matrix:
             - libpcap-dev
             - expect
       env:
-        - MATRIX_EVAL="CC=gcc-8 && CXX=g++-8"
+        - MATRIX_EVAL="CC=gcc-8 && CXX=g++-8 && CC_FLAGS=-march=native"
 
     - name: "Ubuntu 16.04 LTS (Xenial Xerus) GCC 9" 
       os: linux
@@ -68,7 +68,7 @@ matrix:
             - libpcap-dev
             - expect
       env:
-        - MATRIX_EVAL="CC=gcc-9 && CXX=g++-9"
+        - MATRIX_EVAL="CC=gcc-9 && CXX=g++-9 && CC_FLAGS=-march=native"
 
     - name: "Ubuntu 18.04 LTS (Bionic Beaver) GCC 7" 
       os: linux
@@ -79,7 +79,7 @@ matrix:
             - libpcap-dev
             - expect
       env:
-        - MATRIX_EVAL="CC=gcc && CXX=g++"
+        - MATRIX_EVAL="CC=gcc && CXX=g++ && CC_FLAGS=-march=native"
 
     - name: "Ubuntu 18.04 LTS (Bionic Beaver) GCC 8" 
       os: linux
@@ -93,7 +93,7 @@ matrix:
             - libpcap-dev
             - expect
       env:
-        - MATRIX_EVAL="CC=gcc-8 && CXX=g++-8"
+        - MATRIX_EVAL="CC=gcc-8 && CXX=g++-8 && CC_FLAGS=-march=native"
 
     - name: "Ubuntu 18.04 LTS (Bionic Beaver) Clang 4" 
       os: linux
@@ -107,7 +107,7 @@ matrix:
             - libpcap-dev
             - expect
       env:
-        - MATRIX_EVAL="CC=clang-4.0 && CXX=clang++-4.0"
+        - MATRIX_EVAL="CC=clang-4.0 && CXX=clang++-4.0 && CC_FLAGS=-march=native"
 
     - name: "Ubuntu 18.04 LTS (Bionic Beaver) Clang 5" 
       os: linux
@@ -121,7 +121,7 @@ matrix:
             - libpcap-dev
             - expect
       env:
-        - MATRIX_EVAL="CC=clang-5.0 && CXX=clang++-5.0"
+        - MATRIX_EVAL="CC=clang-5.0 && CXX=clang++-5.0 && CC_FLAGS=-march=native"
 
     - name: "Ubuntu 18.04 LTS (Bionic Beaver) Clang 6" 
       os: linux
@@ -135,7 +135,7 @@ matrix:
             - libpcap-dev
             - expect
       env:
-        - MATRIX_EVAL="CC=clang-6.0 && CXX=clang++-6.0"
+        - MATRIX_EVAL="CC=clang-6.0 && CXX=clang++-6.0 && CC_FLAGS=-march=native"
 
     - name: "Ubuntu 18.04 LTS (Bionic Beaver) Clang 7" 
       os: linux
@@ -149,7 +149,7 @@ matrix:
             - libpcap-dev
             - expect
       env:
-        - MATRIX_EVAL="CC=clang-7 && CXX=clang++-7"
+        - MATRIX_EVAL="CC=clang-7 && CXX=clang++-7 && CC_FLAGS=-march=native"
 
     - name: "Ubuntu 18.04 LTS (Bionic Beaver) Clang 8" 
       os: linux
@@ -163,7 +163,7 @@ matrix:
             - libpcap-dev
             - expect
       env:
-        - MATRIX_EVAL="CC=clang-8 && CXX=clang++-8"
+        - MATRIX_EVAL="CC=clang-8 && CXX=clang++-8 && CC_FLAGS=-march=native"
 
     - name: "Ubuntu 18.04 LTS (Bionic Beaver) Clang 9"
       os: linux
@@ -177,7 +177,7 @@ matrix:
             - libpcap-dev
             - expect
       env:
-        - MATRIX_EVAL="CC=clang-9 && CXX=clang++-9"
+        - MATRIX_EVAL="CC=clang-9 && CXX=clang++-9 && CC_FLAGS=-march=native"
 
     - name: "Ubuntu 18.04 LTS (Bionic Beaver) Clang 10"
       os: linux
@@ -191,7 +191,7 @@ matrix:
             - libpcap-dev
             - expect
       env:
-        - MATRIX_EVAL="CC=clang-10 && CXX=clang++-10"
+        - MATRIX_EVAL="CC=clang-10 && CXX=clang++-10 && CC_FLAGS=-march=native"
 
     - name: "Ubuntu 18.04 LTS (Bionic Beaver) GCC 7 @ MIPS64"
       os: linux
@@ -218,7 +218,7 @@ before_install:
 before_script:
   - mkdir platforms/posix/build
   - cmake --version
-  - cmake -DCMAKE_CC_FLAGS="-Werror" -Bplatforms/posix/build -Hplatforms/posix
+  - cmake -DCMAKE_CC_FLAGS="-Werror ${CC_FLAGS}" -Bplatforms/posix/build -Hplatforms/posix
 
 script:
   - make -C platforms/posix/build
