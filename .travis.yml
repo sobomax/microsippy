@@ -193,6 +193,25 @@ matrix:
       env:
         - MATRIX_EVAL="CC=clang-10 && CXX=clang++-10"
 
+    - name: "Ubuntu 18.04 LTS (Bionic Beaver) GCC 7 @ MIPS64"
+      os: linux
+      dist: bionic
+      addons:
+        apt:
+          packages:
+            - gcc-mips64-linux-gnuabi64
+            - libc-dev-mips64-cross
+            - qemu-user-static
+            - expect
+      env:
+        - MATRIX_EVAL="CC=mips64-linux-gnuabi64-gcc && CXX=mips64-linux-gnuabi64-g++"
+      before_install:
+        - sudo mkdir "/usr/mips64-linux-gnuabi64/etc"
+        - sudo touch "/usr/mips64-linux-gnuabi64/etc/ld.so.cache"
+        - sudo mkdir "/etc/qemu-binfmt"
+        - sudo ln -sf "/usr/mips64-linux-gnuabi64" "/etc/qemu-binfmt/mips64"
+        - eval "${MATRIX_EVAL}"
+
 before_install:
   - eval "${MATRIX_EVAL}"
 
