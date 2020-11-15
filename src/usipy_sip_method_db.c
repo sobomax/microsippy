@@ -1,4 +1,7 @@
 #include <stdlib.h>
+#include <string.h>
+
+#include "bits/turbocompare.h"
 
 #include "usipy_str.h"
 #include "usipy_sip_method_types.h"
@@ -24,21 +27,6 @@ static const struct usipy_method_db_entr usipy_method_db[USIPY_SIP_METHOD_max + 
 #define MIN_HASH_VALUE 3
 #define MAX_HASH_VALUE 13
 /* maximum key range = 11, duplicates = 0 */
-
-static int
-method_case_strcmp(const struct usipy_str *sp1, const struct usipy_str *sp2)
-{
-    size_t i;
-
-    for (i = 0; i < sp1->l; i++) {
-        unsigned char c1 = ((unsigned char)(sp1->s.ro[i])) & (~32);
-        unsigned char c2 = (unsigned char)(sp2->s.ro[i]);
-        if (c1 == c2)
-            continue;
-        return (int)c1 - (int)c2;
-    }
-    return (0);
-}
 
 static unsigned int
 method_hash(const struct usipy_str *sp)
@@ -100,7 +88,7 @@ usipy_method_db_lookup(const struct usipy_str *tp)
         if (key <= MAX_HASH_VALUE && key >= 0) {
             const struct usipy_method_db_entr *wp = wordlist[key];
 
-            if (wp->name.l == tp->l && !method_case_strcmp(tp, &wp->name))
+            if (wp->name.l == tp->l && turbo_casebcmp(tp->s.ro, wp->name.s.ro, wp->name.l) == 0)
                 return (wp);
         }
     }
