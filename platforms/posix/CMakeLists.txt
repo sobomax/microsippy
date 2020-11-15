@@ -5,7 +5,7 @@ find_package (Threads)
 include (TestBigEndian)
 TEST_BIG_ENDIAN(IS_BIG_ENDIAN)
 
-add_executable(usipy_test "usipy_test.c" "usipy_log.c" "usipy_stdout_watch.c")
+add_executable(usipy_test "usipy_test.c" "usipy_stdout_watch.c")
 add_subdirectory(../../src microsippy)
 target_include_directories(usipy_test PUBLIC
   ${CMAKE_CURRENT_SOURCE_DIR}/../../src
@@ -13,6 +13,7 @@ target_include_directories(usipy_test PUBLIC
 target_include_directories(microsippy PRIVATE
   ${CMAKE_CURRENT_SOURCE_DIR}
 )
+target_sources(microsippy PUBLIC "${CMAKE_CURRENT_SOURCE_DIR}/usipy_log.c")
 target_link_libraries(usipy_test PRIVATE
   microsippy
   ${CMAKE_THREAD_LIBS_INIT}
@@ -30,5 +31,5 @@ enable_testing()
 
 add_test(basic ${CMAKE_SOURCE_DIR}/../../scripts/do-test.sh ${CMAKE_SOURCE_DIR})
 
-set_target_properties(microsippy PROPERTIES COMPILE_FLAGS "-O2")
-set_target_properties(usipy_test PROPERTIES COMPILE_FLAGS "-O2")
+set_target_properties(microsippy PROPERTIES COMPILE_FLAGS "-O2 -march=native")
+set_target_properties(usipy_test PROPERTIES COMPILE_FLAGS "-O2 -march=native")
