@@ -165,6 +165,34 @@ matrix:
       env:
         - MATRIX_EVAL="CC=clang-8 && CXX=clang++-8"
 
+    - name: "Ubuntu 18.04 LTS (Bionic Beaver) Clang 9"
+      os: linux
+      dist: bionic
+      addons:
+        apt:
+          sources:
+            - llvm-toolchain-bionic-9
+          packages:
+            - clang-9
+            - libpcap-dev
+            - expect
+      env:
+        - MATRIX_EVAL="CC=clang-9 && CXX=clang++-9"
+
+    - name: "Ubuntu 18.04 LTS (Bionic Beaver) Clang 10"
+      os: linux
+      dist: bionic
+      addons:
+        apt:
+          sources:
+            - llvm-toolchain-bionic-10
+          packages:
+            - clang-10
+            - libpcap-dev
+            - expect
+      env:
+        - MATRIX_EVAL="CC=clang-10 && CXX=clang++-10"
+
 before_install:
   - eval "${MATRIX_EVAL}"
 
