@@ -7,8 +7,8 @@
 
 #if USIPY_BIGENDIAN
 #  warning Platform is big-endian.
-#  define LE32TOH(dp, sp) (*(dp) = le32toh(*sp))
+#  define HTOLE32(sp) htole32(sp)
 #else
 #  warning Platform is little-endian.
-#  define LE32TOH(dp, sp) /* Nop */
+#  define HTOLE32(sp) (sp)/* Nop */
 #endif
