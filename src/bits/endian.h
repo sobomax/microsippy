@@ -8,8 +8,8 @@
 #  endif
 
 #  warning Platform is big-endian.
-#  define HTOLE32(sp) htole32(sp)
+#  define HTOLE(sp) (sizeof(sp) == 8 ? htole64(sp) : htole32(sp))
 #else
 #  warning Platform is little-endian.
-#  define HTOLE32(sp) (sp)/* Nop */
+#  define HTOLE(sp) (sp)/* Nop */
 #endif
