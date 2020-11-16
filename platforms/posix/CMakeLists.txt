@@ -23,8 +23,10 @@ set_property(TARGET usipy_test PROPERTY C_STANDARD 11)
 
 IF (IS_BIG_ENDIAN)
     target_compile_definitions(microsippy PRIVATE -DUSIPY_BIGENDIAN=1)
+    target_compile_definitions(usipy_test PRIVATE -DUSIPY_BIGENDIAN=1)
 ELSE (IS_BIG_ENDIAN)
     target_compile_definitions(microsippy PRIVATE -DUSIPY_BIGENDIAN=0)
+    target_compile_definitions(usipy_test PRIVATE -DUSIPY_BIGENDIAN=0)
 ENDIF (IS_BIG_ENDIAN)
 
 enable_testing()
