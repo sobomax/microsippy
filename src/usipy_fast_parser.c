@@ -17,14 +17,12 @@ usipy_fp_classify(const struct usipy_fast_parser *fp, const struct usipy_str *sp
         int remain = sp->l - i;
         if (remain < sizeof(cval)) {
             cval = 0;
-            for (int j = 0; j < remain; j++) {
-                cval |= sp->s.ro[i + j] << (j * 8);
-            }
+            memcpy(&cval, sp->s.ro + i, remain);
         } else {
             memcpy(&cval, sp->s.ro + i, sizeof(cval));
         }
         /* Convert to lower case */
-        cval = HTOLE32(cval | 0x20202020);
+        cval = HTOLE(cval | 0x20202020);
         /* Apply Magick */
         cval ^= fp->magic;
         res += cval;
