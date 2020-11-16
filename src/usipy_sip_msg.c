@@ -9,6 +9,8 @@
 #include "usipy_port/log.h"
 #include "usipy_port/byteorder.h"
 
+#include "bits/endian.h"
+
 #include "usipy_debug.h"
 #include "usipy_types.h"
 #include "usipy_str.h"
@@ -298,20 +300,6 @@ usipy_sip_msg_get_tid(struct usipy_msg *mp, struct usipy_sip_tid *tp)
     tp->hash = usipy_sip_tid_hash(tp);
     return (0);
 }
-
-#if USIPY_BIGENDIAN
-#  warning Platform is big-endian.
-#  define LE32TOH(dp, sp) { \
-    *(uint32_t *)(dp) = (uint32_t) \
-     ((const char *)(sp))[0] | \
-     ((const char *)(sp))[1] << 8 | \
-     ((const char *)(sp))[2] << 16 | \
-     ((const char *)(sp))[3] << 24; \
-  }
-#else
-#  warning Platform is little-endian.
-#  define LE32TOH(dp, sp) /* Nop */
-#endif
 
 struct crlfres {
     uint8_t v;

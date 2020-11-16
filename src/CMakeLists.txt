@@ -12,6 +12,7 @@ set(src_microsippy
  "usipy_msg_heap_inl.h" "usipy_sip_hdr_db_pdata.h" "usipy_sip_hdr_onetoken.c"
  "usipy_sip_hdr_onetoken.h" "usipy_sip_hdr_nameaddr.c" "usipy_sip_hdr_nameaddr.h"
  "usipy_sip_tid.c" "usipy_sip_tid.h" "usipy_sip_res.c" "usipy_sip_res.h"
+ "bits/turbocompare.h" "bits/endian.h"
 )
 add_library(microsippy STATIC ${src_microsippy})
 
