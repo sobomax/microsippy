@@ -2,6 +2,8 @@
 #include <stdlib.h>
 #include <string.h>
 
+#include "bits/endian.h"
+
 #include "usipy_str.h"
 #include "usipy_fast_parser.h"
 
@@ -21,6 +23,7 @@ usipy_fp_classify(const struct usipy_fast_parser *fp, const struct usipy_str *sp
         } else {
             memcpy(&cval, sp->s.ro + i, sizeof(cval));
         }
+        LE32TOH(&cval, &cval);
         /* Convert to lower case */
         cval |= 0x20202020;
         /* Apply Magick */
