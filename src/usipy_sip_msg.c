@@ -300,6 +300,7 @@ usipy_sip_msg_get_tid(struct usipy_msg *mp, struct usipy_sip_tid *tp)
 }
 
 #if USIPY_BIGENDIAN
+#  warning Platform is big-endian.
 #  define LE32TOH(dp, sp) { \
     *(uint32_t *)(dp) = (uint32_t) \
      ((const char *)(sp))[0] | \
@@ -308,6 +309,7 @@ usipy_sip_msg_get_tid(struct usipy_msg *mp, struct usipy_sip_tid *tp)
      ((const char *)(sp))[3] << 24; \
   }
 #else
+#  warning Platform is little-endian.
 #  define LE32TOH(dp, sp) /* Nop */
 #endif
 
