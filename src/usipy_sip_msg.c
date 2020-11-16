@@ -366,7 +366,7 @@ gotresult:
             memcpy(&val, mip->msg_onwire.s.ro + mip->i, sizeof(val));
             memcpy(mip->msg_copy->s.rw + mip->i, &val, sizeof(val));
         }
-        val = HTOLE32(val);
+        val = HTOLE(val);
         ms = crlfcompr(val, ms.carry);
         if (ms.v != 0) {
             mip->oword[0] |= (typeof(val))ms.v << mip->cshift;
