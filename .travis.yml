@@ -1,20 +1,20 @@
 os: linux
+dist: bionic
 language: c
 
 matrix:
   include:
 
-    - name: "Ubuntu 16.04 LTS (Xenial Xerus) GCC 5" 
+    - name: "Ubuntu 16 using GCC 5"
       dist: xenial
       addons:
         apt:
           packages:
-            - libpcap-dev
             - expect
       env:
         - MATRIX_EVAL="CC=gcc && CXX=g++ && CC_FLAGS=-march=native"
 
-    - name: "Ubuntu 16.04 LTS (Xenial Xerus) GCC 6" 
+    - name: "Ubuntu 16 using GCC 6"
       dist: xenial
       addons:
         apt:
@@ -22,12 +22,11 @@ matrix:
             - ubuntu-toolchain-r-test
           packages:
             - g++-6
-            - libpcap-dev
             - expect
       env:
         - MATRIX_EVAL="CC=gcc-6 && CXX=g++-6 && CC_FLAGS=-march=native"
 
-    - name: "Ubuntu 16.04 LTS (Xenial Xerus) GCC 7" 
+    - name: "Ubuntu 16 using GCC 7"
       dist: xenial
       addons:
         apt:
@@ -35,12 +34,11 @@ matrix:
             - ubuntu-toolchain-r-test
           packages:
             - g++-7
-            - libpcap-dev
             - expect
       env:
         - MATRIX_EVAL="CC=gcc-7 && CXX=g++-7 && CC_FLAGS=-march=native"
 
-    - name: "Ubuntu 16.04 LTS (Xenial Xerus) GCC 8" 
+    - name: "Ubuntu 16 using GCC 8"
       dist: xenial
       addons:
         apt:
@@ -48,12 +46,11 @@ matrix:
             - ubuntu-toolchain-r-test
           packages:
             - g++-8
-            - libpcap-dev
             - expect
       env:
         - MATRIX_EVAL="CC=gcc-8 && CXX=g++-8 && CC_FLAGS=-march=native"
 
-    - name: "Ubuntu 16.04 LTS (Xenial Xerus) GCC 9" 
+    - name: "Ubuntu 16 using GCC 9"
       dist: xenial
       addons:
         apt:
@@ -61,127 +58,127 @@ matrix:
             - ubuntu-toolchain-r-test
           packages:
             - g++-9
-            - libpcap-dev
             - expect
       env:
         - MATRIX_EVAL="CC=gcc-9 && CXX=g++-9 && CC_FLAGS=-march=native"
 
-    - name: "Ubuntu 18.04 LTS (Bionic Beaver) GCC 7" 
-      dist: bionic
+    - name: "Ubuntu 18 using GCC 7"
       addons:
         apt:
           packages:
-            - libpcap-dev
             - expect
       env:
         - MATRIX_EVAL="CC=gcc && CXX=g++ && CC_FLAGS=-march=native"
 
-    - name: "Ubuntu 18.04 LTS (Bionic Beaver) GCC 8" 
-      dist: bionic
+    - name: "Ubuntu 18 using GCC 8"
       addons:
         apt:
           sources:
             - ubuntu-toolchain-r-test
           packages:
             - g++-8
-            - libpcap-dev
             - expect
       env:
         - MATRIX_EVAL="CC=gcc-8 && CXX=g++-8 && CC_FLAGS=-march=native"
 
-    - name: "Ubuntu 18.04 LTS (Bionic Beaver) Clang 4" 
-      dist: bionic
+    - name: "Ubuntu 18 using Clang 4"
       addons:
         apt:
           sources:
             - llvm-toolchain-bionic-4.0
           packages:
             - clang-4.0
-            - libpcap-dev
             - expect
       env:
         - MATRIX_EVAL="CC=clang-4.0 && CXX=clang++-4.0 && CC_FLAGS=-march=native"
 
-    - name: "Ubuntu 18.04 LTS (Bionic Beaver) Clang 5" 
-      dist: bionic
+    - name: "Ubuntu 18 using Clang 5"
       addons:
         apt:
           sources:
             - llvm-toolchain-bionic-5.0
           packages:
             - clang-5.0
-            - libpcap-dev
             - expect
       env:
         - MATRIX_EVAL="CC=clang-5.0 && CXX=clang++-5.0 && CC_FLAGS=-march=native"
 
-    - name: "Ubuntu 18.04 LTS (Bionic Beaver) Clang 6" 
-      dist: bionic
+    - name: "Ubuntu 18 using Clang 6"
       addons:
         apt:
           sources:
             - llvm-toolchain-bionic-6.0
           packages:
             - clang-6.0
-            - libpcap-dev
             - expect
       env:
         - MATRIX_EVAL="CC=clang-6.0 && CXX=clang++-6.0 && CC_FLAGS=-march=native"
 
-    - name: "Ubuntu 18.04 LTS (Bionic Beaver) Clang 7" 
-      dist: bionic
+    - name: "Ubuntu 18 using Clang 7"
       addons:
         apt:
           sources:
             - llvm-toolchain-bionic-7
           packages:
             - clang-7
-            - libpcap-dev
             - expect
       env:
         - MATRIX_EVAL="CC=clang-7 && CXX=clang++-7 && CC_FLAGS=-march=native"
 
-    - name: "Ubuntu 18.04 LTS (Bionic Beaver) Clang 8" 
-      dist: bionic
+    - name: "Ubuntu 18 using Clang 8"
       addons:
         apt:
           sources:
             - llvm-toolchain-bionic-8
           packages:
             - clang-8
-            - libpcap-dev
             - expect
       env:
         - MATRIX_EVAL="CC=clang-8 && CXX=clang++-8 && CC_FLAGS=-march=native"
 
-    - name: "Ubuntu 18.04 LTS (Bionic Beaver) Clang 9"
-      dist: bionic
+    - name: "Ubuntu 18 using Clang 9"
       addons:
         apt:
           sources:
             - llvm-toolchain-bionic-9
           packages:
             - clang-9
-            - libpcap-dev
             - expect
       env:
         - MATRIX_EVAL="CC=clang-9 && CXX=clang++-9 && CC_FLAGS=-march=native"
 
-    - name: "Ubuntu 18.04 LTS (Bionic Beaver) Clang 10"
-      dist: bionic
+    - name: "Ubuntu 18 using Clang 10"
       addons:
         apt:
           sources:
             - llvm-toolchain-bionic-10
           packages:
             - clang-10
-            - libpcap-dev
             - expect
       env:
         - MATRIX_EVAL="CC=clang-10 && CXX=clang++-10 && CC_FLAGS=-march=native"
 
-    - name: "Ubuntu 18.04 LTS (Bionic Beaver) GCC 7 @ MIPS64"
-      dist: bionic
+    - name: "Ubuntu 18 using GCC 7 @ ARM64"
+      compiler: gcc
+      arch: arm64
+      addons:
+        apt:
+          packages:
+            - expect
+      env:
+        - MATRIX_EVAL="CC=gcc && CXX=g++ && CC_FLAGS=-march=native"
+
+    - name: "Ubuntu 18 using Clang 7 @ ARM64"
+      compiler: clang
+      arch: arm64
+      addons:
+        apt:
+          packages:
+            - expect
+      env:
+        - MATRIX_EVAL="CC=clang && CXX=clang++ && CC_FLAGS=-march=native"
+
+    - name: "Ubuntu 18 using GCC 7 @ MIPS64"
       addons:
         apt:
           packages:
