@@ -7,9 +7,9 @@
 #    include <sys/endian.h>
 #  endif
 
-#  warning Platform is big-endian.
+//#  warning Platform is big-endian.
 #  define HTOLE(sp) (sizeof(sp) == 8 ? htole64(sp) : htole32(sp))
 #else
-#  warning Platform is little-endian.
+//#  warning Platform is little-endian.
 #  define HTOLE(sp) (sp)/* Nop */
 #endif
