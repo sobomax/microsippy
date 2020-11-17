@@ -15,7 +15,7 @@ run on "conventional" CPUs has also demonstrated capability to outperform
 state-of-the-art SIP engines of 2020, such as OpenSIPS and Kamailio by the
 factor of 5-10x.
 
-##Design
+## Design
 [Some notes](doc/DesignNotes).
 
 ## References
