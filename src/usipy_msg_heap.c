@@ -3,7 +3,7 @@
 #include <stddef.h>
 
 #include "usipy_debug.h"
-#include "usipy_msg_heap.h"
+#include "public/usipy_msg_heap.h"
 #include "usipy_msg_heap_rb.h"
 
 void *

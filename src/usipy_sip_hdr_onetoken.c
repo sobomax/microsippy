@@ -1,7 +1,7 @@
 #include <stdlib.h>
 
 #include "usipy_types.h"
-#include "usipy_str.h"
+#include "public/usipy_str.h"
 #include "usipy_sip_hdr.h"
 #include "usipy_sip_hdr_onetoken.h"
 

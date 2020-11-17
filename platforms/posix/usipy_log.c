@@ -5,7 +5,7 @@
 #include <stdatomic.h>
 #include <unistd.h>
 
-#include "usipy_str.h"
+#include "public/usipy_str.h"
 
 #include "usipy_port/log.h"
 

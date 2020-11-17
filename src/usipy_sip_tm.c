@@ -9,17 +9,17 @@
 
 #include "usipy_debug.h"
 #include "usipy_types.h"
-#include "usipy_str.h"
+#include "public/usipy_str.h"
 #include "usipy_misc.h"
 #include "usipy_sip_tm.h"
-#include "usipy_msg_heap.h"
-#include "usipy_sip_sline.h"
-#include "usipy_sip_msg.h"
+#include "public/usipy_msg_heap.h"
+#include "public/usipy_sip_sline.h"
+#include "public/usipy_sip_msg.h"
 #include "usipy_sip_req.h"
 #include "usipy_sip_res.h"
 #include "usipy_sip_tid.h"
 #include "usipy_sip_hdr.h"
-#include "usipy_sip_hdr_types.h"
+#include "public/usipy_sip_hdr_types.h"
 #include "usipy_sip_hdr_db.h"
 
 #include <string.h>

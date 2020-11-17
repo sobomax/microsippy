@@ -1,6 +1,6 @@
 #include <string.h>
 
-#include "usipy_str.h"
+#include "public/usipy_str.h"
 
 int
 usipy_str_split(const struct usipy_str *x, unsigned char dlm,

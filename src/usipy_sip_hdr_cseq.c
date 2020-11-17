@@ -4,8 +4,8 @@
 #include "usipy_port/log.h"
 
 #include "usipy_debug.h"
-#include "usipy_msg_heap.h"
-#include "usipy_str.h"
+#include "public/usipy_msg_heap.h"
+#include "public/usipy_str.h"
 #include "usipy_sip_hdr.h"
 #include "usipy_sip_hdr_cseq.h"
 #include "usipy_sip_method_db.h"

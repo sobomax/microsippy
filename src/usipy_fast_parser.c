@@ -4,7 +4,7 @@
 
 #include "bits/endian.h"
 
-#include "usipy_str.h"
+#include "public/usipy_str.h"
 #include "usipy_fast_parser.h"
 
 int
