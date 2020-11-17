@@ -200,6 +200,7 @@ matrix:
         apt:
           packages:
             - gcc-mips64-linux-gnuabi64
+            - g++-mips64-linux-gnuabi64
             - libc-dev-mips64-cross
             - qemu-user-static
             - expect
