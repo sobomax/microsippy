@@ -1,10 +1,10 @@
+os: linux
 language: c
 
 matrix:
   include:
 
     - name: "Ubuntu 16.04 LTS (Xenial Xerus) GCC 5" 
-      os: linux
       dist: xenial
       addons:
         apt:
@@ -15,7 +15,6 @@ matrix:
         - MATRIX_EVAL="CC=gcc && CXX=g++ && CC_FLAGS=-march=native"
 
     - name: "Ubuntu 16.04 LTS (Xenial Xerus) GCC 6" 
-      os: linux
       dist: xenial
       addons:
         apt:
@@ -29,7 +28,6 @@ matrix:
         - MATRIX_EVAL="CC=gcc-6 && CXX=g++-6 && CC_FLAGS=-march=native"
 
     - name: "Ubuntu 16.04 LTS (Xenial Xerus) GCC 7" 
-      os: linux
       dist: xenial
       addons:
         apt:
@@ -43,7 +41,6 @@ matrix:
         - MATRIX_EVAL="CC=gcc-7 && CXX=g++-7 && CC_FLAGS=-march=native"
 
     - name: "Ubuntu 16.04 LTS (Xenial Xerus) GCC 8" 
-      os: linux
       dist: xenial
       addons:
         apt:
@@ -57,7 +54,6 @@ matrix:
         - MATRIX_EVAL="CC=gcc-8 && CXX=g++-8 && CC_FLAGS=-march=native"
 
     - name: "Ubuntu 16.04 LTS (Xenial Xerus) GCC 9" 
-      os: linux
       dist: xenial
       addons:
         apt:
@@ -71,7 +67,6 @@ matrix:
         - MATRIX_EVAL="CC=gcc-9 && CXX=g++-9 && CC_FLAGS=-march=native"
 
     - name: "Ubuntu 18.04 LTS (Bionic Beaver) GCC 7" 
-      os: linux
       dist: bionic
       addons:
         apt:
@@ -82,7 +77,6 @@ matrix:
         - MATRIX_EVAL="CC=gcc && CXX=g++ && CC_FLAGS=-march=native"
 
     - name: "Ubuntu 18.04 LTS (Bionic Beaver) GCC 8" 
-      os: linux
       dist: bionic
       addons:
         apt:
@@ -96,7 +90,6 @@ matrix:
         - MATRIX_EVAL="CC=gcc-8 && CXX=g++-8 && CC_FLAGS=-march=native"
 
     - name: "Ubuntu 18.04 LTS (Bionic Beaver) Clang 4" 
-      os: linux
       dist: bionic
       addons:
         apt:
@@ -110,7 +103,6 @@ matrix:
         - MATRIX_EVAL="CC=clang-4.0 && CXX=clang++-4.0 && CC_FLAGS=-march=native"
 
     - name: "Ubuntu 18.04 LTS (Bionic Beaver) Clang 5" 
-      os: linux
       dist: bionic
       addons:
         apt:
@@ -124,7 +116,6 @@ matrix:
         - MATRIX_EVAL="CC=clang-5.0 && CXX=clang++-5.0 && CC_FLAGS=-march=native"
 
     - name: "Ubuntu 18.04 LTS (Bionic Beaver) Clang 6" 
-      os: linux
       dist: bionic
       addons:
         apt:
@@ -138,7 +129,6 @@ matrix:
         - MATRIX_EVAL="CC=clang-6.0 && CXX=clang++-6.0 && CC_FLAGS=-march=native"
 
     - name: "Ubuntu 18.04 LTS (Bionic Beaver) Clang 7" 
-      os: linux
       dist: bionic
       addons:
         apt:
@@ -152,7 +142,6 @@ matrix:
         - MATRIX_EVAL="CC=clang-7 && CXX=clang++-7 && CC_FLAGS=-march=native"
 
     - name: "Ubuntu 18.04 LTS (Bionic Beaver) Clang 8" 
-      os: linux
       dist: bionic
       addons:
         apt:
@@ -166,7 +155,6 @@ matrix:
         - MATRIX_EVAL="CC=clang-8 && CXX=clang++-8 && CC_FLAGS=-march=native"
 
     - name: "Ubuntu 18.04 LTS (Bionic Beaver) Clang 9"
-      os: linux
       dist: bionic
       addons:
         apt:
@@ -180,7 +168,6 @@ matrix:
         - MATRIX_EVAL="CC=clang-9 && CXX=clang++-9 && CC_FLAGS=-march=native"
 
     - name: "Ubuntu 18.04 LTS (Bionic Beaver) Clang 10"
-      os: linux
       dist: bionic
       addons:
         apt:
@@ -194,7 +181,6 @@ matrix:
         - MATRIX_EVAL="CC=clang-10 && CXX=clang++-10 && CC_FLAGS=-march=native"
 
     - name: "Ubuntu 18.04 LTS (Bionic Beaver) GCC 7 @ MIPS64"
-      os: linux
       dist: bionic
       addons:
         apt:
