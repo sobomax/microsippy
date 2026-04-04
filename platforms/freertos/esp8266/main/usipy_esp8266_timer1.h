@@ -39,4 +39,11 @@ timer1_write(uint32_t ticks){
 #endif
 }
 
+static inline uint32_t
+GetCycleCount() {
+    uint32_t ccount;
+    __asm__ __volatile__("esync; rsr %0,ccount":"=a"(ccount));
+    return ccount;
+}
+
 #endif /* _USIPY_ESP8266_TIMER1_H */
