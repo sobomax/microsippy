@@ -23,7 +23,7 @@
 #include <lwip/netdb.h>
 
 #include "usipy_types.h"
-#include "usipy_sip_tm.h"
+#include "usipy_sip_udp_task.h"
 #include "usipy_esp8266_timer1.h"
 
 /* The examples use simple WiFi configuration that you can set via
@@ -140,7 +140,7 @@ void app_main()
     timer1_enable(TIM_DIV1, TIM_EDGE, TIM_LOOP);
     timer1_write(0xffffffff);
 
-    struct usipy_sip_tm_conf stc = {
+    struct usipy_sip_udp_task_conf stc = {
       .sip_port = EXAMPLE_SIP_PORT,
       .log_tag = TAG,
       .faterr = vTaskDelete,
@@ -152,5 +152,5 @@ void app_main()
 #endif
     };
 
-    xTaskCreate((TaskFunction_t)usipy_sip_tm_task, "sip_tm", 4096, &stc, 5, NULL);
+    xTaskCreate((TaskFunction_t)usipy_sip_udp_task, "sip_tm", 4096, &stc, 5, NULL);
 }

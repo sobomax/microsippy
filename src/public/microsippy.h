@@ -7,5 +7,6 @@
 #include "usipy_sip_hdr_types.h"
 #include "usipy_sip_method_types.h"
 #include "usipy_sip_msg.h"
+#include "usipy_sip_tm.h"
 
 #endif

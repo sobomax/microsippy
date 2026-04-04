@@ -11,7 +11,7 @@
 #include "usipy_types.h"
 #include "public/usipy_str.h"
 #include "usipy_misc.h"
-#include "usipy_sip_tm.h"
+#include "usipy_sip_udp_task.h"
 #include "public/usipy_msg_heap.h"
 #include "public/usipy_sip_sline.h"
 #include "public/usipy_sip_msg.h"
@@ -35,19 +35,19 @@
     } while (0);
 
 void *
-usipy_sip_tm_task(void *pvParameters)
+usipy_sip_udp_task(void *pvParameters)
 {
     char rx_buffer[MAX_UDP_SIZE];
     char addr_str[128];
     int addr_family;
     int ip_protocol;
-    const struct usipy_sip_tm_conf *cfp;
+    const struct usipy_sip_udp_task_conf *cfp;
     const struct usipy_sip_status notb = {
       .code = 666,
       .reason_phrase = USIPY_2STR("For it is a human number")
     };
 
-    cfp = (struct usipy_sip_tm_conf *)pvParameters;
+    cfp = (struct usipy_sip_udp_task_conf *)pvParameters;
     while (1) {
         union {
             struct sockaddr_in v4;

@@ -1,10 +1,11 @@
 set(src_microsippy
- "usipy_sip_tm.c" "usipy_sip_tm.h"
+ "usipy_sip_udp_task.c" "usipy_sip_udp_task.h"
  "public/usipy_str.h" "public/usipy_sip_hdr_types.h" "public/usipy_sip_msg.h" "usipy_sip_msg.c"
  "usipy_msg_heap.c" "public/usipy_msg_heap.h" "usipy_str.c" "usipy_sip_hdr.c"
  "usipy_sip_hdr.h" "usipy_fast_parser.c" "usipy_fast_parser.h"
  "usipy_sip_hdr_db.c" "usipy_sip_hdr_db.h" "usipy_sip_sline.c"
  "public/usipy_sip_sline.h" "usipy_misc.c" "usipy_misc.h" "usipy_sip_method_db.c"
+ "public/usipy_sip_tm.h"
  "usipy_sip_method_db.h" "public/usipy_sip_method_types.h" "usipy_sip_hdr_cseq.c"
  "usipy_sip_hdr_cseq.h" "usipy_sip_hdr_via.c"
  "usipy_sip_hdr_via.h" "usipy_types.h" "usipy_sip_uri.c" "usipy_sip_uri.h"
