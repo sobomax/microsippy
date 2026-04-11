@@ -1,5 +1,6 @@
 #include <stdint.h>
 #include <stdlib.h>
+#include <stdio.h>
 
 #include "usipy_port/log.h"
 
@@ -35,6 +36,23 @@ usipy_sip_hdr_cseq_parse(struct usipy_msg_heap *mhp,
     usp.cseq->method = usipy_method_db_lookup(&s2);
     usp.cseq->onwire.method = s2;
     return (usp);
+}
+
+int
+usipy_sip_hdr_cseq_build(const union usipy_sip_hdr_parsed *up, char *buf, size_t len)
+{
+    int rval;
+
+    USIPY_DASSERT(up->cseq != NULL);
+    USIPY_DASSERT(up->cseq->method != NULL);
+    USIPY_DASSERT(up->cseq->method->cantype != USIPY_SIP_METHOD_generic);
+    USIPY_DASSERT(up->cseq->method->name.l != 0);
+    rval = snprintf(buf, len, "%u %.*s", up->cseq->val,
+      USIPY_SFMT(&up->cseq->method->name));
+    if (rval < 0 || (size_t)rval >= len) {
+        return (-1);
+    }
+    return (rval);
 }
 
 #define DUMP_METHOD(sname) \

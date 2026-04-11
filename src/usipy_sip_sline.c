@@ -30,7 +30,12 @@ usipy_sip_sline_parse(struct usipy_msg_heap *mhp, struct usipy_sip_sline *slp)
         slp->parsed.sl.status.reason_phrase = s4;
         r = USIPY_SIP_MSG_RES;
     } else if (s4.l != 0 && usipy_verify_sip_version(&s4)) {
-        slp->parsed.rl.mtype = usipy_method_db_lookup(&s1);
+        slp->parsed.rl.method = usipy_method_db_lookup(&s1);
+        slp->parsed.rl.ruri = usipy_sip_uri_parse(mhp, &s3);
+        if (slp->parsed.rl.method == NULL || slp->parsed.rl.ruri == NULL) {
+            return (USIPY_SIP_MSG_UNKN);
+        }
+        slp->parsed.rl.version = s4;
         slp->parsed.rl.onwire.method = s1;
         slp->parsed.rl.onwire.ruri = s3;
         slp->parsed.rl.onwire.version = s4;

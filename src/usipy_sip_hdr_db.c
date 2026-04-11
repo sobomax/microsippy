@@ -11,6 +11,8 @@
 #include "usipy_sip_hdr_cseq.h"
 #include "usipy_sip_hdr_onetoken.h"
 #include "usipy_sip_hdr_nameaddr.h"
+#include "usipy_sip_hdr_auth.h"
+#include "usipy_sip_hdr_authz.h"
 
 #include "bits/turbocompare.h"
 
@@ -23,44 +25,74 @@ static const struct usipy_hdr_db_entr usipy_hdr_db[USIPY_HF_max + 1] = {
     {.cantype = USIPY_HF_ALLOW, .name = USIPY_2STR("Allow"),
      .flags.csl_allowed = 1},
     {.cantype = USIPY_HF_ALSO, .name = USIPY_2STR("Also")},
-    {.cantype = USIPY_HF_AUTHORIZATION, .name = USIPY_2STR("Authorization")},
+    {
+     .cantype = USIPY_HF_AUTHORIZATION,
+     .name = USIPY_2STR("Authorization"),
+     .build = usipy_sip_hdr_authz_build,
+     .parsed_memb_name = "authz",
+     .dump = usipy_sip_hdr_authz_dump
+    },
     {.cantype = USIPY_HF_CCDIVERSION, .name = USIPY_2STR("CC-Diversion")},
     {
      .cantype = USIPY_HF_CSEQ,
      .name = USIPY_2STR("CSeq"),
      .dump = usipy_sip_hdr_cseq_dump,
      .parse = usipy_sip_hdr_cseq_parse,
+     .build = usipy_sip_hdr_cseq_build,
      .parsed_memb_name = "cseq"
     },
     {
      .cantype = USIPY_HF_CALLID,
      .name = USIPY_2STR("Call-ID"),
      .parse = usipy_sip_hdr_1token_parse,
+     .build = usipy_sip_hdr_1token_build,
      .parsed_memb_name = "generic"
     },
     {
       .cantype = USIPY_HF_CONTACT,
       .name = USIPY_2STR("Contact"),
       .parse = usipy_sip_hdr_nameaddr_parse,
+      .build = usipy_sip_hdr_nameaddr_build,
       .parsed_memb_name = "contact",
       .dump = usipy_sip_hdr_nameaddr_dump,
       .flags.csl_allowed = 1
     },
-    {.cantype = USIPY_HF_CONTENTLENGTH, .name = USIPY_2STR("Content-Length")},
+    {.cantype = USIPY_HF_CONTENTLENGTH, .name = USIPY_2STR("Content-Length"),
+     .build = usipy_sip_hdr_1token_build},
     {.cantype = USIPY_HF_CONTENTTYPE, .name = USIPY_2STR("Content-Type")},
     {.cantype = USIPY_HF_DIVERSION, .name = USIPY_2STR("Diversion")},
-    {.cantype = USIPY_HF_EXPIRES, .name = USIPY_2STR("Expires")},
+    {
+      .cantype = USIPY_HF_EXPIRES,
+      .name = USIPY_2STR("Expires"),
+      .parse = usipy_sip_hdr_1token_parse,
+      .build = usipy_sip_hdr_1token_build,
+      .parsed_memb_name = "generic"
+    },
     {
       .cantype = USIPY_HF_FROM,
       .name = USIPY_2STR("From"),
       .parse = usipy_sip_hdr_nameaddr_parse,
+      .build = usipy_sip_hdr_nameaddr_build,
       .parsed_memb_name = "from",
       .dump = usipy_sip_hdr_nameaddr_dump
     },
     {.cantype = USIPY_HF_MAXFORWARDS, .name = USIPY_2STR("Max-Forwards")},
     {.cantype = USIPY_HF_PASSERTEDIDENTITY, .name = USIPY_2STR("P-Asserted-Identity")},
-    {.cantype = USIPY_HF_PROXYAUTHENTICATE, .name = USIPY_2STR("Proxy-Authenticate")},
-    {.cantype = USIPY_HF_PROXYAUTHORIZATION, .name = USIPY_2STR("Proxy-Authorization")},
+    {
+      .cantype = USIPY_HF_PROXYAUTHENTICATE,
+      .name = USIPY_2STR("Proxy-Authenticate"),
+      .parse = usipy_sip_hdr_auth_parse,
+      .build = usipy_sip_hdr_auth_build,
+      .parsed_memb_name = "auth",
+      .dump = usipy_sip_hdr_auth_dump
+    },
+    {
+      .cantype = USIPY_HF_PROXYAUTHORIZATION,
+      .name = USIPY_2STR("Proxy-Authorization"),
+      .build = usipy_sip_hdr_authz_build,
+      .parsed_memb_name = "authz",
+      .dump = usipy_sip_hdr_authz_dump
+    },
     {.cantype = USIPY_HF_RACK, .name = USIPY_2STR("RAck")},
     {.cantype = USIPY_HF_RSEQ, .name = USIPY_2STR("RSeq")},
     {.cantype = USIPY_HF_REASON, .name = USIPY_2STR("Reason")},
@@ -90,6 +122,7 @@ static const struct usipy_hdr_db_entr usipy_hdr_db[USIPY_HF_max + 1] = {
       .cantype = USIPY_HF_TO,
       .name = USIPY_2STR("To"),
       .parse = usipy_sip_hdr_nameaddr_parse,
+      .build = usipy_sip_hdr_nameaddr_build,
       .parsed_memb_name = "to",
       .dump = usipy_sip_hdr_nameaddr_dump
     },
@@ -99,32 +132,44 @@ static const struct usipy_hdr_db_entr usipy_hdr_db[USIPY_HF_max + 1] = {
       .name = USIPY_2STR("Via"),
       .dump = usipy_sip_hdr_via_dump,
       .parse = usipy_sip_hdr_via_parse,
+      .build = usipy_sip_hdr_via_build,
       .parsed_memb_name = "via",
       .flags.csl_allowed = 1
     },
-    {.cantype = USIPY_HF_WWWAUTHENTICATE, .name = USIPY_2STR("WWW-Authenticate")},
+    {
+      .cantype = USIPY_HF_WWWAUTHENTICATE,
+      .name = USIPY_2STR("WWW-Authenticate"),
+      .parse = usipy_sip_hdr_auth_parse,
+      .build = usipy_sip_hdr_auth_build,
+      .parsed_memb_name = "auth",
+      .dump = usipy_sip_hdr_auth_dump
+    },
     {.cantype = USIPY_HF_WARNING, .name = USIPY_2STR("Warning"),
      .flags.csl_allowed = 1},
     {
       .cantype = USIPY_HF_CALLID,
       .name = USIPY_2STR("i"),
       .parse = usipy_sip_hdr_1token_parse,
+      .build = usipy_sip_hdr_1token_build,
       .parsed_memb_name = "generic",
     },
     {
       .cantype = USIPY_HF_CONTACT,
       .name = USIPY_2STR("m"),
       .parse = usipy_sip_hdr_nameaddr_parse,
+      .build = usipy_sip_hdr_nameaddr_build,
       .parsed_memb_name = "contact",
       .dump = usipy_sip_hdr_nameaddr_dump,
       .flags.csl_allowed = 1
     },
-    {.cantype = USIPY_HF_CONTENTLENGTH, .name = USIPY_2STR("l")},
+    {.cantype = USIPY_HF_CONTENTLENGTH, .name = USIPY_2STR("l"),
+     .build = usipy_sip_hdr_1token_build},
     {.cantype = USIPY_HF_CONTENTTYPE, .name = USIPY_2STR("c")},
     {
       .cantype = USIPY_HF_FROM,
       .name = USIPY_2STR("f"),
       .parse = usipy_sip_hdr_nameaddr_parse,
+      .build = usipy_sip_hdr_nameaddr_build,
       .parsed_memb_name = "from",
       .dump = usipy_sip_hdr_nameaddr_dump
     },
@@ -135,6 +180,7 @@ static const struct usipy_hdr_db_entr usipy_hdr_db[USIPY_HF_max + 1] = {
       .cantype = USIPY_HF_TO,
       .name = USIPY_2STR("t"),
       .parse = usipy_sip_hdr_nameaddr_parse,
+      .build = usipy_sip_hdr_nameaddr_build,
       .parsed_memb_name = "to",
       .dump = usipy_sip_hdr_nameaddr_dump
     },
@@ -143,6 +189,7 @@ static const struct usipy_hdr_db_entr usipy_hdr_db[USIPY_HF_max + 1] = {
       .name = USIPY_2STR("v"),
       .dump = usipy_sip_hdr_via_dump,
       .parse = usipy_sip_hdr_via_parse,
+      .build = usipy_sip_hdr_via_build,
       .parsed_memb_name = "via",
       .flags.csl_allowed = 1
     }

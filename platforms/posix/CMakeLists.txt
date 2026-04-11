@@ -1,13 +1,25 @@
 cmake_minimum_required(VERSION 3.5)
+if (POLICY CMP0069)
+  cmake_policy(SET CMP0069 NEW)
+endif()
 project (usipy_test)
 find_package (Threads)
+include (CheckIPOSupported)
 
 include (TestBigEndian)
 TEST_BIG_ENDIAN(IS_BIG_ENDIAN)
 
 add_executable(usipy_test "usipy_test.c" "usipy_stdout_watch.c")
+add_executable(usipy_test_uac_register "usipy_test_uac_register.c" "usipy_tm_uac.c")
+add_executable(usipy_register_cli "usipy_register_cli.c" "usipy_tm_uac.c")
 add_subdirectory(../../src microsippy)
 target_include_directories(usipy_test PUBLIC
+  ${CMAKE_CURRENT_SOURCE_DIR}/../../src
+)
+target_include_directories(usipy_test_uac_register PUBLIC
+  ${CMAKE_CURRENT_SOURCE_DIR}/../../src
+)
+target_include_directories(usipy_register_cli PUBLIC
   ${CMAKE_CURRENT_SOURCE_DIR}/../../src
 )
 target_include_directories(microsippy PRIVATE
@@ -18,20 +30,54 @@ target_link_libraries(usipy_test PRIVATE
   microsippy
   ${CMAKE_THREAD_LIBS_INIT}
 )
-set_property(TARGET microsippy PROPERTY C_STANDARD 11)
-set_property(TARGET usipy_test PROPERTY C_STANDARD 11)
+target_link_libraries(usipy_test_uac_register PRIVATE
+  microsippy
+)
+target_link_libraries(usipy_register_cli PRIVATE
+  microsippy
+)
+
+set(POSIX_TARGETS
+  microsippy
+  usipy_test
+  usipy_test_uac_register
+  usipy_register_cli
+)
+
+foreach(target ${POSIX_TARGETS})
+  set_property(TARGET ${target} PROPERTY C_STANDARD 11)
+  target_compile_options(${target} PRIVATE
+    -march=native
+    -O2
+    -g3
+    -fvisibility=hidden
+  )
+  set_target_properties(${target} PROPERTIES
+    C_VISIBILITY_PRESET hidden
+  )
+endforeach()
 
 IF (IS_BIG_ENDIAN)
     target_compile_definitions(microsippy PRIVATE -DUSIPY_BIGENDIAN=1)
     target_compile_definitions(usipy_test PRIVATE -DUSIPY_BIGENDIAN=1)
+    target_compile_definitions(usipy_test_uac_register PRIVATE -DUSIPY_BIGENDIAN=1)
+    target_compile_definitions(usipy_register_cli PRIVATE -DUSIPY_BIGENDIAN=1)
 ELSE (IS_BIG_ENDIAN)
     target_compile_definitions(microsippy PRIVATE -DUSIPY_BIGENDIAN=0)
     target_compile_definitions(usipy_test PRIVATE -DUSIPY_BIGENDIAN=0)
+    target_compile_definitions(usipy_test_uac_register PRIVATE -DUSIPY_BIGENDIAN=0)
+    target_compile_definitions(usipy_register_cli PRIVATE -DUSIPY_BIGENDIAN=0)
 ENDIF (IS_BIG_ENDIAN)
 
 enable_testing()
 
 add_test(basic ${CMAKE_SOURCE_DIR}/../../scripts/do-test.sh ${CMAKE_SOURCE_DIR})
 
-set_target_properties(microsippy PROPERTIES COMPILE_FLAGS "-O2 -g3")
-set_target_properties(usipy_test PROPERTIES COMPILE_FLAGS "-O2 -g3")
+check_ipo_supported(RESULT USIPY_POSIX_IPO_SUPPORTED OUTPUT USIPY_POSIX_IPO_OUTPUT LANGUAGES C)
+if (USIPY_POSIX_IPO_SUPPORTED)
+  foreach(target ${POSIX_TARGETS})
+    set_property(TARGET ${target} PROPERTY INTERPROCEDURAL_OPTIMIZATION TRUE)
+  endforeach()
+else()
+  message(STATUS "IPO/LTO disabled for POSIX targets: ${USIPY_POSIX_IPO_OUTPUT}")
+endif()

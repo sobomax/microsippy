@@ -9,6 +9,7 @@
 #include "usipy_msg_heap_rb.h"
 #include "usipy_msg_heap_inl.h"
 #include "public/usipy_str.h"
+#include "usipy_misc.h"
 #include "usipy_sip_hdr.h"
 #include "usipy_tvpair.h"
 #include "usipy_sip_hdr_nameaddr.h"
@@ -78,9 +79,49 @@ usipy_sip_hdr_nameaddr_parse(struct usipy_msg_heap *mhp,
 
     return (usp);
 rollback:
-    usipy_msg_heap_rollback(mhp, &cnt);
+    usipy_msg_heap_cnt_rollback(mhp, &cnt);
     usp.contact = NULL;
     return (usp);
+}
+
+int
+usipy_sip_hdr_nameaddr_build(const union usipy_sip_hdr_parsed *up, char *buf, size_t len)
+{
+    static const struct usipy_str lt = USIPY_2STR("<");
+    static const struct usipy_str sp = USIPY_2STR(" ");
+    static const struct usipy_str semi = USIPY_2STR(";");
+    static const struct usipy_str eq = USIPY_2STR("=");
+    const struct usipy_sip_hdr_nameaddr *nap = up->contact;
+    size_t off = 0;
+
+    USIPY_DASSERT(nap != NULL);
+    if (nap->display_name.l != 0) {
+        if (usipy_strbuf_append_pair(&nap->display_name, &sp, buf, len,
+          &off) != 0) {
+            return (-1);
+        }
+    }
+    if (usipy_strbuf_append_pair(&lt, &nap->addr_spec, buf, len, &off) != 0 ||
+      off + 1 > len) {
+        return (-1);
+    }
+    buf[off++] = '>';
+    for (int i = 0; i < nap->nparams; i++) {
+        const struct usipy_tvpair *pp = &nap->params[i];
+
+        if (usipy_strbuf_append_pair(&semi, &pp->token, buf, len,
+          &off) != 0) {
+            return (-1);
+        }
+        if (pp->value.l == 0) {
+            continue;
+        }
+        if (usipy_strbuf_append_pair(&eq, &pp->value, buf, len,
+          &off) != 0) {
+            return (-1);
+        }
+    }
+    return ((int)off);
 }
 
 void

@@ -3,6 +3,7 @@
 #include <stddef.h>
 #include <stdint.h>
 #include <stdlib.h>
+#include <stdio.h>
 #include <string.h>
 #include <strings.h>
 
@@ -24,11 +25,13 @@
 #include "usipy_sip_hdr_db.h"
 #include "usipy_sip_method_db.h"
 #include "usipy_sip_hdr_cseq.h"
+#include "usipy_sip_hdr_onetoken.h"
 #include "usipy_tvpair.h"
 #include "usipy_sip_hdr_nameaddr.h"
 #include "usipy_sip_hdr_via.h"
 #include "usipy_sip_uri.h"
 #include "usipy_sip_tid.h"
+#include "usipy_misc.h"
 
 #define USIPY_HFS_NMIN (30)
 
@@ -41,8 +44,17 @@ struct usipy_sip_msg_iterator {
     char cshift;
 };
 static int usipy_sip_msg_break_down(struct usipy_sip_msg_iterator *);
+static int usipy_sip_msg_build_cb(void *, char *, size_t);
+static int usipy_sip_msg_build_sline_cb(const struct usipy_msg *, char *, size_t);
+static int usipy_sip_msg_build_hdr_cb(void *, char *, size_t);
+static int usipy_sip_msg_parse_hdrs_impl(struct usipy_msg *, uint64_t, int,
+  struct usipy_sip_hdr_match *);
 
 #define HT_SIZEOF(nhdrs) (sizeof(struct usipy_sip_hdr) * ((nhdrs) + 1))
+
+struct usipy_sip_msg_build_hdr_arg {
+    const struct usipy_sip_hdr *shp;
+};
 
 struct usipy_msg *
 usipy_sip_msg_ctor_fromwire(const char *buf, size_t len,
@@ -63,13 +75,12 @@ usipy_sip_msg_ctor_fromwire(const char *buf, size_t len,
     }
     void *heapstart = rp->_storage + len;
     size_t heapsize = alloc_len - offsetof(typeof(*rp), _storage) - len;
-    memset(rp, '\0', sizeof(struct usipy_msg));
-    memset(heapstart, '\0', heapsize);
-    /*memcpy(rp->_storage, buf, len);*/
+    memset(rp, '\0', alloc_len);
+    memcpy(rp->_storage, buf, len);
     rp->onwire.s.rw = rp->_storage;
     rp->onwire.l = len;
 
-    usipy_msg_heap_init(&rp->heap, heapstart, heapsize);
+    usipy_msg_heap_init(&rp->heap, heapstart, heapsize, NULL, 0);
 
     struct usipy_sip_hdr *shp = NULL, *ehp;
     ehp = (struct usipy_sip_hdr *)((char *)(rp) + alloc_len);
@@ -161,6 +172,16 @@ usipy_sip_msg_dtor(struct usipy_msg *msg)
     free(msg);
 }
 
+int
+usipy_sip_msg_build(struct usipy_msg_heap *hp, struct usipy_msg *mp,
+  struct usipy_str *sp)
+{
+    if (usipy_msg_heap_build(hp, sp, mp, usipy_sip_msg_build_cb) != 0)
+        return (-1);
+    mp->onwire = *sp;
+    return (0);
+}
+
 void
 usipy_sip_msg_dump(const struct usipy_msg *msg, const char *log_tag)
 {
@@ -178,7 +199,7 @@ usipy_sip_msg_dump(const struct usipy_msg *msg, const char *log_tag)
         USIPY_LOGI(log_tag, "Message[%p] is SIP REQUEST: method(onwire) = \"%.*s\", "
           "method(canonic) = \"%.*s\", ruri = \"%.*s\"", msg,
           USIPY_SFMT(&msg->sline.parsed.rl.onwire.method),
-          USIPY_SFMT(&msg->sline.parsed.rl.mtype->name),
+          USIPY_SFMT(&msg->sline.parsed.rl.method->name),
           USIPY_SFMT(&msg->sline.parsed.rl.onwire.ruri));
         if (msg->sline.parsed.rl.ruri != NULL) {
             usipy_sip_uri_dump(msg->sline.parsed.rl.ruri, log_tag,
@@ -211,16 +232,46 @@ usipy_sip_msg_dump(const struct usipy_msg *msg, const char *log_tag)
 int
 usipy_sip_msg_parse_hdrs(struct usipy_msg *mp, uint64_t parsemask, int toponly)
 {
+    return (usipy_sip_msg_parse_hdrs_impl(mp, parsemask, toponly, NULL));
+}
+
+int
+usipy_sip_msg_parse_hdrs_get(struct usipy_msg *mp, uint64_t parsemask, int toponly,
+  struct usipy_sip_hdr_match *matchp)
+{
+    return (usipy_sip_msg_parse_hdrs_impl(mp, parsemask, toponly, matchp));
+}
+
+static int
+usipy_sip_msg_parse_hdrs_impl(struct usipy_msg *mp, uint64_t parsemask, int toponly,
+  struct usipy_sip_hdr_match *matchp)
+{
+    const uint64_t matchmask = parsemask;
+    uint64_t seenmask = 0;
     uint64_t topparsed = 0;
+    size_t nmatches = 0;
 
     if ((mp->hdr_masks.present & parsemask) != parsemask)
         return(-1);
+    if (matchp != NULL) {
+        matchp->nhdrs = 0;
+    }
     parsemask &= ~(mp->hdr_masks.parsed);
     for (int i = 0; i < mp->nhdrs; i++) {
         struct usipy_sip_hdr *shp = &mp->hdrs[i];
+        uint64_t hmask = USIPY_HFT_MASK(shp->hf_type->cantype);
+
+        if (matchp != NULL && USIPY_HF_ISMSET(matchmask, shp->hf_type->cantype) &&
+          (!toponly || !USIPY_HF_ISMSET(seenmask, shp->hf_type->cantype))) {
+            if (nmatches >= matchp->hdrslen)
+                return (-1);
+            matchp->hdrsp[nmatches] = shp;
+            nmatches++;
+            seenmask |= hmask;
+        }
         if (!USIPY_HF_ISMSET(parsemask, shp->hf_type->cantype)) {
             if (toponly && USIPY_HF_ISMSET(topparsed, shp->hf_type->cantype)) {
-                topparsed &= ~USIPY_HFT_MASK(shp->hf_type->cantype);
+                topparsed &= ~hmask;
             }
             continue;
         }
@@ -230,9 +281,12 @@ usipy_sip_msg_parse_hdrs(struct usipy_msg *mp, uint64_t parsemask, int toponly)
         if (shp->parsed.generic == NULL)
             return (-1);
         if (toponly) {
-            parsemask &= ~USIPY_HFT_MASK(shp->hf_type->cantype);
-            topparsed |= USIPY_HFT_MASK(shp->hf_type->cantype);
+            parsemask &= ~hmask;
+            topparsed |= hmask;
         }
+    }
+    if (matchp != NULL) {
+        matchp->nhdrs = nmatches;
     }
     if (toponly) {
        mp->hdr_masks.parsed |= topparsed;
@@ -299,6 +353,140 @@ usipy_sip_msg_get_tid(struct usipy_msg *mp, struct usipy_sip_tid *tp)
         return (-1);
     tp->hash = usipy_sip_tid_hash(tp);
     return (0);
+}
+
+static int
+usipy_sip_msg_build_cb(void *arg, char *buf, size_t len)
+{
+    const struct usipy_msg *mp = arg;
+    struct usipy_sip_msg_build_hdr_arg barg;
+    int clidx = -1;
+    int rval;
+    size_t off = 0;
+
+    rval = usipy_sip_msg_build_sline_cb(mp, buf + off, len - off);
+    if (rval < 0)
+        return (-1);
+    off += rval;
+    for (int i = 0; i < mp->nhdrs; i++) {
+        if (mp->hdrs[i].hf_type->cantype == USIPY_HF_CONTENTLENGTH) {
+            clidx = i;
+            continue;
+        }
+        barg.shp = &mp->hdrs[i];
+        rval = usipy_sip_msg_build_hdr_cb(&barg, buf + off, len - off);
+        if (rval < 0)
+            return (-1);
+        off += rval;
+    }
+    if (clidx != -1) {
+        barg.shp = &mp->hdrs[clidx];
+        rval = usipy_sip_msg_build_hdr_cb(&barg, buf + off, len - off);
+        if (rval < 0)
+            return (-1);
+        off += rval;
+    }
+    if (len - off < USIPY_CRLF_LEN)
+        return (-1);
+    memcpy(buf + off, USIPY_CRLF, USIPY_CRLF_LEN);
+    off += USIPY_CRLF_LEN;
+    if (mp->body.l > len - off)
+        return (-1);
+    if (mp->body.l != 0) {
+        memcpy(buf + off, mp->body.s.ro, mp->body.l);
+        off += mp->body.l;
+    }
+    return ((int)off);
+}
+
+static int
+usipy_sip_msg_build_sline_cb(const struct usipy_msg *mp, char *buf, size_t len)
+{
+    static const struct usipy_str sip20 = USIPY_2STR("SIP/2.0");
+    const struct usipy_str *vp;
+    size_t off = 0;
+    int rval;
+
+    switch (mp->kind) {
+    case USIPY_SIP_MSG_REQ:
+        USIPY_DASSERT(mp->sline.parsed.rl.method != NULL);
+        USIPY_DASSERT(mp->sline.parsed.rl.method->cantype != USIPY_SIP_METHOD_generic);
+        USIPY_DASSERT(mp->sline.parsed.rl.method->name.l != 0);
+        rval = snprintf(buf + off, len - off, "%.*s ",
+          USIPY_SFMT(&mp->sline.parsed.rl.method->name));
+        if (rval < 0 || (size_t)rval >= len - off) {
+            return (-1);
+        }
+        off += (size_t)rval;
+        if (mp->sline.parsed.rl.ruri != NULL) {
+            rval = usipy_sip_uri_build(mp->sline.parsed.rl.ruri, buf + off, len - off);
+        } else {
+            rval = snprintf(buf + off, len - off, "%.*s",
+              USIPY_SFMT(&mp->sline.parsed.rl.onwire.ruri));
+        }
+        if (rval < 0 || (size_t)rval >= len - off) {
+            return (-1);
+        }
+        off += (size_t)rval;
+        vp = &mp->sline.parsed.rl.version;
+        if (vp->l == 0) {
+            vp = &mp->sline.parsed.rl.onwire.version;
+        }
+        if (vp->l == 0) {
+            vp = &sip20;
+        }
+        rval = snprintf(buf + off, len - off, " %.*s\r\n", USIPY_SFMT(vp));
+        if (rval < 0 || (size_t)rval >= len - off) {
+            return (-1);
+        }
+        off += (size_t)rval;
+        return ((int)off);
+    case USIPY_SIP_MSG_RES:
+        rval = snprintf(buf, len, "%.*s %u %.*s\r\n",
+          USIPY_SFMT(&mp->sline.parsed.sl.version), mp->sline.parsed.sl.status.code,
+          USIPY_SFMT(&mp->sline.parsed.sl.status.reason_phrase));
+        break;
+    default:
+        return (-1);
+    }
+    if (rval < 0 || (size_t)rval >= len) {
+        return (-1);
+    }
+    return (rval);
+}
+
+static int
+usipy_sip_msg_build_hdr_cb(void *arg, char *buf, size_t len)
+{
+    static const struct usipy_str hsep = USIPY_2STR(": ");
+    const struct usipy_sip_msg_build_hdr_arg *barg = arg;
+    const struct usipy_sip_hdr *shp;
+    int rval;
+    size_t off = 0;
+
+    shp = barg->shp;
+    if (shp->hf_type == NULL || shp->hf_type->name.l + 2 + USIPY_CRLF_LEN > len) {
+        return (-1);
+    }
+    if (usipy_strbuf_append(&shp->hf_type->name, buf, len, &off) != 0 ||
+      usipy_strbuf_append(&hsep, buf, len, &off) != 0) {
+        return (-1);
+    }
+    if (shp->hf_type->build != NULL) {
+        rval = shp->hf_type->build(&shp->parsed, buf + off, len - off - USIPY_CRLF_LEN);
+    } else if (shp->parsed.generic != NULL) {
+        rval = usipy_sip_hdr_1token_build(&shp->parsed, buf + off, len - off - USIPY_CRLF_LEN);
+    } else {
+        USIPY_DASSERT(0);
+        return (-1);
+    }
+    if (rval < 0) {
+        return (-1);
+    }
+    off += rval;
+    memcpy(buf + off, USIPY_CRLF, USIPY_CRLF_LEN);
+    off += USIPY_CRLF_LEN;
+    return ((int)off);
 }
 
 struct crlfres {

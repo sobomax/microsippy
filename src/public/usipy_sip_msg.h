@@ -1,5 +1,23 @@
+#pragma once
+
+#include <stdint.h>
+
+#include "usipy_str.h"
+#include "usipy_msg_heap.h"
+#include "usipy_sip_sline.h"
+
 struct usipy_sip_hdr;
 struct usipy_sip_tid;
+
+struct usipy_sip_hdr_match {
+    size_t hdrslen;
+    size_t nhdrs;
+    const struct usipy_sip_hdr *hdrsp[];
+};
+
+#define USIPY_SIP_HDR_MATCH_SIZE(nhdrs) \
+  (sizeof(struct usipy_sip_hdr_match) + \
+  (sizeof(const struct usipy_sip_hdr *) * (nhdrs)))
 
 enum usipy_sip_msg_kind {
   USIPY_SIP_MSG_UNKN = -1,
@@ -41,8 +59,12 @@ struct usipy_msg_parse_err {
 struct usipy_msg *usipy_sip_msg_ctor_fromwire(const char *, size_t,
   struct usipy_msg_parse_err *);
 void usipy_sip_msg_dtor(struct usipy_msg *);
+int usipy_sip_msg_build(struct usipy_msg_heap *, struct usipy_msg *,
+  struct usipy_str *);
 void usipy_sip_msg_dump(const struct usipy_msg *, const char *);
 int usipy_sip_msg_parse_hdrs(struct usipy_msg *, uint64_t, int);
+int usipy_sip_msg_parse_hdrs_get(struct usipy_msg *, uint64_t, int,
+  struct usipy_sip_hdr_match *);
 int usipy_sip_msg_get_tid(struct usipy_msg *, struct usipy_sip_tid *);
 
 #define USIPY_HFT_MASK(hft) ((uint64_t)1 << (hft))

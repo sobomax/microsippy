@@ -1,3 +1,5 @@
+#pragma once
+
 struct usipy_str {
     union {
         const char *ro;

@@ -16,7 +16,7 @@ usipy_sip_req_parse_ruri(struct usipy_msg *mp)
     USIPY_DASSERT(mp->kind == USIPY_SIP_MSG_REQ);
 
     if (mp->sline.parsed.rl.ruri != NULL)
-        return (-1);
+        return (0);
 
     mp->sline.parsed.rl.ruri = usipy_sip_uri_parse(&mp->heap,
       &mp->sline.parsed.rl.onwire.ruri);

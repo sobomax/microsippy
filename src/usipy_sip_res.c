@@ -16,6 +16,8 @@
 #include "usipy_sip_hdr_db.h"
 #include "usipy_sip_res.h"
 
+#define USIPY_SIP_RES_RAW_SLOP 256u
+
 static void
 scode2str(unsigned int scode, char *res)
 {
@@ -87,7 +89,7 @@ usipy_sip_res_ctor_fromreq(const struct usipy_msg *reqp,
     const struct usipy_sip_request_line *rlin = &(reqp->sline.parsed.rl);
 
     {static int _b1=0; while (_b1);}
-    tlen = sizeof(struct usipy_msg) + (reqp->heap.first +
+    tlen = sizeof(struct usipy_msg) + USIPY_SIP_RES_RAW_SLOP + (reqp->heap.first +
       reqp->heap.tsize) - (void *)&(reqp->_storage[0]);
     rp = malloc(tlen);
     if (rp == NULL) {
@@ -98,16 +100,22 @@ usipy_sip_res_ctor_fromreq(const struct usipy_msg *reqp,
     rp->kind = USIPY_SIP_MSG_RES;
     char *cp;
     struct usipy_sip_status_line *slout = &(rp->sline.parsed.sl);
+    const struct usipy_str *vp;
     cp = rp->onwire.s.rw = &(rp->_storage[0]);
 
-    void *heapstart = rp->_storage + reqp->onwire.l;
-    size_t heapsize = tlen - offsetof(typeof(*rp), _storage) - reqp->onwire.l;
-    usipy_msg_heap_init(&rp->heap, heapstart, heapsize);
+    void *heapstart = rp->_storage + reqp->onwire.l + USIPY_SIP_RES_RAW_SLOP;
+    size_t heapsize = tlen - offsetof(typeof(*rp), _storage) - reqp->onwire.l -
+      USIPY_SIP_RES_RAW_SLOP;
+    usipy_msg_heap_init(&rp->heap, heapstart, heapsize, NULL, 0);
 
+    vp = &rlin->version;
+    if (vp->l == 0) {
+        vp = &rlin->onwire.version;
+    }
     slout->version.s.rw = cp;
-    memcpy(cp, rlin->onwire.version.s.ro, rlin->onwire.version.l);
-    slout->version.l = rlin->onwire.version.l;
-    cp += rlin->onwire.version.l;
+    memcpy(cp, vp->s.ro, vp->l);
+    slout->version.l = vp->l;
+    cp += vp->l;
     cp[0] = ' ';
     cp += 1;
     scode2str(slp->code, cp);

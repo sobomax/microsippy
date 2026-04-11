@@ -1,5 +1,6 @@
 #include <stdint.h>
 #include <stdlib.h>
+#include <stdio.h>
 #include <string.h>
 
 #include "usipy_port/log.h"
@@ -87,9 +88,58 @@ usipy_sip_hdr_via_parse(struct usipy_msg_heap *mhp,
 
     return (usp);
 rollback:
-    usipy_msg_heap_rollback(mhp, &cnt);
+    usipy_msg_heap_cnt_rollback(mhp, &cnt);
     usp.via = NULL;
     return (usp);
+}
+
+int
+usipy_sip_hdr_via_build(const union usipy_sip_hdr_parsed *up, char *buf, size_t len)
+{
+    const struct usipy_sip_hdr_via *vp = up->via;
+    size_t off = 0;
+
+    USIPY_DASSERT(vp != NULL);
+#define APPEND_STR(sp) do { \
+        if (off + (sp)->l > len) return (-1); \
+        memcpy(buf + off, (sp)->s.ro, (sp)->l); \
+        off += (sp)->l; \
+    } while (0)
+#define APPEND_CH(ch) do { \
+        if (off + 1 > len) return (-1); \
+        buf[off++] = (ch); \
+    } while (0)
+    APPEND_STR(&vp->sent_protocol.name);
+    APPEND_CH('/');
+    APPEND_STR(&vp->sent_protocol.version);
+    APPEND_CH('/');
+    APPEND_STR(&vp->sent_protocol.transport);
+    APPEND_CH(' ');
+    APPEND_STR(&vp->sent_by.host);
+    if (vp->sent_by.port != 0) {
+        int rval;
+
+        APPEND_CH(':');
+        rval = snprintf(buf + off, len - off, "%u", vp->sent_by.port);
+        if (rval < 0 || (size_t)rval >= len - off) {
+            return (-1);
+        }
+        off += rval;
+    }
+    for (int i = 0; i < vp->nparams; i++) {
+        const struct usipy_tvpair *pp = &vp->params[i];
+
+        APPEND_CH(';');
+        APPEND_STR(&pp->token);
+        if (pp->value.l == 0) {
+            continue;
+        }
+        APPEND_CH('=');
+        APPEND_STR(&pp->value);
+    }
+#undef APPEND_CH
+#undef APPEND_STR
+    return ((int)off);
 }
 
 void

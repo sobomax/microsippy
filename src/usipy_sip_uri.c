@@ -1,5 +1,6 @@
 #include <stdint.h>
 #include <stdlib.h>
+#include <stdio.h>
 #include <string.h>
 
 #include "usipy_port/log.h"
@@ -9,6 +10,7 @@
 #include "usipy_msg_heap_rb.h"
 #include "usipy_msg_heap_inl.h"
 #include "public/usipy_str.h"
+#include "usipy_misc.h"
 #include "usipy_tvpair.h"
 #include "usipy_sip_uri.h"
 
@@ -106,8 +108,77 @@ usipy_sip_uri_parse(struct usipy_msg_heap *mhp, const struct usipy_str *surip)
 
     return (up);
 rollback:
-    usipy_msg_heap_rollback(mhp, &cnt);
+    usipy_msg_heap_cnt_rollback(mhp, &cnt);
     return (NULL);
+}
+
+int
+usipy_sip_uri_build(const struct usipy_sip_uri *up, char *buf, size_t len)
+{
+    static const struct usipy_str semi = USIPY_2STR(";");
+    static const struct usipy_str eq = USIPY_2STR("=");
+    static const struct usipy_str qmark = USIPY_2STR("?");
+    static const struct usipy_str amp = USIPY_2STR("&");
+    static const struct usipy_str colon = USIPY_2STR(":");
+    size_t off = 0;
+    int rval;
+
+    USIPY_DASSERT(up != NULL);
+    USIPY_DASSERT(buf != NULL);
+
+    if (usipy_strbuf_append_pair(&up->proto, &colon, buf, len, &off) != 0) {
+        return (-1);
+    }
+    if (up->user.l != 0) {
+        if (usipy_strbuf_append(&up->user, buf, len, &off) != 0) {
+            return (-1);
+        }
+        if (up->password.l != 0) {
+            if (usipy_strbuf_append_pair(&colon, &up->password, buf, len,
+              &off) != 0) {
+                return (-1);
+            }
+        }
+        if (len - off < 1) {
+            return (-1);
+        }
+        buf[off++] = '@';
+    }
+    if (usipy_strbuf_append(&up->host, buf, len, &off) != 0) {
+        return (-1);
+    }
+    if (up->port != 0) {
+        rval = snprintf(buf + off, len - off, ":%u", up->port);
+        if (rval < 0 || (size_t)rval >= len - off) {
+            return (-1);
+        }
+        off += (size_t)rval;
+    }
+    for (int i = 0; i < up->nparams; i++) {
+        if (usipy_strbuf_append_pair(&semi, &up->parameters[i].token, buf,
+          len, &off) != 0) {
+            return (-1);
+        }
+        if (up->parameters[i].value.l != 0) {
+            if (usipy_strbuf_append_pair(&eq, &up->parameters[i].value,
+              buf, len, &off) != 0) {
+                return (-1);
+            }
+        }
+    }
+    for (int i = 0; i < up->nhdrs; i++) {
+        if (usipy_strbuf_append_pair(i == 0 ? &qmark : &amp,
+          &up->headers[i].token, buf, len, &off) != 0) {
+            return (-1);
+        }
+        if (up->headers[i].value.l != 0) {
+            if (usipy_strbuf_append_pair(&eq, &up->headers[i].value,
+              buf, len, &off) != 0) {
+                return (-1);
+            }
+        }
+    }
+    return ((int)off);
 }
 
 void
