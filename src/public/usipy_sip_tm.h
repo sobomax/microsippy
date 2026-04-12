@@ -63,6 +63,12 @@ enum usipy_sip_tm_error {
     USIPY_SIP_TM_ERR_NOSPC = -7
 };
 
+enum usipy_sip_tm_uac_timeout_id {
+    USIPY_SIP_TM_TIMEOUT_NONE = 0,
+    USIPY_SIP_TM_TIMEOUT_PR,
+    USIPY_SIP_TM_TIMEOUT_FR
+};
+
 enum usipy_sip_tm_timer_kind {
     USIPY_SIP_TM_TIMER_NONE = 0,
     USIPY_SIP_TM_TIMER_A,
@@ -128,17 +134,8 @@ struct usipy_sip_tm_timer_policy {
 #define USIPY_SIP_TM_F_RELIABLE_TRANSPORT 0x00000001u
 #define USIPY_SIP_TM_F_TERMINATED         0x00000002u
 
-#define USIPY_SIP_TM_MSG_INDEX_NONE ((size_t)-1)
 #define USIPY_SIP_TM_TX_INDEX_NONE  ((size_t)-1)
 #define USIPY_SIP_TM_TIME_NONE      UINT64_MAX
-
-struct usipy_sip_tm_msgbuf {
-    struct usipy_msg **items;
-    size_t nitems;
-    size_t capacity;
-    size_t request_index;
-    size_t response_index;
-};
 
 struct usipy_sip_tm_timer {
     enum usipy_sip_tm_timer_kind type;
@@ -155,7 +152,6 @@ struct usipy_sip_tm_outbound {
 struct usipy_sip_tm_common {
     uint32_t flags;
     struct usipy_sip_tm_id id;
-    struct usipy_sip_tm_msgbuf msgbuf;
     struct usipy_sip_tm_addr peer;
     struct usipy_sip_tm_addr local;
     struct usipy_sip_tm_outbound outbound;
@@ -193,7 +189,7 @@ typedef int (*usipy_sip_tm_send_to_cb)(void *, size_t,
 typedef void (*usipy_sip_tm_uac_response_cb)(void *, size_t,
   const struct usipy_sip_tm_tx *, const struct usipy_msg *);
 typedef void (*usipy_sip_tm_uac_timeout_cb)(void *, size_t,
-  const struct usipy_sip_tm_tx *);
+  const struct usipy_sip_tm_tx *, enum usipy_sip_tm_uac_timeout_id);
 
 struct usipy_sip_tm_uac_callbacks {
     void *arg;
@@ -248,6 +244,7 @@ struct usipy_sip_tm_new_transaction_params {
     struct usipy_str from_username;
     struct usipy_str to_username;
     uint32_t contact_expires;
+    uint32_t invite_expires;
     struct usipy_sip_tm_uac_callbacks callbacks;
 };
 
@@ -262,7 +259,6 @@ struct usipy_sip_tm_handle_incoming_in {
     uint64_t now_ms;
     struct usipy_sip_tm *tm;
     struct usipy_sip_tm_timer_policy timers;
-    size_t new_tx_msgbuf_capacity;
     struct usipy_sip_tm_addr peer;
     struct usipy_sip_tm_addr local;
     const char *buf;
@@ -275,7 +271,6 @@ struct usipy_sip_tm_handle_incoming_out {
     enum usipy_sip_tm_match_kind match_kind;
     enum usipy_sip_tm_event event;
     size_t transaction_index;
-    size_t message_index;
     struct usipy_msg *message;
 };
 
@@ -318,11 +313,9 @@ int usipy_sip_tm_gen_authz_hf(const struct usipy_sip_tm *, size_t, uint8_t,
   const struct usipy_str *, struct usipy_sip_tm_extra_header *);
 int usipy_sip_tm_next_transaction(struct usipy_sip_tm *, size_t,
   const struct usipy_sip_tm_extra_header *, size_t);
+int usipy_sip_tm_cancel(struct usipy_sip_tm *, size_t);
 int usipy_sip_tm_run(struct usipy_sip_tm_run_in *,
   struct usipy_sip_tm_run_out *);
-const struct usipy_msg *usipy_sip_tm_tx_get_msg(const struct usipy_sip_tm_tx *,
-  size_t);
-const struct usipy_msg *usipy_sip_tm_tx_response(const struct usipy_sip_tm_tx *);
 
 int usipy_sip_tm_handle_incoming(const struct usipy_sip_tm_handle_incoming_in *,
   struct usipy_sip_tm_handle_incoming_out *);

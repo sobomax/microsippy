@@ -10,13 +10,13 @@ include (TestBigEndian)
 TEST_BIG_ENDIAN(IS_BIG_ENDIAN)
 
 add_executable(usipy_test "usipy_test.c" "usipy_stdout_watch.c")
-add_executable(usipy_test_uac_register "usipy_test_uac_register.c" "usipy_tm_uac.c")
+add_executable(usipy_test_uac "usipy_test_uac.c" "usipy_tm_uac.c")
 add_executable(usipy_register_cli "usipy_register_cli.c" "usipy_tm_uac.c")
 add_subdirectory(../../src microsippy)
 target_include_directories(usipy_test PUBLIC
   ${CMAKE_CURRENT_SOURCE_DIR}/../../src
 )
-target_include_directories(usipy_test_uac_register PUBLIC
+target_include_directories(usipy_test_uac PUBLIC
   ${CMAKE_CURRENT_SOURCE_DIR}/../../src
 )
 target_include_directories(usipy_register_cli PUBLIC
@@ -30,7 +30,7 @@ target_link_libraries(usipy_test PRIVATE
   microsippy
   ${CMAKE_THREAD_LIBS_INIT}
 )
-target_link_libraries(usipy_test_uac_register PRIVATE
+target_link_libraries(usipy_test_uac PRIVATE
   microsippy
 )
 target_link_libraries(usipy_register_cli PRIVATE
@@ -40,7 +40,7 @@ target_link_libraries(usipy_register_cli PRIVATE
 set(POSIX_TARGETS
   microsippy
   usipy_test
-  usipy_test_uac_register
+  usipy_test_uac
   usipy_register_cli
 )
 
@@ -60,12 +60,12 @@ endforeach()
 IF (IS_BIG_ENDIAN)
     target_compile_definitions(microsippy PRIVATE -DUSIPY_BIGENDIAN=1)
     target_compile_definitions(usipy_test PRIVATE -DUSIPY_BIGENDIAN=1)
-    target_compile_definitions(usipy_test_uac_register PRIVATE -DUSIPY_BIGENDIAN=1)
+    target_compile_definitions(usipy_test_uac PRIVATE -DUSIPY_BIGENDIAN=1)
     target_compile_definitions(usipy_register_cli PRIVATE -DUSIPY_BIGENDIAN=1)
 ELSE (IS_BIG_ENDIAN)
     target_compile_definitions(microsippy PRIVATE -DUSIPY_BIGENDIAN=0)
     target_compile_definitions(usipy_test PRIVATE -DUSIPY_BIGENDIAN=0)
-    target_compile_definitions(usipy_test_uac_register PRIVATE -DUSIPY_BIGENDIAN=0)
+    target_compile_definitions(usipy_test_uac PRIVATE -DUSIPY_BIGENDIAN=0)
     target_compile_definitions(usipy_register_cli PRIVATE -DUSIPY_BIGENDIAN=0)
 ENDIF (IS_BIG_ENDIAN)
 

@@ -231,8 +231,10 @@ usipy_tm_uac_production_id_policy(void *arg, struct usipy_msg_heap *mhp,
       USIPY_TM_UAC_ID_SEED_HEXLEN, idsp->branch_seed) != 0) {
         return (-1);
     }
-    if (usipy_msg_heap_sprintf(mhp, &outp->local_tag, "%.*s",
-      USIPY_TM_UAC_ID_SEED_HEXLEN, idsp->local_tag) != 0) {
+    if (usipy_msg_heap_append(mhp, &outp->local_tag, &(struct usipy_str){
+      .s.ro = idsp->local_tag,
+      .l = USIPY_TM_UAC_ID_SEED_HEXLEN,
+    }) != 0) {
         return (-1);
     }
     return (0);

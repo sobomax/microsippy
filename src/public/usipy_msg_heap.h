@@ -20,6 +20,8 @@ void *usipy_msg_heap_alloc(struct usipy_msg_heap *, size_t);
 void usipy_msg_heap_init(struct usipy_msg_heap *, void *, size_t, size_t *, size_t);
 size_t usipy_msg_heap_checkpoint(struct usipy_msg_heap *);
 void usipy_msg_heap_rollback(struct usipy_msg_heap *, size_t);
+int usipy_msg_heap_append(struct usipy_msg_heap *, struct usipy_str *,
+  const struct usipy_str *);
 int usipy_msg_heap_build(struct usipy_msg_heap *, struct usipy_str *, void *,
   usipy_msg_heap_build_cb);
 int usipy_msg_heap_sprintf(struct usipy_msg_heap *, struct usipy_str *,

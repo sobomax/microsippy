@@ -163,12 +163,14 @@ register_response(void *arg, size_t tx_index, const struct usipy_sip_tm_tx *txp,
 }
 
 static void
-register_timeout(void *arg, size_t tx_index, const struct usipy_sip_tm_tx *txp)
+register_timeout(void *arg, size_t tx_index, const struct usipy_sip_tm_tx *txp,
+  enum usipy_sip_tm_uac_timeout_id timeout_id)
 {
     struct usipy_register_cli_ctx *ctx = arg;
 
     (void)tx_index;
     (void)txp;
+    (void)timeout_id;
     ctx->error = 1;
     ctx->stop = 1;
 }
@@ -177,8 +179,6 @@ int
 main(int argc, char **argv)
 {
     enum usipy_register_cli_id_mode id_mode = USIPY_REGISTER_CLI_ID_PRODUCTION;
-    const struct usipy_sip_tm_timer_policy timer_policy =
-      USIPY_SIP_TM_TIMER_POLICY_RFC3261;
     struct usipy_tm_uac_production_ids production_ids = {0};
     struct usipy_sip_tm_ctor_params tm_ctorp = {
       .transport = USIPY_SIP_TM_TRANSPORT_UDP,
@@ -342,11 +342,6 @@ main(int argc, char **argv)
     tp.callbacks.timeout = register_timeout;
     if (usipy_sip_tm_new_transaction(ctx.tm, &tp, &tx_index) != USIPY_SIP_TM_OK) {
         fprintf(stderr, "unable to create SIP transaction\n");
-        goto done;
-    }
-    if (usipy_sip_tm_set_timer_policy(ctx.tm, tx_index, &timer_policy) !=
-      USIPY_SIP_TM_OK) {
-        fprintf(stderr, "unable to configure SIP transaction timers\n");
         goto done;
     }
     txp = usipy_sip_tm_get_transaction(ctx.tm, tx_index);

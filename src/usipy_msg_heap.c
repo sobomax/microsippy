@@ -10,19 +10,28 @@
 #include "public/usipy_str.h"
 #include "usipy_msg_heap_rb.h"
 
+static void *
+usipy_msg_heap_reserve(struct usipy_msg_heap *hp, size_t len, int align_start)
+{
+    size_t off, total;
+
+    USIPY_DASSERT(hp != NULL);
+
+    off = hp->alen;
+    if (align_start) {
+        off = USIPY_ALIGNED_SIZE(off);
+    }
+    total = (off - hp->alen) + len;
+    if (usipy_msg_heap_remaining(hp) < total)
+        return (NULL);
+    hp->alen = off + len;
+    return ((char *)hp->first + off);
+}
+
 void *
 usipy_msg_heap_alloc(struct usipy_msg_heap *hp, size_t len)
 {
-    size_t currfree, alen;
-    void *rp;
-
-    alen = USIPY_ALIGNED_SIZE(len);
-    currfree = usipy_msg_heap_remaining(hp);
-    if (currfree < alen)
-        return (NULL);
-    rp = hp->first + hp->alen;
-    hp->alen += alen;
-    return (rp);
+    return (usipy_msg_heap_reserve(hp, USIPY_ALIGNED_SIZE(len), 1));
 }
 
 void
@@ -74,10 +83,35 @@ usipy_msg_heap_rollback(struct usipy_msg_heap *hp, size_t checkpoint_index)
 }
 
 int
+usipy_msg_heap_append(struct usipy_msg_heap *hp, struct usipy_str *dstp,
+  const struct usipy_str *srcp)
+{
+    char *bp;
+
+    USIPY_DASSERT(hp != NULL);
+    USIPY_DASSERT(dstp != NULL);
+    USIPY_DASSERT(srcp != NULL);
+
+    if (srcp->l == 0) {
+        *dstp = USIPY_STR_NULL;
+        return (0);
+    }
+    bp = usipy_msg_heap_reserve(hp, srcp->l, 0);
+    if (bp == NULL) {
+        return (-1);
+    }
+    memcpy(bp, srcp->s.ro, srcp->l);
+    dstp->s.ro = bp;
+    dstp->l = srcp->l;
+    return (0);
+}
+
+int
 usipy_msg_heap_build(struct usipy_msg_heap *hp, struct usipy_str *sp, void *arg,
   usipy_msg_heap_build_cb cb)
 {
-    const size_t currfree = usipy_msg_heap_remaining(hp);
+    const size_t off = USIPY_ALIGNED_SIZE(hp->alen);
+    const size_t currfree = hp->tsize - off;
     char *bp;
     size_t alen;
     int blen;
@@ -89,16 +123,16 @@ usipy_msg_heap_build(struct usipy_msg_heap *hp, struct usipy_str *sp, void *arg,
     if (currfree == 0) {
         return (-1);
     }
-    bp = (char *)hp->first + hp->alen;
+    bp = (char *)hp->first + off;
     blen = cb(arg, bp, currfree);
     if (blen < 0) {
         return (-1);
     }
     alen = USIPY_ALIGNED_SIZE((size_t)blen);
-    if (alen > currfree) {
+    bp = usipy_msg_heap_reserve(hp, alen, 1);
+    if (bp == NULL) {
         return (-1);
     }
-    hp->alen += alen;
     sp->s.ro = bp;
     sp->l = (size_t)blen;
     return (0);
@@ -110,7 +144,6 @@ usipy_msg_heap_vsprintf(struct usipy_msg_heap *hp, struct usipy_str *sp,
 {
     const size_t currfree = usipy_msg_heap_remaining(hp);
     const char *bp;
-    size_t alen;
     int plen;
 
     USIPY_DASSERT(hp != NULL);
@@ -125,11 +158,10 @@ usipy_msg_heap_vsprintf(struct usipy_msg_heap *hp, struct usipy_str *sp,
     if (plen < 0 || (size_t)plen >= currfree) {
         return (-1);
     }
-    alen = USIPY_ALIGNED_SIZE((size_t)plen + 1);
-    if (alen > currfree) {
+    bp = usipy_msg_heap_reserve(hp, (size_t)plen + 1, 0);
+    if (bp == NULL) {
         return (-1);
     }
-    hp->alen += alen;
     sp->s.ro = bp;
     sp->l = (size_t)plen;
     return (0);
