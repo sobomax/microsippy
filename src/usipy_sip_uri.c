@@ -29,6 +29,7 @@ usipy_sip_uri_parse(struct usipy_msg_heap *mhp, const struct usipy_str *surip)
     if (up == NULL) {
         return (NULL);
     }
+    *up = (struct usipy_sip_uri){0};
     iup = *surip;
     if (usipy_str_split_elem_nlws(&iup, ':', &up->proto) != 0)
         goto rollback;

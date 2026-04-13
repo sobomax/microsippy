@@ -200,14 +200,12 @@ main(int argc, char **argv)
     size_t tx_index = USIPY_SIP_TM_TX_INDEX_NONE;
     char uri_host[INET6_ADDRSTRLEN + 2];
     char request_uri_buf[128];
-    char aor_uri_buf[160];
     char debug_call_id[96];
     char rxbuf[2048];
     const char *server_ip;
     const char *username;
     const char *password;
     struct usipy_str request_uri;
-    struct usipy_str aor_uri;
     struct usipy_str call_id;
     uint32_t expires = 300;
     uint32_t timeout_ms = 0;
@@ -285,12 +283,6 @@ main(int argc, char **argv)
     }
     request_uri = (struct usipy_str){.s.ro = request_uri_buf,
       .l = (size_t)blen};
-    blen = snprintf(aor_uri_buf, sizeof(aor_uri_buf), "sip:%s@%s", username, uri_host);
-    if (blen < 0 || (size_t)blen >= sizeof(aor_uri_buf)) {
-        fprintf(stderr, "unable to format AOR\n");
-        return (1);
-    }
-    aor_uri = (struct usipy_str){.s.ro = aor_uri_buf, .l = (size_t)blen};
     ctx.username = (struct usipy_str){.s.ro = username, .l = strlen(username)};
     ctx.password = (struct usipy_str){.s.ro = password, .l = strlen(password)};
 
@@ -328,14 +320,14 @@ main(int argc, char **argv)
         fprintf(stderr, "unable to initialize SIP TM\n");
         goto done;
     }
-    tp.call_id = call_id;
-    tp.cseq = 1;
-    tp.method_type = USIPY_SIP_METHOD_REGISTER;
-    tp.request_uri = request_uri;
-    tp.target = ctx.peer;
-    tp.from_uri = aor_uri;
-    tp.to_uri = aor_uri;
-    tp.contact_username = ctx.username;
+    tp.request_id.call_id = call_id;
+    tp.request_id.cseq = 1;
+    tp.request_id.method_type = USIPY_SIP_METHOD_REGISTER;
+    tp.request_target.request_uri = request_uri;
+    tp.request_target.target = ctx.peer;
+    tp.parties_by_username.from = ctx.username;
+    tp.parties_by_username.to = ctx.username;
+    tp.parties_by_username.contact = ctx.username;
     tp.contact_expires = expires;
     tp.callbacks.arg = &ctx;
     tp.callbacks.response = register_response;

@@ -231,20 +231,50 @@ struct usipy_sip_tm_extra_header {
     const void *parsed;
 };
 
-struct usipy_sip_tm_new_transaction_params {
+struct usipy_sip_tm_request_id {
     struct usipy_str call_id;
     uint32_t cseq;
     uint8_t method_type;
+    uint8_t _pad0[3];
+};
+
+struct usipy_sip_tm_request_target {
     struct usipy_str request_uri;
     struct usipy_sip_tm_addr target;
-    struct usipy_str contact_uri;
-    struct usipy_str from_uri;
-    struct usipy_str to_uri;
-    struct usipy_str contact_username;
-    struct usipy_str from_username;
-    struct usipy_str to_username;
+};
+
+struct usipy_sip_tm_request_parties {
+    struct usipy_str contact;
+    struct usipy_str from;
+    struct usipy_str to;
+};
+
+struct usipy_sip_tm_route_set {
+    const struct usipy_str *routes;
+    size_t nroutes;
+};
+
+struct usipy_sip_tm_dialog_tags {
+    struct usipy_str local_tag;
+    struct usipy_str remote_tag;
+};
+
+struct usipy_sip_tm_new_transaction_params {
+    struct usipy_sip_tm_request_id request_id;
+    struct usipy_sip_tm_request_target request_target;
+    struct usipy_sip_tm_request_parties parties_by_username;
     uint32_t contact_expires;
     uint32_t invite_expires;
+    struct usipy_sip_tm_uac_callbacks callbacks;
+};
+
+struct usipy_sip_tm_new_in_dialog_transaction_params {
+    struct usipy_sip_tm_request_id request_id;
+    struct usipy_sip_tm_request_target request_target;
+    struct usipy_sip_tm_request_parties parties_by_uri;
+    struct usipy_sip_tm_route_set route_set;
+    struct usipy_sip_tm_dialog_tags dialog_tags;
+    struct usipy_sip_tm_timer_policy timers;
     struct usipy_sip_tm_uac_callbacks callbacks;
 };
 
@@ -307,6 +337,8 @@ int usipy_sip_tm_set_timer_policy(struct usipy_sip_tm *, size_t,
 
 int usipy_sip_tm_new_transaction(struct usipy_sip_tm *,
   const struct usipy_sip_tm_new_transaction_params *, size_t *);
+int usipy_sip_tm_new_in_dialog_transaction(struct usipy_sip_tm *,
+  const struct usipy_sip_tm_new_in_dialog_transaction_params *, size_t *);
 int usipy_sip_tm_gen_authz_hf(const struct usipy_sip_tm *, size_t, uint8_t,
   struct usipy_msg_heap *, const struct usipy_sip_hdr_auth *,
   const struct usipy_str *, const struct usipy_str *, const struct usipy_str *,

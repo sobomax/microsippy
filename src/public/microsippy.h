@@ -8,5 +8,6 @@
 #include "usipy_sip_method_types.h"
 #include "usipy_sip_msg.h"
 #include "usipy_sip_tm.h"
+#include "usipy_sip_dialog.h"
 
 #endif
