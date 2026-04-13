@@ -16,8 +16,6 @@
 #include "usipy_sip_hdr_db.h"
 #include "usipy_sip_res.h"
 
-#define USIPY_SIP_RES_RAW_SLOP 256u
-
 static void
 scode2str(unsigned int scode, char *res)
 {
@@ -58,6 +56,78 @@ static const struct {
     .append_hdrs = append_hdrs
 };
 
+static size_t
+usipy_sip_res_to_tag_extra(const struct usipy_str *tagp)
+{
+    return (tagp != NULL && tagp->l != 0 ? sizeof(";tag=") - 1 + tagp->l : 0);
+}
+
+static size_t
+usipy_sip_res_append_raw_size(void)
+{
+    size_t raw_len;
+
+    raw_len = USIPY_CRLF_LEN;
+    for (int i = 0; append_hdrs[i].value.l != 0; i++) {
+        const struct append_hdr *ahp = &append_hdrs[i];
+        const struct usipy_hdr_db_entr *hfp = usipy_hdr_db_byid(ahp->type);
+
+        USIPY_DASSERT(hfp != NULL);
+        raw_len += hfp->name.l + sizeof(": ") - 1 + ahp->value.l + USIPY_CRLF_LEN;
+    }
+    return (raw_len);
+}
+
+static int
+usipy_sip_res_alloc_extra_hdr_space(size_t *spacep)
+{
+    size_t extra_hdr_space;
+
+    USIPY_DASSERT(spacep != NULL);
+
+    extra_hdr_space = 0;
+    for (int i = 0; append_hdrs[i].value.l != 0; i++) {
+        extra_hdr_space += sizeof(struct usipy_sip_hdr);
+    }
+    *spacep = USIPY_ALIGNED_SIZE(extra_hdr_space);
+    return (0);
+}
+
+static int
+usipy_sip_res_alloc_size_build(const struct usipy_msg *reqp, const struct usipy_str *tagp,
+  size_t *raw_spacep, size_t *heap_spacep)
+{
+    size_t raw_len, extra_hdr_space;
+
+    USIPY_DASSERT(reqp != NULL);
+    USIPY_DASSERT(raw_spacep != NULL);
+    USIPY_DASSERT(heap_spacep != NULL);
+
+    raw_len = reqp->onwire.l + usipy_sip_res_append_raw_size() +
+      usipy_sip_res_to_tag_extra(tagp);
+    usipy_sip_res_alloc_extra_hdr_space(&extra_hdr_space);
+    *raw_spacep = USIPY_ALIGNED_SIZE(raw_len);
+    *heap_spacep = USIPY_ALIGNED_SIZE(sizeof(struct usipy_sip_hdr) * reqp->nhdrs) +
+      extra_hdr_space;
+    return (sizeof(struct usipy_msg) + *raw_spacep + *heap_spacep);
+}
+
+static int
+usipy_sip_res_alloc_size_ctor(const struct usipy_msg *reqp, const struct usipy_str *tagp,
+  size_t *raw_spacep, size_t *heap_spacep)
+{
+    size_t extra_hdr_space;
+
+    USIPY_DASSERT(reqp != NULL);
+    USIPY_DASSERT(raw_spacep != NULL);
+    USIPY_DASSERT(heap_spacep != NULL);
+
+    usipy_sip_res_alloc_size_build(reqp, tagp, raw_spacep, heap_spacep);
+    usipy_sip_res_alloc_extra_hdr_space(&extra_hdr_space);
+    *heap_spacep = USIPY_ALIGNED_SIZE(reqp->heap.tsize + extra_hdr_space + *raw_spacep);
+    return (sizeof(struct usipy_msg) + *raw_spacep + *heap_spacep);
+}
+
 static struct usipy_sip_hdr *
 get_next_ohp(struct usipy_msg *rp, struct usipy_msg_heap_cnt *cnp)
 {
@@ -77,21 +147,45 @@ get_next_ohp(struct usipy_msg *rp, struct usipy_msg_heap_cnt *cnp)
     return (&(rp->hdrs[rp->nhdrs - 1]));
 }
 
+static void
+usipy_sip_res_compact(struct usipy_msg *rp, struct usipy_msg_heap_cnt *mcnt,
+  struct usipy_msg_heap *hp, size_t raw_space)
+{
+    char *new_heapstart;
+    ptrdiff_t doff;
+
+    USIPY_DASSERT(rp != NULL);
+    USIPY_DASSERT(mcnt != NULL);
+    USIPY_DASSERT(hp != NULL);
+    USIPY_DASSERT(raw_space >= USIPY_ALIGNED_SIZE(rp->onwire.l));
+
+    new_heapstart = rp->_storage + USIPY_ALIGNED_SIZE(rp->onwire.l);
+    doff = (char *)rp->heap.first - new_heapstart;
+    if (doff > 0 && rp->heap.alen != 0) {
+        memmove(new_heapstart, rp->heap.first, rp->heap.alen);
+        if (rp->hdrs != NULL) {
+            rp->hdrs = (struct usipy_sip_hdr *)((char *)rp->hdrs - doff);
+        }
+    }
+    rp->heap.first = new_heapstart;
+    usipy_msg_heap_cnt_reclaim(hp, mcnt, offsetof(struct usipy_msg, _storage) +
+      USIPY_ALIGNED_SIZE(rp->onwire.l) + rp->heap.tsize);
+}
+
 struct usipy_msg *
-usipy_sip_res_ctor_fromreq(const struct usipy_msg *reqp,
-  const struct usipy_sip_status *slp)
+usipy_sip_res_build_fromreq_tagged_sz(struct usipy_msg_heap *hp,
+  const struct usipy_msg *reqp, const struct usipy_sip_status *slp,
+  const struct usipy_str *tagp, size_t raw_space, size_t heap_space, int compact)
 {
     uint64_t copyfirst = res_tmpl.copyfirst;
     uint64_t copyall = res_tmpl.copyall;
-    size_t tlen;
-    int nhdrs;
     struct usipy_msg *rp;
+    struct usipy_msg_heap_cnt mcnt;
     const struct usipy_sip_request_line *rlin = &(reqp->sline.parsed.rl);
+    const size_t total_size = sizeof(struct usipy_msg) + raw_space + heap_space;
 
-    {static int _b1=0; while (_b1);}
-    tlen = sizeof(struct usipy_msg) + USIPY_SIP_RES_RAW_SLOP + (reqp->heap.first +
-      reqp->heap.tsize) - (void *)&(reqp->_storage[0]);
-    rp = malloc(tlen);
+    USIPY_DASSERT(hp != NULL);
+    rp = usipy_msg_heap_alloc_cnt(hp, total_size, &mcnt);
     if (rp == NULL) {
         return (NULL);
     }
@@ -103,9 +197,8 @@ usipy_sip_res_ctor_fromreq(const struct usipy_msg *reqp,
     const struct usipy_str *vp;
     cp = rp->onwire.s.rw = &(rp->_storage[0]);
 
-    void *heapstart = rp->_storage + reqp->onwire.l + USIPY_SIP_RES_RAW_SLOP;
-    size_t heapsize = tlen - offsetof(typeof(*rp), _storage) - reqp->onwire.l -
-      USIPY_SIP_RES_RAW_SLOP;
+    void *heapstart = rp->_storage + raw_space;
+    size_t heapsize = heap_space;
     usipy_msg_heap_init(&rp->heap, heapstart, heapsize, NULL, 0);
 
     vp = &rlin->version;
@@ -147,6 +240,13 @@ usipy_sip_res_ctor_fromreq(const struct usipy_msg *reqp,
             ohp->onwire.value.s.ro = cp;
             ohp->onwire.value.l = shp->onwire.value.l;
             cp += shp->onwire.value.l;
+            if (shp->hf_type->cantype == USIPY_HF_TO && tagp != NULL && tagp->l != 0) {
+                memcpy(cp, ";tag=", sizeof(";tag=") - 1);
+                cp += sizeof(";tag=") - 1;
+                memcpy(cp, tagp->s.ro, tagp->l);
+                cp += tagp->l;
+                ohp->onwire.value.l += sizeof(";tag=") - 1 + tagp->l;
+            }
             ohp->onwire.full.l = cp - ohp->onwire.full.s.ro;
             memcpy(cp, USIPY_CRLF, USIPY_CRLF_LEN);
             cp += USIPY_CRLF_LEN;
@@ -202,9 +302,49 @@ usipy_sip_res_ctor_fromreq(const struct usipy_msg *reqp,
     memcpy(cp, USIPY_CRLF, USIPY_CRLF_LEN);
     cp += USIPY_CRLF_LEN;
     rp->onwire.l = cp - rp->onwire.s.rw;
+    if (compact) {
+        usipy_sip_res_compact(rp, &mcnt, hp, raw_space);
+    }
 
     return (rp);
 e0:
-    free(rp);
+    usipy_msg_heap_cnt_rollback(hp, &mcnt);
     return (NULL);
+}
+
+struct usipy_msg *
+usipy_sip_res_ctor_fromreq(const struct usipy_msg *reqp,
+  const struct usipy_sip_status *slp)
+{
+    struct usipy_msg_heap hp;
+    struct usipy_msg *rp;
+    void *bp;
+    size_t raw_space, heap_space;
+    const size_t tlen = usipy_sip_res_alloc_size_ctor(reqp, NULL, &raw_space,
+      &heap_space);
+
+    bp = malloc(tlen);
+    if (bp == NULL) {
+        return (NULL);
+    }
+    usipy_msg_heap_init(&hp, bp, tlen, NULL, 0);
+    rp = usipy_sip_res_build_fromreq_tagged_sz(&hp, reqp, slp, NULL, raw_space,
+      heap_space, 0);
+    if (rp == NULL) {
+        free(bp);
+    }
+    return (rp);
+}
+
+struct usipy_msg *
+usipy_sip_res_build_fromreq_tagged(struct usipy_msg_heap *hp,
+  const struct usipy_msg *reqp, const struct usipy_sip_status *slp,
+  const struct usipy_str *tagp)
+{
+    size_t raw_space, heap_space;
+
+    USIPY_DASSERT(hp != NULL);
+    usipy_sip_res_alloc_size_build(reqp, tagp, &raw_space, &heap_space);
+    return (usipy_sip_res_build_fromreq_tagged_sz(hp, reqp, slp, tagp, raw_space,
+      heap_space, 1));
 }

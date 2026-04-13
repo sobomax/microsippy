@@ -130,3 +130,15 @@ lws_found:
     usipy_str_ltrm_b(ovp2);
     return (0);
 }
+
+int
+usipy_str_eq(const struct usipy_str *a, const struct usipy_str *b)
+{
+    if (a->l != b->l) {
+        return (0);
+    }
+    if (a->l == 0) {
+        return (1);
+    }
+    return (memcmp(a->s.ro, b->s.ro, a->l) == 0);
+}

@@ -49,6 +49,9 @@ static int usipy_sip_msg_build_sline_cb(const struct usipy_msg *, char *, size_t
 static int usipy_sip_msg_build_hdr_cb(void *, char *, size_t);
 static int usipy_sip_msg_parse_hdrs_impl(struct usipy_msg *, uint64_t, int,
   struct usipy_sip_hdr_match *);
+static size_t usipy_sip_msg_alloc_len(size_t);
+static int usipy_sip_msg_init_fromwire(struct usipy_msg *, size_t, const char *,
+  size_t, struct usipy_msg_parse_err *);
 
 #define HT_SIZEOF(nhdrs) (sizeof(struct usipy_sip_hdr) * ((nhdrs) + 1))
 
@@ -56,25 +59,71 @@ struct usipy_sip_msg_build_hdr_arg {
     const struct usipy_sip_hdr *shp;
 };
 
+static size_t
+usipy_sip_msg_alloc_len(size_t len)
+{
+    size_t hf_prealloclen;
+
+    hf_prealloclen = USIPY_ALIGNED_SIZE(len < (sizeof(struct usipy_sip_hdr) * USIPY_HFS_NMIN) ?
+      sizeof(struct usipy_sip_hdr) * USIPY_HFS_NMIN : len);
+    return (sizeof(struct usipy_msg) + USIPY_ALIGNED_SIZE(len) + hf_prealloclen);
+}
+
 struct usipy_msg *
 usipy_sip_msg_ctor_fromwire(const char *buf, size_t len,
   struct usipy_msg_parse_err *perrp)
 {
     struct usipy_msg *rp;
-    size_t alloc_len, hf_prealloclen;
-    uintptr_t ralgn;
-    struct usipy_sip_msg_iterator mit;
+    const size_t alloc_len = usipy_sip_msg_alloc_len(len);
 
-    hf_prealloclen = USIPY_ALIGNED_SIZE(len < (sizeof(struct usipy_sip_hdr) * USIPY_HFS_NMIN) ?
-      sizeof(struct usipy_sip_hdr) * USIPY_HFS_NMIN : len);
-    alloc_len = sizeof(struct usipy_msg) + USIPY_ALIGNED_SIZE(len) +
-      hf_prealloclen;
     rp = malloc(alloc_len);
     if (rp == NULL) {
         goto e0;
     }
+    if (usipy_sip_msg_init_fromwire(rp, alloc_len, buf, len, perrp) != 0) {
+        free(rp);
+        return (NULL);
+    }
+    return (rp);
+e0:
+    if (perrp != NULL)
+        perrp->erRNo = ENOMEM;
+    return (NULL);
+}
+
+struct usipy_msg *
+usipy_sip_msg_build_fromwire(struct usipy_msg_heap *hp, const char *buf, size_t len,
+  struct usipy_msg_parse_err *perrp)
+{
+    struct usipy_msg_heap_cnt cnt;
+    struct usipy_msg *rp;
+    const size_t alloc_len = usipy_sip_msg_alloc_len(len);
+
+    USIPY_DASSERT(hp != NULL);
+    memset(&cnt, '\0', sizeof(cnt));
+    rp = usipy_msg_heap_alloc_cnt(hp, alloc_len, &cnt);
+    if (rp == NULL) {
+        goto e0;
+    }
+    if (usipy_sip_msg_init_fromwire(rp, alloc_len, buf, len, perrp) != 0) {
+        usipy_msg_heap_cnt_rollback(hp, &cnt);
+        return (NULL);
+    }
+    return (rp);
+e0:
+    if (perrp != NULL)
+        perrp->erRNo = ENOMEM;
+    return (NULL);
+}
+
+static int
+usipy_sip_msg_init_fromwire(struct usipy_msg *rp, size_t alloc_len, const char *buf,
+  size_t len, struct usipy_msg_parse_err *perrp)
+{
+    struct usipy_sip_msg_iterator mit;
     void *heapstart = rp->_storage + len;
     size_t heapsize = alloc_len - offsetof(typeof(*rp), _storage) - len;
+
     memset(rp, '\0', alloc_len);
     memcpy(rp->_storage, buf, len);
     rp->onwire.s.rw = rp->_storage;
@@ -156,13 +205,11 @@ next_line:
             memcpy(rp->onwire.s.rw + mit.i, buf + mit.i, len - mit.i);
         }
     }
-    return (rp);
+    return (0);
 e1:
-    free(rp);
-e0:
     if (perrp != NULL)
         perrp->erRNo = ENOMEM;
-    return (NULL);
+    return (-1);
 }
 
 void

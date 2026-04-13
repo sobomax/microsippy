@@ -60,11 +60,16 @@ usipy_sip_hdr_cseq_build(const union usipy_sip_hdr_parsed *up, char *buf, size_t
       USIPY_SFMT(&csp->sname->name), csp->sname->cantype)
 
 void
+usipy_sip_hdr_cseq_dump1(const struct usipy_sip_hdr_cseq *csp, const char *log_tag,
+  const char *log_pref, const char *canname)
+{
+    DUMP_UINT(csp, val, canname);
+    DUMP_METHOD(method);
+}
+
+void
 usipy_sip_hdr_cseq_dump(const union usipy_sip_hdr_parsed *up, const char *log_tag,
   const char *log_pref, const char *canname)
 {
-    const struct usipy_sip_hdr_cseq *csp = up->cseq;
-
-    DUMP_UINT(csp, val, canname);
-    DUMP_METHOD(method);
+    usipy_sip_hdr_cseq_dump1(up->cseq, log_tag, log_pref, canname);
 }

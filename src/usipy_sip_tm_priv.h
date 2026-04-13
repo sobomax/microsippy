@@ -10,23 +10,42 @@
 #include "usipy_sip_hdr_via.h"
 #include "usipy_sip_uri.h"
 
-struct usipy_sip_tm_txcache {
-    struct usipy_str method_name;
+struct usipy_sip_tm_uac_cache {
     struct usipy_sip_uri *request_uri;
-    struct usipy_str call_id;
-    struct usipy_str branch;
-    struct usipy_str from_tag;
     struct usipy_str from_uri;
     struct usipy_str to_uri;
-    struct usipy_str to_tag;
     struct usipy_str contact_uri;
     struct usipy_str *routes;
     size_t nroutes;
     uint32_t contact_expires;
     uint32_t invite_expires;
-    struct usipy_sip_hdr_cseq cseq;
     uint8_t include_contact;
     uint8_t _pad0[3];
+};
+
+struct usipy_sip_tm_uas_cache {
+    struct usipy_str from;
+    struct usipy_str to;
+    struct usipy_str *vias;
+    struct usipy_str *record_routes;
+    uint32_t ack_hash;
+    uint32_t _pad0;
+    size_t nvias;
+    size_t nrecord_routes;
+};
+
+struct usipy_sip_tm_cache {
+    struct usipy_str call_id;
+    struct usipy_str branch;
+    struct usipy_str from_tag;
+    struct usipy_str to_tag;
+    struct usipy_sip_hdr_cseq cseq;
+    uint8_t method_type;
+    uint8_t _pad0[3];
+    union {
+        struct usipy_sip_tm_uac_cache uac;
+        struct usipy_sip_tm_uas_cache uas;
+    };
 };
 
 enum usipy_sip_tm_invite_cancel_state {
@@ -37,8 +56,9 @@ enum usipy_sip_tm_invite_cancel_state {
 
 struct usipy_sip_tm_txi {
     struct usipy_sip_tm_tx pub;
-    struct usipy_sip_tm_txcache cache;
+    struct usipy_sip_tm_cache cache;
     struct usipy_sip_tm_uac_callbacks callbacks;
+    struct usipy_sip_tm_uas_callbacks uas_callbacks;
     struct {
         size_t checkpoint;
         struct usipy_sip_tm_outbound pub;
@@ -81,6 +101,7 @@ struct usipy_sip_tm {
     struct usipy_sip_tm_default_nameaddr default_from;
     struct usipy_sip_tm_default_nameaddr default_to;
     struct usipy_sip_tm_default_nameaddr default_contact;
+    struct usipy_sip_tm_callbacks callbacks;
     struct usipy_sip_tm_id_policy id_policy;
     struct usipy_sip_tm_txi *transactions;
 };

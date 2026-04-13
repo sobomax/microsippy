@@ -25,7 +25,7 @@
 #include "usipy_sip_tm_priv.h"
 
 #define USIPY_SIP_TM_HEAP_SIZE 512u
-#define USIPY_SIP_TM_TX_SCRATCH_SIZE 1024u
+#define USIPY_SIP_TM_TX_SCRATCH_SIZE 4096u
 #define USIPY_SIP_TM_TX_NCHECKPOINTS 2u
 
 static void usipy_sip_tm_tx_reset(struct usipy_sip_tm_txi *);
@@ -209,11 +209,12 @@ static void
 usipy_sip_tm_tx_reset(struct usipy_sip_tm_txi *tp)
 {
     memset(&tp->pub, '\0', sizeof(tp->pub));
-    memset(&tp->cache, '\0', sizeof(tp->cache));
+    memset(&tp->cache.uac, '\0', sizeof(tp->cache.uac));
     tp->pub.common.timer.type = USIPY_SIP_TM_TIMER_NONE;
     tp->pub.common.timer.value_ms = 0;
     tp->pub.common.timer.due_at_ms = 0;
     memset(&tp->callbacks, '\0', sizeof(tp->callbacks));
+    memset(&tp->uas_callbacks, '\0', sizeof(tp->uas_callbacks));
     memset(&tp->outbound, '\0', sizeof(tp->outbound));
     tp->outbound.checkpoint = USIPY_MSG_HEAP_CHECKPOINT_NONE;
     tp->outbound.pub.raw = USIPY_STR_NULL;
@@ -260,6 +261,7 @@ usipy_sip_tm_ctor(const struct usipy_sip_tm_ctor_params *ipp)
     rp->max_transactions = ipp->max_transactions;
     rp->transactions = (struct usipy_sip_tm_txi *)(rp + 1);
     rp->heap_buf = rp->transactions + ipp->max_transactions;
+    rp->callbacks = ipp->callbacks;
     rp->id_policy = ipp->id_policy;
     usipy_msg_heap_init(&rp->heap, rp->heap_buf, USIPY_SIP_TM_HEAP_SIZE, NULL, 0);
     if (usipy_sip_tm_init_laddr(rp) != 0) {
@@ -400,6 +402,13 @@ usipy_sip_tm_run(struct usipy_sip_tm_run_in *inp, struct usipy_sip_tm_run_out *o
             }
             break;
         case USIPY_SIP_TM_ROLE_UAS:
+            rval = usipy_sip_tm_uas_run(tp, i, tm, inp, outp);
+            if (rval != 0) {
+                if (outp != NULL) {
+                    outp->error = rval;
+                }
+                return (rval);
+            }
             break;
         default:
             USIPY_DABORT();
@@ -435,13 +444,6 @@ usipy_sip_tm_handle_incoming(const struct usipy_sip_tm_handle_incoming_in *inp,
         }
         return (USIPY_SIP_TM_ERR_PARSE);
     }
-    if (msg->kind != USIPY_SIP_MSG_RES) {
-        usipy_sip_msg_dtor(msg);
-        if (outp != NULL) {
-            outp->error = USIPY_SIP_TM_ERR_UNSUPPORTED;
-        }
-        return (USIPY_SIP_TM_ERR_UNSUPPORTED);
-    }
     if (usipy_sip_msg_get_tid(msg, &tid) != 0) {
         usipy_sip_msg_dtor(msg);
         if (outp != NULL) {
@@ -449,7 +451,13 @@ usipy_sip_tm_handle_incoming(const struct usipy_sip_tm_handle_incoming_in *inp,
         }
         return (USIPY_SIP_TM_ERR_BADMSG);
     }
-    rval = usipy_sip_tm_handle_incoming_response(inp, msg, &tid, outp);
+    if (msg->kind == USIPY_SIP_MSG_RES) {
+        rval = usipy_sip_tm_handle_incoming_response(inp, msg, &tid, outp);
+    } else if (msg->kind == USIPY_SIP_MSG_REQ) {
+        rval = usipy_sip_tm_handle_incoming_request(inp, msg, &tid, outp);
+    } else {
+        rval = USIPY_SIP_TM_ERR_UNSUPPORTED;
+    }
     if (rval != USIPY_SIP_TM_OK) {
         usipy_sip_msg_dtor(msg);
         if (outp != NULL) {
@@ -459,4 +467,30 @@ usipy_sip_tm_handle_incoming(const struct usipy_sip_tm_handle_incoming_in *inp,
     }
     usipy_sip_msg_dtor(msg);
     return (USIPY_SIP_TM_OK);
+}
+
+int
+usipy_sip_tm_tid_matches_tx(const struct usipy_sip_tid *tidp,
+  const struct usipy_sip_tm_tx *txp)
+{
+    USIPY_DASSERT(tidp != NULL);
+    USIPY_DASSERT(txp != NULL);
+    USIPY_DASSERT(tidp->call_id != NULL);
+    USIPY_DASSERT(tidp->from_tag != NULL);
+    USIPY_DASSERT(tidp->vbranch != NULL);
+    USIPY_DASSERT(tidp->cseq != NULL);
+
+    if (tidp->hash != txp->common.id.hash) {
+        return (0);
+    }
+    if (!usipy_str_eq(tidp->call_id, &txp->common.id.call_id) ||
+      !usipy_str_eq(tidp->from_tag, &txp->common.id.from_tag) ||
+      !usipy_str_eq(tidp->vbranch, &txp->common.id.branch)) {
+        return (0);
+    }
+    if (tidp->cseq->val != txp->common.id.cseq ||
+      tidp->cseq->method->cantype != txp->common.id.method_type) {
+        return (0);
+    }
+    return (1);
 }

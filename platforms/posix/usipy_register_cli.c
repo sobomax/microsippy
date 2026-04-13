@@ -190,7 +190,7 @@ main(int argc, char **argv)
     };
     struct sockaddr_storage peer_ss;
     socklen_t peer_slen = 0;
-    struct usipy_sip_tm_new_transaction_params tp = {0};
+    struct usipy_sip_tm_new_uac_tr_params tp = {0};
     struct usipy_sip_tm_run_in rin;
     struct usipy_sip_tm_run_out rout;
     struct usipy_sip_tm_handle_incoming_in hin;
@@ -332,7 +332,7 @@ main(int argc, char **argv)
     tp.callbacks.arg = &ctx;
     tp.callbacks.response = register_response;
     tp.callbacks.timeout = register_timeout;
-    if (usipy_sip_tm_new_transaction(ctx.tm, &tp, &tx_index) != USIPY_SIP_TM_OK) {
+    if (usipy_sip_tm_new_uac_tr(ctx.tm, &tp, &tx_index) != USIPY_SIP_TM_OK) {
         fprintf(stderr, "unable to create SIP transaction\n");
         goto done;
     }

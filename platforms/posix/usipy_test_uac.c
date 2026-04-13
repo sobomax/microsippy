@@ -53,6 +53,22 @@ struct invite_send_arg {
     const char *scenario;
 };
 
+struct uas_cbarg {
+    struct usipy_sip_tm *tm;
+    size_t nrequests;
+    size_t nnoacks;
+    size_t tx_index;
+    const char *scenario;
+    struct usipy_sip_tm_uas_response_params response;
+};
+
+static const struct usipy_str *find_nameaddr_param(
+  const struct usipy_sip_hdr_nameaddr *nap, const char *name);
+static const struct usipy_sip_hdr *find_header(const struct usipy_msg *msg,
+  uint8_t hf_type);
+static void assert_tx_target(const struct usipy_sip_tm_tx *txp, const char *host,
+  unsigned int port);
+
 static void
 dump_onwire(const char *scenario, const char *tag, uint64_t now_ms, size_t tx_index,
   const struct usipy_str *rawp)
@@ -781,7 +797,7 @@ assert_invite_ack_request(const struct usipy_msg *invite_reqp,
 static void
 init_invite_tx(struct usipy_sip_tm *tm, struct invite_cbarg *carg, size_t *tx_indexp)
 {
-    struct usipy_sip_tm_new_transaction_params tp = {
+    struct usipy_sip_tm_new_uac_tr_params tp = {
       .request_id = {
         .call_id = (struct usipy_str)USIPY_2STR("inv-1@example.test"),
         .cseq = 1,
@@ -810,7 +826,7 @@ init_invite_tx(struct usipy_sip_tm *tm, struct invite_cbarg *carg, size_t *tx_in
     };
     struct usipy_sip_tm_tx *txp;
 
-    assert(usipy_sip_tm_new_transaction(tm, &tp, tx_indexp) == USIPY_SIP_TM_OK);
+    assert(usipy_sip_tm_new_uac_tr(tm, &tp, tx_indexp) == USIPY_SIP_TM_OK);
     txp = (struct usipy_sip_tm_tx *)usipy_sip_tm_get_transaction(tm, *tx_indexp);
     assert(txp != NULL);
     txp->common.timers.t1_ms = 10;
@@ -831,6 +847,482 @@ invite_tm_ctor(int *sockp)
     tm = usipy_sip_tm_ctor(&tm_ctorp);
     assert(tm != NULL);
     return (tm);
+}
+
+static struct usipy_msg *
+build_options_request(void)
+{
+    static const char raw[] =
+      "OPTIONS sip:service@example.test SIP/2.0\r\n"
+      "Via: SIP/2.0/UDP 198.51.100.10:5060;branch=z9hG4bK-uas-1;rport\r\n"
+      "From: <sip:alice@example.test>;tag=caller1\r\n"
+      "To: <sip:service@example.test>\r\n"
+      "Call-ID: uas-1@example.test\r\n"
+      "CSeq: 1 OPTIONS\r\n"
+      "Content-Length: 0\r\n"
+      "\r\n";
+    struct usipy_msg_parse_err perr = USIPY_MSG_PARSE_ERR_init;
+
+    return (usipy_sip_msg_ctor_fromwire(raw, sizeof(raw) - 1, &perr));
+}
+
+static struct usipy_msg *
+build_uas_invite_request(void)
+{
+    static const char raw[] =
+      "INVITE sip:bob@example.test SIP/2.0\r\n"
+      "Via: SIP/2.0/UDP 198.51.100.10:5060;branch=z9hG4bK-uas-inv-1;rport\r\n"
+      "From: <sip:alice@example.test>;tag=caller1\r\n"
+      "To: <sip:bob@example.test>\r\n"
+      "Call-ID: uas-invite-1@example.test\r\n"
+      "CSeq: 1 INVITE\r\n"
+      "Content-Length: 0\r\n"
+      "\r\n";
+    struct usipy_msg_parse_err perr = USIPY_MSG_PARSE_ERR_init;
+
+    return (usipy_sip_msg_ctor_fromwire(raw, sizeof(raw) - 1, &perr));
+}
+
+static struct usipy_msg *
+build_uas_invite_ack(const struct usipy_msg *invite_reqp, const struct usipy_msg *respp)
+{
+    char raw[1024];
+    struct usipy_msg_parse_err perr = USIPY_MSG_PARSE_ERR_init;
+    const struct usipy_sip_hdr *viah, *fromh, *toh, *callidh;
+    const struct usipy_sip_hdr_cseq *cseqp;
+    int blen;
+
+    assert(invite_reqp != NULL);
+    assert(respp != NULL);
+    assert(usipy_sip_msg_parse_hdrs((struct usipy_msg *)invite_reqp,
+      USIPY_HFT_MASK(USIPY_HF_CSEQ), 1) == 0);
+    viah = find_header(invite_reqp, USIPY_HF_VIA);
+    fromh = find_header(invite_reqp, USIPY_HF_FROM);
+    toh = find_header(respp, USIPY_HF_TO);
+    callidh = find_header(invite_reqp, USIPY_HF_CALLID);
+    cseqp = find_header(invite_reqp, USIPY_HF_CSEQ)->parsed.cseq;
+    assert(cseqp != NULL);
+    blen = snprintf(raw, sizeof(raw),
+      "ACK %.*s SIP/2.0\r\n"
+      "Via: %.*s\r\n"
+      "From: %.*s\r\n"
+      "To: %.*s\r\n"
+      "Call-ID: %.*s\r\n"
+      "CSeq: %u ACK\r\n"
+      "Content-Length: 0\r\n"
+      "\r\n",
+      USIPY_SFMT(&invite_reqp->sline.parsed.rl.onwire.ruri),
+      USIPY_SFMT(&viah->onwire.value),
+      USIPY_SFMT(&fromh->onwire.value),
+      USIPY_SFMT(&toh->onwire.value),
+      USIPY_SFMT(&callidh->onwire.value),
+      cseqp->val);
+    assert(blen > 0 && (size_t)blen < sizeof(raw));
+    return (usipy_sip_msg_ctor_fromwire(raw, (size_t)blen, &perr));
+}
+
+static void
+uas_no_ack(void *arg, size_t tx_index, const struct usipy_sip_tm_tx *txp)
+{
+    struct uas_cbarg *carg = arg;
+
+    assert(carg != NULL);
+    assert(txp != NULL);
+    assert(tx_index == carg->tx_index);
+    carg->nnoacks += 1;
+}
+
+static void
+assert_uas_response(const struct usipy_msg *reqp, const struct usipy_msg *resp,
+  unsigned int code)
+{
+    struct usipy_sip_hdr_match *matchp;
+    const struct usipy_sip_hdr_nameaddr *top;
+    const struct usipy_sip_hdr *req_callidp, *resp_callidp;
+    const struct usipy_sip_hdr_cseq *cseqp;
+    const struct usipy_sip_hdr_via *viap;
+    const struct usipy_str *tagvp;
+
+    assert(reqp != NULL);
+    assert(resp != NULL);
+    assert(resp->kind == USIPY_SIP_MSG_RES);
+    assert(resp->sline.parsed.sl.status.code == code);
+
+    req_callidp = find_header(reqp, USIPY_HF_CALLID);
+    resp_callidp = find_header(resp, USIPY_HF_CALLID);
+    assert(resp_callidp->onwire.value.l == req_callidp->onwire.value.l);
+    assert(memcmp(resp_callidp->onwire.value.s.ro, req_callidp->onwire.value.s.ro,
+      resp_callidp->onwire.value.l) == 0);
+
+    matchp = __builtin_alloca(USIPY_SIP_HDR_MATCH_SIZE(3));
+    matchp->hdrslen = 3;
+    assert(usipy_sip_msg_parse_hdrs_get((struct usipy_msg *)resp,
+      USIPY_HFT_MASK(USIPY_HF_TO) | USIPY_HFT_MASK(USIPY_HF_CSEQ) |
+      USIPY_HFT_MASK(USIPY_HF_VIA), 1, matchp) == 0);
+    assert(matchp->nhdrs == 3);
+    top = NULL;
+    cseqp = NULL;
+    viap = NULL;
+    for (size_t i = 0; i < matchp->nhdrs; i++) {
+        if (matchp->hdrsp[i]->hf_type->cantype == USIPY_HF_TO) {
+            top = matchp->hdrsp[i]->parsed.to;
+        } else if (matchp->hdrsp[i]->hf_type->cantype == USIPY_HF_CSEQ) {
+            cseqp = matchp->hdrsp[i]->parsed.cseq;
+        } else if (matchp->hdrsp[i]->hf_type->cantype == USIPY_HF_VIA) {
+            viap = matchp->hdrsp[i]->parsed.via;
+        }
+    }
+    assert(top != NULL);
+    tagvp = find_nameaddr_param(top, "tag");
+    assert(tagvp != NULL && tagvp->l != 0);
+    assert(cseqp != NULL);
+    assert(cseqp->val == 1);
+    assert(cseqp->method == reqp->sline.parsed.rl.method);
+    assert(viap != NULL);
+}
+
+static void
+uas_incoming_request(void *arg, const struct usipy_sip_tm_handle_incoming_in *hin,
+  const struct usipy_msg *msg)
+{
+    struct uas_cbarg *carg = arg;
+    struct usipy_sip_tm_new_uas_tr_params tp = {
+      .request = msg,
+      .timers = hin->timers,
+      .peer = hin->peer,
+      .local = hin->local,
+    };
+    int rval;
+
+    assert(carg != NULL);
+    assert(hin != NULL);
+    assert(msg != NULL);
+    dump_onwire(carg->scenario, "request-cb", hin->now_ms, 0, &msg->onwire);
+    carg->nrequests += 1;
+    rval = usipy_sip_tm_new_uas_tr(carg->tm, &tp, &carg->tx_index);
+    assert(rval == USIPY_SIP_TM_OK);
+    rval = usipy_sip_tm_send_uas_response(carg->tm, carg->tx_index, &carg->response);
+    assert(rval == USIPY_SIP_TM_OK);
+}
+
+static void
+test_uas_options_retransmit(void)
+{
+    static const char scenario[] =
+      "UAS OPTIONS -> request-cb -> 200 -> retransmit -> 200";
+    struct uas_cbarg carg = {
+      .tx_index = USIPY_SIP_TM_TX_INDEX_NONE,
+      .scenario = scenario,
+      .response = {
+        .status = {
+          .code = 200,
+          .reason_phrase = (struct usipy_str)USIPY_2STR("OK"),
+        },
+      },
+    };
+    struct invite_send_arg sarg = {.scenario = scenario};
+    struct usipy_sip_tm_ctor_params tm_ctorp = {0};
+    struct usipy_sip_tm_run_in rin = {0};
+    struct usipy_sip_tm_run_out rout;
+    struct usipy_sip_tm_handle_incoming_in hin = {
+      .timers = {
+        .t1_ms = 50,
+        .t2_ms = 200,
+      },
+      .peer = {
+        .af = AF_INET,
+        .port = 5060,
+        .transport = USIPY_SIP_TM_TRANSPORT_UDP,
+        .host = (struct usipy_str)USIPY_2STR("198.51.100.10"),
+      },
+      .local = {
+        .af = AF_INET,
+        .port = 5060,
+        .transport = USIPY_SIP_TM_TRANSPORT_UDP,
+        .host = (struct usipy_str)USIPY_2STR("192.0.2.55"),
+      },
+    };
+    struct usipy_sip_tm_handle_incoming_out hout;
+    struct usipy_msg_parse_err perr = USIPY_MSG_PARSE_ERR_init;
+    const struct usipy_sip_tm_tx *txp;
+    struct usipy_sip_tm *tm;
+    struct usipy_msg *reqp, *respp;
+    int sock;
+
+    invite_print_banner(scenario);
+    sock = bind_loopback_udp();
+    tm_ctorp.sock = sock;
+    tm_ctorp.transport = USIPY_SIP_TM_TRANSPORT_UDP;
+    tm_ctorp.max_transactions = 2;
+    tm_ctorp.callbacks.arg = &carg;
+    tm_ctorp.callbacks.incoming_request = uas_incoming_request;
+    tm = usipy_sip_tm_ctor(&tm_ctorp);
+    assert(tm != NULL);
+    carg.tm = tm;
+
+    reqp = build_options_request();
+    assert(reqp != NULL);
+
+    rin.tm = tm;
+    rin.send_to = invite_send_to;
+    rin.send_to_arg = &sarg;
+
+    dump_onwire(scenario, "recv", 100, 0, &reqp->onwire);
+    hin.tm = tm;
+    hin.now_ms = 100;
+    hin.buf = reqp->onwire.s.ro;
+    hin.len = reqp->onwire.l;
+    assert(usipy_sip_tm_handle_incoming(&hin, &hout) == USIPY_SIP_TM_OK);
+    assert(hout.error == USIPY_SIP_TM_OK);
+    assert(hout.consumed != 0);
+    assert(hout.match_kind == USIPY_SIP_TM_MATCH_NEW);
+    assert(hout.event == USIPY_SIP_TM_EVENT_REQUEST_RX);
+    assert(hout.transaction_index == carg.tx_index);
+    assert(carg.nrequests == 1);
+
+    invite_run_step(&sarg, &rin, &rout, 100);
+    assert(sarg.nsent == 1);
+    assert(sarg.tx_indexes[0] == carg.tx_index);
+    txp = usipy_sip_tm_get_transaction(tm, carg.tx_index);
+    assert(txp != NULL);
+    assert(txp->role == USIPY_SIP_TM_ROLE_UAS);
+    assert(txp->role_data.uas.last_status_code == 200);
+    assert_tx_target(txp, "198.51.100.10", 5060);
+    respp = usipy_sip_msg_ctor_fromwire(txp->common.outbound.raw.s.ro,
+      txp->common.outbound.raw.l, &perr);
+    assert(respp != NULL);
+    assert_uas_response(reqp, respp, 200);
+    usipy_sip_msg_dtor(respp);
+
+    dump_onwire(scenario, "recv", 200, 0, &reqp->onwire);
+    hin.now_ms = 200;
+    assert(usipy_sip_tm_handle_incoming(&hin, &hout) == USIPY_SIP_TM_OK);
+    assert(hout.error == USIPY_SIP_TM_OK);
+    assert(hout.consumed != 0);
+    assert(hout.match_kind == USIPY_SIP_TM_MATCH_EXISTING);
+    assert(hout.event == USIPY_SIP_TM_EVENT_REQUEST_RETRANSMIT);
+    assert(hout.transaction_index == carg.tx_index);
+
+    invite_run_step(&sarg, &rin, &rout, 200);
+    assert(sarg.nsent == 2);
+    assert(sarg.tx_indexes[1] == carg.tx_index);
+    txp = usipy_sip_tm_get_transaction(tm, carg.tx_index);
+    assert(txp != NULL);
+    assert(txp->role_data.uas.request_retransmits == 1);
+
+    invite_run_step(&sarg, &rin, &rout, 3401);
+    txp = usipy_sip_tm_get_transaction(tm, carg.tx_index);
+    assert(txp != NULL);
+    assert(txp->state == USIPY_SIP_TM_STATE_TERMINATED);
+
+    usipy_sip_msg_dtor(reqp);
+    usipy_sip_tm_dtor(tm);
+    close(sock);
+}
+
+static void
+test_uas_invite_error_ack(void)
+{
+    static const char scenario[] =
+      "UAS INVITE -> 486 -> retransmit -> ACK -> confirmed -> idle";
+    struct uas_cbarg carg = {
+      .tx_index = USIPY_SIP_TM_TX_INDEX_NONE,
+      .scenario = scenario,
+    };
+    struct invite_send_arg sarg = {.scenario = scenario};
+    struct usipy_sip_tm_ctor_params tm_ctorp = {0};
+    struct usipy_sip_tm_run_in rin = {0};
+    struct usipy_sip_tm_run_out rout;
+    struct usipy_sip_tm_handle_incoming_in hin = {
+      .timers = {
+        .t1_ms = 50,
+        .t2_ms = 200,
+        .t4_ms = 400,
+      },
+      .peer = {
+        .af = AF_INET,
+        .port = 5060,
+        .transport = USIPY_SIP_TM_TRANSPORT_UDP,
+        .host = (struct usipy_str)USIPY_2STR("198.51.100.10"),
+      },
+      .local = {
+        .af = AF_INET,
+        .port = 5060,
+        .transport = USIPY_SIP_TM_TRANSPORT_UDP,
+        .host = (struct usipy_str)USIPY_2STR("192.0.2.55"),
+      },
+    };
+    struct usipy_sip_tm_handle_incoming_out hout;
+    struct usipy_msg_parse_err perr = USIPY_MSG_PARSE_ERR_init;
+    const struct usipy_sip_tm_tx *txp;
+    struct usipy_sip_tm *tm;
+    struct usipy_msg *invitep, *respp, *ackp;
+    int sock;
+
+    invite_print_banner(scenario);
+    sock = bind_loopback_udp();
+    tm_ctorp.sock = sock;
+    tm_ctorp.transport = USIPY_SIP_TM_TRANSPORT_UDP;
+    tm_ctorp.max_transactions = 2;
+    tm_ctorp.callbacks.arg = &carg;
+    tm_ctorp.callbacks.incoming_request = uas_incoming_request;
+    tm = usipy_sip_tm_ctor(&tm_ctorp);
+    assert(tm != NULL);
+    carg.tm = tm;
+    carg.response.status.code = 486;
+    carg.response.status.reason_phrase = (struct usipy_str)USIPY_2STR("Busy Here");
+    carg.response.callbacks.arg = &carg;
+    carg.response.callbacks.no_ack = uas_no_ack;
+    invitep = build_uas_invite_request();
+    assert(invitep != NULL);
+
+    rin.tm = tm;
+    rin.send_to = invite_send_to;
+    rin.send_to_arg = &sarg;
+
+    dump_onwire(scenario, "recv", 100, 0, &invitep->onwire);
+    hin.tm = tm;
+    hin.now_ms = 100;
+    hin.buf = invitep->onwire.s.ro;
+    hin.len = invitep->onwire.l;
+    assert(usipy_sip_tm_handle_incoming(&hin, &hout) == USIPY_SIP_TM_OK);
+    assert(hout.match_kind == USIPY_SIP_TM_MATCH_NEW);
+    assert(carg.nrequests == 1);
+
+    invite_run_step(&sarg, &rin, &rout, 100);
+    assert(sarg.nsent == 1);
+    txp = usipy_sip_tm_get_transaction(tm, carg.tx_index);
+    assert(txp != NULL);
+    assert(txp->state == USIPY_SIP_TM_STATE_COMPLETED);
+    assert(txp->common.timer.type == USIPY_SIP_TM_TIMER_H);
+    assert(txp->common.timer.due_at_ms == 3300);
+    assert(txp->common.outbound.next_send_at_ms == 150);
+    respp = usipy_sip_msg_ctor_fromwire(txp->common.outbound.raw.s.ro,
+      txp->common.outbound.raw.l, &perr);
+    assert(respp != NULL);
+    assert_uas_response(invitep, respp, 486);
+
+    invite_run_step(&sarg, &rin, &rout, 150);
+    assert(sarg.nsent == 2);
+    txp = usipy_sip_tm_get_transaction(tm, carg.tx_index);
+    assert(txp != NULL);
+    assert(txp->common.outbound.next_send_at_ms == 250);
+
+    ackp = build_uas_invite_ack(invitep, respp);
+    assert(ackp != NULL);
+    dump_onwire(scenario, "recv", 200, 0, &ackp->onwire);
+    hin.now_ms = 200;
+    hin.buf = ackp->onwire.s.ro;
+    hin.len = ackp->onwire.l;
+    assert(usipy_sip_tm_handle_incoming(&hin, &hout) == USIPY_SIP_TM_OK);
+    assert(hout.match_kind == USIPY_SIP_TM_MATCH_EXISTING);
+    assert(hout.event == USIPY_SIP_TM_EVENT_ACK_RX);
+    assert(hout.transaction_index == carg.tx_index);
+
+    txp = usipy_sip_tm_get_transaction(tm, carg.tx_index);
+    assert(txp != NULL);
+    assert(txp->state == USIPY_SIP_TM_STATE_CONFIRMED);
+    assert(txp->common.timer.type == USIPY_SIP_TM_TIMER_I);
+    assert(txp->common.timer.due_at_ms == 600);
+    assert(txp->common.outbound.next_send_at_ms == USIPY_SIP_TM_TIME_NONE);
+
+    invite_run_step(&sarg, &rin, &rout, 300);
+    assert(sarg.nsent == 2);
+    invite_run_step(&sarg, &rin, &rout, 601);
+    txp = usipy_sip_tm_get_transaction(tm, carg.tx_index);
+    assert(txp != NULL);
+    assert(txp->state == USIPY_SIP_TM_STATE_TERMINATED);
+    assert(carg.nnoacks == 0);
+
+    usipy_sip_msg_dtor(ackp);
+    usipy_sip_msg_dtor(respp);
+    usipy_sip_msg_dtor(invitep);
+    usipy_sip_tm_dtor(tm);
+    close(sock);
+}
+
+static void
+test_uas_invite_error_no_ack_timeout(void)
+{
+    static const char scenario[] =
+      "UAS INVITE -> 486 -> retransmits -> no ACK timeout";
+    struct uas_cbarg carg = {
+      .tx_index = USIPY_SIP_TM_TX_INDEX_NONE,
+      .scenario = scenario,
+    };
+    struct invite_send_arg sarg = {.scenario = scenario};
+    struct usipy_sip_tm_ctor_params tm_ctorp = {0};
+    struct usipy_sip_tm_run_in rin = {0};
+    struct usipy_sip_tm_run_out rout;
+    struct usipy_sip_tm_handle_incoming_in hin = {
+      .timers = {
+        .t1_ms = 50,
+        .t2_ms = 200,
+        .t4_ms = 400,
+      },
+      .peer = {
+        .af = AF_INET,
+        .port = 5060,
+        .transport = USIPY_SIP_TM_TRANSPORT_UDP,
+        .host = (struct usipy_str)USIPY_2STR("198.51.100.10"),
+      },
+      .local = {
+        .af = AF_INET,
+        .port = 5060,
+        .transport = USIPY_SIP_TM_TRANSPORT_UDP,
+        .host = (struct usipy_str)USIPY_2STR("192.0.2.55"),
+      },
+    };
+    struct usipy_sip_tm_handle_incoming_out hout;
+    const struct usipy_sip_tm_tx *txp;
+    struct usipy_sip_tm *tm;
+    struct usipy_msg *invitep;
+    int sock;
+
+    invite_print_banner(scenario);
+    sock = bind_loopback_udp();
+    tm_ctorp.sock = sock;
+    tm_ctorp.transport = USIPY_SIP_TM_TRANSPORT_UDP;
+    tm_ctorp.max_transactions = 2;
+    tm_ctorp.callbacks.arg = &carg;
+    tm_ctorp.callbacks.incoming_request = uas_incoming_request;
+    tm = usipy_sip_tm_ctor(&tm_ctorp);
+    assert(tm != NULL);
+    carg.tm = tm;
+    carg.response.status.code = 486;
+    carg.response.status.reason_phrase = (struct usipy_str)USIPY_2STR("Busy Here");
+    carg.response.callbacks.arg = &carg;
+    carg.response.callbacks.no_ack = uas_no_ack;
+    invitep = build_uas_invite_request();
+    assert(invitep != NULL);
+
+    rin.tm = tm;
+    rin.send_to = invite_send_to;
+    rin.send_to_arg = &sarg;
+
+    dump_onwire(scenario, "recv", 100, 0, &invitep->onwire);
+    hin.tm = tm;
+    hin.now_ms = 100;
+    hin.buf = invitep->onwire.s.ro;
+    hin.len = invitep->onwire.l;
+    assert(usipy_sip_tm_handle_incoming(&hin, &hout) == USIPY_SIP_TM_OK);
+    assert(hout.match_kind == USIPY_SIP_TM_MATCH_NEW);
+
+    invite_run_step(&sarg, &rin, &rout, 100);
+    invite_run_step(&sarg, &rin, &rout, 150);
+    invite_run_step(&sarg, &rin, &rout, 250);
+    assert(sarg.nsent == 3);
+
+    invite_run_step(&sarg, &rin, &rout, 3301);
+    assert(rout.ntimeouts == 1);
+    txp = usipy_sip_tm_get_transaction(tm, carg.tx_index);
+    assert(txp != NULL);
+    assert(txp->state == USIPY_SIP_TM_STATE_TERMINATED);
+    assert(carg.nnoacks == 1);
+
+    usipy_sip_msg_dtor(invitep);
+    usipy_sip_tm_dtor(tm);
+    close(sock);
 }
 
 static size_t
@@ -1626,7 +2118,7 @@ main(void)
     const struct usipy_str to_tag = USIPY_2STR(";tag=r");
     const struct usipy_str www_auth = USIPY_2STR(
       "Digest realm=\"example.test\",nonce=\"abcdef\",algorithm=MD5,qop=auth");
-    struct usipy_sip_tm_new_transaction_params tp = {
+    struct usipy_sip_tm_new_uac_tr_params tp = {
       .request_id = {
         .call_id = (struct usipy_str)USIPY_2STR("reg-1@example.test"),
         .cseq = 1,
@@ -1678,6 +2170,9 @@ main(void)
     test_invite_dialog_end_bye();
     test_invite_cancel_pending();
     test_invite_fr_timeout_auto_cancel();
+    test_uas_options_retransmit();
+    test_uas_invite_error_ack();
+    test_uas_invite_error_no_ack_timeout();
     assert(fprintf(stdout, "\n-- REGISTER auth/retransmit --\n") > 0);
     carg.username = (struct usipy_str)USIPY_2STR("alice");
     carg.password = (struct usipy_str)USIPY_2STR("secret");
@@ -1693,7 +2188,7 @@ main(void)
     tm = usipy_sip_tm_ctor(&tm_ctorp);
     assert(tm != NULL);
     carg.tm = tm;
-    assert(usipy_sip_tm_new_transaction(tm, &tp, &tx_index) == USIPY_SIP_TM_OK);
+    assert(usipy_sip_tm_new_uac_tr(tm, &tp, &tx_index) == USIPY_SIP_TM_OK);
     txp = (struct usipy_sip_tm_tx *)usipy_sip_tm_get_transaction(tm, tx_index);
     assert(txp != NULL);
     txp->common.timers.t1_ms = 50;

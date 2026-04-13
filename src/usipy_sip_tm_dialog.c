@@ -204,11 +204,11 @@ usipy_sip_tm_init_in_dialog_request_params(const struct usipy_sip_tm *tm,
       &anchorp->cache.call_id) != 0 ||
       usipy_msg_heap_append(mhp, &outp->request_target.request_uri, request_urip) != 0 ||
       usipy_msg_heap_append(mhp, &outp->parties_by_uri.contact,
-        &anchorp->cache.contact_uri) != 0 ||
+        &anchorp->cache.uac.contact_uri) != 0 ||
       usipy_msg_heap_append(mhp, &outp->parties_by_uri.from,
-        &anchorp->cache.from_uri) != 0 ||
+        &anchorp->cache.uac.from_uri) != 0 ||
       usipy_msg_heap_append(mhp, &outp->parties_by_uri.to,
-        &anchorp->cache.to_uri) != 0 ||
+        &anchorp->cache.uac.to_uri) != 0 ||
       usipy_msg_heap_append(mhp, &outp->dialog_tags.local_tag,
         &anchorp->cache.from_tag) != 0 ||
       usipy_msg_heap_append(mhp, &outp->dialog_tags.remote_tag, tagp) != 0 ||
@@ -241,17 +241,17 @@ usipy_sip_tm_apply_uac_2xx_ack_dialog(const struct usipy_sip_tm *tm,
     if (rval != USIPY_SIP_TM_OK) {
         return (rval);
     }
-    ackp->cache.request_uri = usipy_sip_uri_parse(&ackp->scratch,
+    ackp->cache.uac.request_uri = usipy_sip_uri_parse(&ackp->scratch,
       &tpp.request_target.request_uri);
-    if (ackp->cache.request_uri == NULL) {
+    if (ackp->cache.uac.request_uri == NULL) {
         return (USIPY_SIP_TM_ERR_BADMSG);
     }
-    ackp->cache.from_uri = tpp.parties_by_uri.from;
-    ackp->cache.to_uri = tpp.parties_by_uri.to;
-    ackp->cache.contact_uri = tpp.parties_by_uri.contact;
+    ackp->cache.uac.from_uri = tpp.parties_by_uri.from;
+    ackp->cache.uac.to_uri = tpp.parties_by_uri.to;
+    ackp->cache.uac.contact_uri = tpp.parties_by_uri.contact;
     ackp->cache.to_tag = tpp.dialog_tags.remote_tag;
-    ackp->cache.routes = (struct usipy_str *)tpp.route_set.routes;
-    ackp->cache.nroutes = tpp.route_set.nroutes;
+    ackp->cache.uac.routes = (struct usipy_str *)tpp.route_set.routes;
+    ackp->cache.uac.nroutes = tpp.route_set.nroutes;
     ackp->pub.common.peer = tpp.request_target.target;
     ackp->outbound.pub.target = tpp.request_target.target;
     ackp->pub.common.outbound = ackp->outbound.pub;

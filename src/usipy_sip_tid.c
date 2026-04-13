@@ -99,12 +99,10 @@ void
 usipy_sip_tid_dump(const struct usipy_sip_tid *tp, const char *log_tag,
   const char *log_pref)
 {
-    const union usipy_sip_hdr_parsed up = {.cseq = tp->cseq};
-
     DUMP_STR(tp, call_id, "");
     DUMP_STR(tp, from_tag, "");
     DUMP_STR(tp, vbranch, "");
-    usipy_sip_hdr_cseq_dump(&up, log_tag, log_pref, ".cseq");
+    usipy_sip_hdr_cseq_dump1(tp->cseq, log_tag, log_pref, ".cseq");
     DUMP_UINTHEX(hash);
 }
 

@@ -11,6 +11,7 @@
 struct usipy_sip_tm;
 struct usipy_sip_hdr_auth;
 struct usipy_sip_hdr_authz;
+struct usipy_sip_tm_handle_incoming_in;
 
 enum usipy_sip_tm_role {
     USIPY_SIP_TM_ROLE_UAC = 0,
@@ -45,6 +46,7 @@ enum usipy_sip_tm_event {
     USIPY_SIP_TM_EVENT_NONE = 0,
     USIPY_SIP_TM_EVENT_REQUEST_RX,
     USIPY_SIP_TM_EVENT_REQUEST_RETRANSMIT,
+    USIPY_SIP_TM_EVENT_ACK_RX,
     USIPY_SIP_TM_EVENT_RESPONSE_1XX,
     USIPY_SIP_TM_EVENT_RESPONSE_FINAL,
     USIPY_SIP_TM_EVENT_RETRANSMIT_DUE,
@@ -76,6 +78,8 @@ enum usipy_sip_tm_timer_kind {
     USIPY_SIP_TM_TIMER_D,
     USIPY_SIP_TM_TIMER_E,
     USIPY_SIP_TM_TIMER_F,
+    USIPY_SIP_TM_TIMER_H,
+    USIPY_SIP_TM_TIMER_I,
     USIPY_SIP_TM_TIMER_J,
     USIPY_SIP_TM_TIMER_K
 };
@@ -96,7 +100,6 @@ struct usipy_sip_tm_id {
     struct usipy_str branch;
     struct usipy_str call_id;
     struct usipy_str from_tag;
-    struct usipy_str method_name;
     uint32_t cseq;
     uint8_t method_type;
     uint8_t _pad[3];
@@ -190,11 +193,25 @@ typedef void (*usipy_sip_tm_uac_response_cb)(void *, size_t,
   const struct usipy_sip_tm_tx *, const struct usipy_msg *);
 typedef void (*usipy_sip_tm_uac_timeout_cb)(void *, size_t,
   const struct usipy_sip_tm_tx *, enum usipy_sip_tm_uac_timeout_id);
+typedef void (*usipy_sip_tm_uas_no_ack_cb)(void *, size_t,
+  const struct usipy_sip_tm_tx *);
+typedef void (*usipy_sip_tm_incoming_request_cb)(void *,
+  const struct usipy_sip_tm_handle_incoming_in *, const struct usipy_msg *);
 
 struct usipy_sip_tm_uac_callbacks {
     void *arg;
     usipy_sip_tm_uac_response_cb response;
     usipy_sip_tm_uac_timeout_cb timeout;
+};
+
+struct usipy_sip_tm_uas_callbacks {
+    void *arg;
+    usipy_sip_tm_uas_no_ack_cb no_ack;
+};
+
+struct usipy_sip_tm_callbacks {
+    void *arg;
+    usipy_sip_tm_incoming_request_cb incoming_request;
 };
 
 struct usipy_sip_tm_id_policy_in {
@@ -259,13 +276,25 @@ struct usipy_sip_tm_dialog_tags {
     struct usipy_str remote_tag;
 };
 
-struct usipy_sip_tm_new_transaction_params {
+struct usipy_sip_tm_new_uac_tr_params {
     struct usipy_sip_tm_request_id request_id;
     struct usipy_sip_tm_request_target request_target;
     struct usipy_sip_tm_request_parties parties_by_username;
     uint32_t contact_expires;
     uint32_t invite_expires;
     struct usipy_sip_tm_uac_callbacks callbacks;
+};
+
+struct usipy_sip_tm_new_uas_tr_params {
+    const struct usipy_msg *request;
+    struct usipy_sip_tm_timer_policy timers;
+    struct usipy_sip_tm_addr peer;
+    struct usipy_sip_tm_addr local;
+};
+
+struct usipy_sip_tm_uas_response_params {
+    struct usipy_sip_status status;
+    struct usipy_sip_tm_uas_callbacks callbacks;
 };
 
 struct usipy_sip_tm_new_in_dialog_transaction_params {
@@ -282,6 +311,7 @@ struct usipy_sip_tm_ctor_params {
     int sock;
     enum usipy_sip_tm_transport transport;
     size_t max_transactions;
+    struct usipy_sip_tm_callbacks callbacks;
     struct usipy_sip_tm_id_policy id_policy;
 };
 
@@ -335,14 +365,18 @@ int usipy_sip_tm_drop_transaction(struct usipy_sip_tm *, size_t);
 int usipy_sip_tm_set_timer_policy(struct usipy_sip_tm *, size_t,
   const struct usipy_sip_tm_timer_policy *);
 
-int usipy_sip_tm_new_transaction(struct usipy_sip_tm *,
-  const struct usipy_sip_tm_new_transaction_params *, size_t *);
+int usipy_sip_tm_new_uac_tr(struct usipy_sip_tm *,
+  const struct usipy_sip_tm_new_uac_tr_params *, size_t *);
+int usipy_sip_tm_new_uas_tr(struct usipy_sip_tm *,
+  const struct usipy_sip_tm_new_uas_tr_params *, size_t *);
 int usipy_sip_tm_new_in_dialog_transaction(struct usipy_sip_tm *,
   const struct usipy_sip_tm_new_in_dialog_transaction_params *, size_t *);
 int usipy_sip_tm_gen_authz_hf(const struct usipy_sip_tm *, size_t, uint8_t,
   struct usipy_msg_heap *, const struct usipy_sip_hdr_auth *,
   const struct usipy_str *, const struct usipy_str *, const struct usipy_str *,
   const struct usipy_str *, struct usipy_sip_tm_extra_header *);
+int usipy_sip_tm_send_uas_response(struct usipy_sip_tm *, size_t,
+  const struct usipy_sip_tm_uas_response_params *);
 int usipy_sip_tm_next_transaction(struct usipy_sip_tm *, size_t,
   const struct usipy_sip_tm_extra_header *, size_t);
 int usipy_sip_tm_cancel(struct usipy_sip_tm *, size_t);

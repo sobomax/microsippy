@@ -1,5 +1,5 @@
 set(src_microsippy
- "usipy_sip_tm.c" "usipy_sip_tm_uac.c" "usipy_sip_tm_dialog.c"
+ "usipy_sip_tm.c" "usipy_sip_tm_uac.c" "usipy_sip_tm_uas.c" "usipy_sip_tm_dialog.c"
  "usipy_sip_udp_task.c" "usipy_sip_udp_task.h"
  "public/usipy_str.h" "public/usipy_sip_hdr_types.h" "public/usipy_sip_msg.h" "usipy_sip_msg.c"
  "usipy_msg_heap.c" "public/usipy_msg_heap.h" "usipy_str.c" "usipy_sip_hdr.c"

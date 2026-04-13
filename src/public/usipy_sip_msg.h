@@ -58,6 +58,8 @@ struct usipy_msg_parse_err {
 
 struct usipy_msg *usipy_sip_msg_ctor_fromwire(const char *, size_t,
   struct usipy_msg_parse_err *);
+struct usipy_msg *usipy_sip_msg_build_fromwire(struct usipy_msg_heap *,
+  const char *, size_t, struct usipy_msg_parse_err *);
 void usipy_sip_msg_dtor(struct usipy_msg *);
 int usipy_sip_msg_build(struct usipy_msg_heap *, struct usipy_msg *,
   struct usipy_str *);

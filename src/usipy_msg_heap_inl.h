@@ -52,4 +52,23 @@ usipy_msg_heap_aextend(struct usipy_msg_heap *hp, size_t nlen,
     return (0);
 }
 
+static inline void
+usipy_msg_heap_cnt_reclaim(struct usipy_msg_heap *hp, struct usipy_msg_heap_cnt *cntp,
+  size_t nlen)
+{
+    size_t alen, rlen;
+
+    USIPY_DASSERT(cntp->lastalen == hp->alen);
+    alen = USIPY_ALIGNED_SIZE(nlen);
+    USIPY_DASSERT(alen <= cntp->alen);
+    if (alen == cntp->alen) {
+        return;
+    }
+    rlen = cntp->alen - alen;
+    hp->alen -= rlen;
+    memset(hp->first + hp->alen, '\0', rlen);
+    cntp->alen = alen;
+    USIPY_DCODE(cntp->lastalen = hp->alen);
+}
+
 #endif /* _USIPY_MSG_HEAP_INL_H */
