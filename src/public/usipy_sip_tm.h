@@ -193,6 +193,8 @@ typedef void (*usipy_sip_tm_uac_response_cb)(void *, size_t,
   const struct usipy_sip_tm_tx *, const struct usipy_msg *);
 typedef void (*usipy_sip_tm_uac_timeout_cb)(void *, size_t,
   const struct usipy_sip_tm_tx *, enum usipy_sip_tm_uac_timeout_id);
+typedef void (*usipy_sip_tm_uas_cancel_cb)(void *, size_t,
+  const struct usipy_sip_tm_tx *, const struct usipy_msg *);
 typedef void (*usipy_sip_tm_uas_no_ack_cb)(void *, size_t,
   const struct usipy_sip_tm_tx *);
 typedef void (*usipy_sip_tm_incoming_request_cb)(void *,
@@ -206,6 +208,7 @@ struct usipy_sip_tm_uac_callbacks {
 
 struct usipy_sip_tm_uas_callbacks {
     void *arg;
+    usipy_sip_tm_uas_cancel_cb cancel;
     usipy_sip_tm_uas_no_ack_cb no_ack;
 };
 
@@ -290,6 +293,7 @@ struct usipy_sip_tm_new_uas_tr_params {
     struct usipy_sip_tm_timer_policy timers;
     struct usipy_sip_tm_addr peer;
     struct usipy_sip_tm_addr local;
+    struct usipy_sip_tm_uas_callbacks callbacks;
 };
 
 struct usipy_sip_tm_uas_response_params {
@@ -376,6 +380,9 @@ int usipy_sip_tm_gen_authz_hf(const struct usipy_sip_tm *, size_t, uint8_t,
   const struct usipy_str *, const struct usipy_str *, const struct usipy_str *,
   const struct usipy_str *, struct usipy_sip_tm_extra_header *);
 int usipy_sip_tm_send_uas_response(struct usipy_sip_tm *, size_t,
+  const struct usipy_sip_tm_uas_response_params *);
+int usipy_sip_tm_uas_tr_cancelled(struct usipy_sip_tm *,
+  const struct usipy_msg *, size_t,
   const struct usipy_sip_tm_uas_response_params *);
 int usipy_sip_tm_next_transaction(struct usipy_sip_tm *, size_t,
   const struct usipy_sip_tm_extra_header *, size_t);

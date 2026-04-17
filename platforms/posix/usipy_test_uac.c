@@ -56,10 +56,12 @@ struct invite_send_arg {
 struct uas_cbarg {
     struct usipy_sip_tm *tm;
     size_t nrequests;
+    size_t ncancels;
     size_t nnoacks;
     size_t tx_index;
     const char *scenario;
     struct usipy_sip_tm_uas_response_params response;
+    struct usipy_sip_tm_uas_response_params cancel_response;
 };
 
 static const struct usipy_str *find_nameaddr_param(
@@ -921,6 +923,43 @@ build_uas_invite_ack(const struct usipy_msg *invite_reqp, const struct usipy_msg
     return (usipy_sip_msg_ctor_fromwire(raw, (size_t)blen, &perr));
 }
 
+static struct usipy_msg *
+build_uas_invite_cancel(const struct usipy_msg *invite_reqp)
+{
+    char raw[1024];
+    struct usipy_msg_parse_err perr = USIPY_MSG_PARSE_ERR_init;
+    const struct usipy_sip_hdr *viah, *fromh, *toh, *callidh;
+    const struct usipy_sip_hdr_cseq *cseqp;
+    int blen;
+
+    assert(invite_reqp != NULL);
+    assert(usipy_sip_msg_parse_hdrs((struct usipy_msg *)invite_reqp,
+      USIPY_HFT_MASK(USIPY_HF_CSEQ), 1) == 0);
+    viah = find_header(invite_reqp, USIPY_HF_VIA);
+    fromh = find_header(invite_reqp, USIPY_HF_FROM);
+    toh = find_header(invite_reqp, USIPY_HF_TO);
+    callidh = find_header(invite_reqp, USIPY_HF_CALLID);
+    cseqp = find_header(invite_reqp, USIPY_HF_CSEQ)->parsed.cseq;
+    assert(cseqp != NULL);
+    blen = snprintf(raw, sizeof(raw),
+      "CANCEL %.*s SIP/2.0\r\n"
+      "Via: %.*s\r\n"
+      "From: %.*s\r\n"
+      "To: %.*s\r\n"
+      "Call-ID: %.*s\r\n"
+      "CSeq: %u CANCEL\r\n"
+      "Content-Length: 0\r\n"
+      "\r\n",
+      USIPY_SFMT(&invite_reqp->sline.parsed.rl.onwire.ruri),
+      USIPY_SFMT(&viah->onwire.value),
+      USIPY_SFMT(&fromh->onwire.value),
+      USIPY_SFMT(&toh->onwire.value),
+      USIPY_SFMT(&callidh->onwire.value),
+      cseqp->val);
+    assert(blen > 0 && (size_t)blen < sizeof(raw));
+    return (usipy_sip_msg_ctor_fromwire(raw, (size_t)blen, &perr));
+}
+
 static void
 uas_no_ack(void *arg, size_t tx_index, const struct usipy_sip_tm_tx *txp)
 {
@@ -930,6 +969,25 @@ uas_no_ack(void *arg, size_t tx_index, const struct usipy_sip_tm_tx *txp)
     assert(txp != NULL);
     assert(tx_index == carg->tx_index);
     carg->nnoacks += 1;
+}
+
+static void
+uas_cancel(void *arg, size_t tx_index, const struct usipy_sip_tm_tx *txp,
+  const struct usipy_msg *msg)
+{
+    struct uas_cbarg *carg = arg;
+    const struct usipy_sip_tm_uas_response_params *rpp;
+
+    assert(carg != NULL);
+    assert(txp != NULL);
+    assert(msg != NULL);
+    assert(tx_index == carg->tx_index);
+    assert(msg->kind == USIPY_SIP_MSG_REQ);
+    assert(msg->sline.parsed.rl.method->cantype == USIPY_SIP_METHOD_CANCEL);
+    carg->ncancels += 1;
+    rpp = (carg->cancel_response.status.code != 0) ? &carg->cancel_response : NULL;
+    assert(usipy_sip_tm_uas_tr_cancelled(carg->tm, msg, tx_index, rpp) ==
+      USIPY_SIP_TM_OK);
 }
 
 static void
@@ -991,6 +1049,10 @@ uas_incoming_request(void *arg, const struct usipy_sip_tm_handle_incoming_in *hi
       .timers = hin->timers,
       .peer = hin->peer,
       .local = hin->local,
+      .callbacks = {
+        .arg = carg,
+        .cancel = uas_cancel,
+      },
     };
     int rval;
 
@@ -1014,10 +1076,7 @@ test_uas_options_retransmit(void)
       .tx_index = USIPY_SIP_TM_TX_INDEX_NONE,
       .scenario = scenario,
       .response = {
-        .status = {
-          .code = 200,
-          .reason_phrase = (struct usipy_str)USIPY_2STR("OK"),
-        },
+        .status = usipy_sip_res_ok,
       },
     };
     struct invite_send_arg sarg = {.scenario = scenario};
@@ -1169,8 +1228,7 @@ test_uas_invite_error_ack(void)
     tm = usipy_sip_tm_ctor(&tm_ctorp);
     assert(tm != NULL);
     carg.tm = tm;
-    carg.response.status.code = 486;
-    carg.response.status.reason_phrase = (struct usipy_str)USIPY_2STR("Busy Here");
+    carg.response.status = usipy_sip_res_busy_here;
     carg.response.callbacks.arg = &carg;
     carg.response.callbacks.no_ack = uas_no_ack;
     invitep = build_uas_invite_request();
@@ -1289,8 +1347,7 @@ test_uas_invite_error_no_ack_timeout(void)
     tm = usipy_sip_tm_ctor(&tm_ctorp);
     assert(tm != NULL);
     carg.tm = tm;
-    carg.response.status.code = 486;
-    carg.response.status.reason_phrase = (struct usipy_str)USIPY_2STR("Busy Here");
+    carg.response.status = usipy_sip_res_busy_here;
     carg.response.callbacks.arg = &carg;
     carg.response.callbacks.no_ack = uas_no_ack;
     invitep = build_uas_invite_request();
@@ -1320,6 +1377,201 @@ test_uas_invite_error_no_ack_timeout(void)
     assert(txp->state == USIPY_SIP_TM_STATE_TERMINATED);
     assert(carg.nnoacks == 1);
 
+    usipy_sip_msg_dtor(invitep);
+    usipy_sip_tm_dtor(tm);
+    close(sock);
+}
+
+static void
+test_uas_invite_cancel_default(void)
+{
+    static const char scenario[] = "UAS INVITE -> CANCEL -> 200 CANCEL + default 487";
+    struct uas_cbarg carg = {
+      .tx_index = USIPY_SIP_TM_TX_INDEX_NONE,
+      .scenario = scenario,
+    };
+    struct invite_send_arg sarg = {.scenario = scenario};
+    struct usipy_sip_tm_ctor_params tm_ctorp = {0};
+    struct usipy_sip_tm_run_in rin = {0};
+    struct usipy_sip_tm_run_out rout;
+    struct usipy_sip_tm_handle_incoming_in hin = {
+      .timers = {
+        .t1_ms = 50,
+        .t2_ms = 200,
+        .t4_ms = 400,
+      },
+      .peer = {
+        .af = AF_INET,
+        .port = 5060,
+        .transport = USIPY_SIP_TM_TRANSPORT_UDP,
+        .host = (struct usipy_str)USIPY_2STR("198.51.100.10"),
+      },
+      .local = {
+        .af = AF_INET,
+        .port = 5060,
+        .transport = USIPY_SIP_TM_TRANSPORT_UDP,
+        .host = (struct usipy_str)USIPY_2STR("192.0.2.55"),
+      },
+    };
+    struct usipy_sip_tm_handle_incoming_out hout;
+    const struct usipy_sip_tm_tx *txp;
+    const struct usipy_sip_tm_tx *cancel_txp;
+    struct usipy_sip_tm *tm;
+    struct usipy_msg *invitep, *cancelp;
+    int sock;
+
+    invite_print_banner(scenario);
+    sock = bind_loopback_udp();
+    tm_ctorp.sock = sock;
+    tm_ctorp.transport = USIPY_SIP_TM_TRANSPORT_UDP;
+    tm_ctorp.max_transactions = 2;
+    tm_ctorp.callbacks.arg = &carg;
+    tm_ctorp.callbacks.incoming_request = uas_incoming_request;
+    tm = usipy_sip_tm_ctor(&tm_ctorp);
+    assert(tm != NULL);
+    carg.tm = tm;
+    carg.response.status = usipy_sip_res_ringing;
+    invitep = build_uas_invite_request();
+    assert(invitep != NULL);
+    cancelp = build_uas_invite_cancel(invitep);
+    assert(cancelp != NULL);
+
+    rin.tm = tm;
+    rin.send_to = invite_send_to;
+    rin.send_to_arg = &sarg;
+
+    dump_onwire(scenario, "recv", 100, 0, &invitep->onwire);
+    hin.tm = tm;
+    hin.now_ms = 100;
+    hin.buf = invitep->onwire.s.ro;
+    hin.len = invitep->onwire.l;
+    assert(usipy_sip_tm_handle_incoming(&hin, &hout) == USIPY_SIP_TM_OK);
+    assert(hout.match_kind == USIPY_SIP_TM_MATCH_NEW);
+    assert(carg.nrequests == 1);
+    assert(carg.ncancels == 0);
+
+    dump_onwire(scenario, "recv", 150, 0, &cancelp->onwire);
+    hin.now_ms = 150;
+    hin.buf = cancelp->onwire.s.ro;
+    hin.len = cancelp->onwire.l;
+    assert(usipy_sip_tm_handle_incoming(&hin, &hout) == USIPY_SIP_TM_OK);
+    assert(hout.match_kind == USIPY_SIP_TM_MATCH_EXISTING);
+    assert(hout.transaction_index == carg.tx_index);
+    assert(carg.ncancels == 1);
+    txp = usipy_sip_tm_get_transaction(tm, carg.tx_index);
+    assert(txp != NULL);
+    assert(txp->state == USIPY_SIP_TM_STATE_COMPLETED);
+    assert(txp->role_data.uas.last_status_code == 487);
+    cancel_txp = usipy_sip_tm_get_transaction(tm, 1);
+    assert(cancel_txp != NULL);
+    assert(cancel_txp->common.id.method_type == USIPY_SIP_METHOD_CANCEL);
+    assert(cancel_txp->state == USIPY_SIP_TM_STATE_COMPLETED);
+    assert(cancel_txp->role_data.uas.last_status_code == 200);
+    assert(usipy_sip_tm_nactive(tm) == 2);
+
+    invite_run_step(&sarg, &rin, &rout, 150);
+    assert(rout.error == USIPY_SIP_TM_OK);
+    assert(rout.nsent == 2);
+
+    usipy_sip_msg_dtor(cancelp);
+    usipy_sip_msg_dtor(invitep);
+    usipy_sip_tm_dtor(tm);
+    close(sock);
+}
+
+static void
+test_uas_invite_cancel_callback(void)
+{
+    static const char scenario[] = "UAS INVITE -> CANCEL -> 200 CANCEL + 487";
+    struct uas_cbarg carg = {
+      .tx_index = USIPY_SIP_TM_TX_INDEX_NONE,
+      .scenario = scenario,
+    };
+    struct invite_send_arg sarg = {.scenario = scenario};
+    struct usipy_sip_tm_ctor_params tm_ctorp = {0};
+    struct usipy_sip_tm_run_in rin = {0};
+    struct usipy_sip_tm_run_out rout;
+    struct usipy_sip_tm_handle_incoming_in hin = {
+      .timers = {
+        .t1_ms = 50,
+        .t2_ms = 200,
+        .t4_ms = 400,
+      },
+      .peer = {
+        .af = AF_INET,
+        .port = 5060,
+        .transport = USIPY_SIP_TM_TRANSPORT_UDP,
+        .host = (struct usipy_str)USIPY_2STR("198.51.100.10"),
+      },
+      .local = {
+        .af = AF_INET,
+        .port = 5060,
+        .transport = USIPY_SIP_TM_TRANSPORT_UDP,
+        .host = (struct usipy_str)USIPY_2STR("192.0.2.55"),
+      },
+    };
+    struct usipy_sip_tm_handle_incoming_out hout;
+    const struct usipy_sip_tm_tx *txp;
+    const struct usipy_sip_tm_tx *cancel_txp;
+    struct usipy_sip_tm *tm;
+    struct usipy_msg *invitep, *cancelp;
+    int sock;
+
+    invite_print_banner(scenario);
+    sock = bind_loopback_udp();
+    tm_ctorp.sock = sock;
+    tm_ctorp.transport = USIPY_SIP_TM_TRANSPORT_UDP;
+    tm_ctorp.max_transactions = 2;
+    tm_ctorp.callbacks.arg = &carg;
+    tm_ctorp.callbacks.incoming_request = uas_incoming_request;
+    tm = usipy_sip_tm_ctor(&tm_ctorp);
+    assert(tm != NULL);
+    carg.tm = tm;
+    carg.response.status = usipy_sip_res_ringing;
+    carg.cancel_response.status = usipy_sip_res_req_term;
+    invitep = build_uas_invite_request();
+    assert(invitep != NULL);
+    cancelp = build_uas_invite_cancel(invitep);
+    assert(cancelp != NULL);
+
+    rin.tm = tm;
+    rin.send_to = invite_send_to;
+    rin.send_to_arg = &sarg;
+
+    dump_onwire(scenario, "recv", 100, 0, &invitep->onwire);
+    hin.tm = tm;
+    hin.now_ms = 100;
+    hin.buf = invitep->onwire.s.ro;
+    hin.len = invitep->onwire.l;
+    assert(usipy_sip_tm_handle_incoming(&hin, &hout) == USIPY_SIP_TM_OK);
+    assert(hout.match_kind == USIPY_SIP_TM_MATCH_NEW);
+    assert(carg.nrequests == 1);
+    assert(carg.ncancels == 0);
+
+    dump_onwire(scenario, "recv", 150, 0, &cancelp->onwire);
+    hin.now_ms = 150;
+    hin.buf = cancelp->onwire.s.ro;
+    hin.len = cancelp->onwire.l;
+    assert(usipy_sip_tm_handle_incoming(&hin, &hout) == USIPY_SIP_TM_OK);
+    assert(hout.match_kind == USIPY_SIP_TM_MATCH_EXISTING);
+    assert(hout.transaction_index == carg.tx_index);
+    assert(carg.ncancels == 1);
+    txp = usipy_sip_tm_get_transaction(tm, carg.tx_index);
+    assert(txp != NULL);
+    assert(txp->state == USIPY_SIP_TM_STATE_COMPLETED);
+    assert(txp->role_data.uas.last_status_code == 487);
+    cancel_txp = usipy_sip_tm_get_transaction(tm, 1);
+    assert(cancel_txp != NULL);
+    assert(cancel_txp->common.id.method_type == USIPY_SIP_METHOD_CANCEL);
+    assert(cancel_txp->state == USIPY_SIP_TM_STATE_COMPLETED);
+    assert(cancel_txp->role_data.uas.last_status_code == 200);
+    assert(usipy_sip_tm_nactive(tm) == 2);
+
+    invite_run_step(&sarg, &rin, &rout, 150);
+    assert(rout.error == USIPY_SIP_TM_OK);
+    assert(rout.nsent == 2);
+
+    usipy_sip_msg_dtor(cancelp);
     usipy_sip_msg_dtor(invitep);
     usipy_sip_tm_dtor(tm);
     close(sock);
@@ -1559,10 +1811,6 @@ test_invite_fr_timeout_single_100(void)
     static const char scenario[] = "INVITE -> 100 -> FR timeout";
     struct invite_cbarg carg = {0};
     struct invite_send_arg sarg = {0};
-    const struct usipy_sip_status trying_status = {
-      .code = 100,
-      .reason_phrase = (struct usipy_str)USIPY_2STR("Trying"),
-    };
     const struct usipy_str to_tag = USIPY_2STR(";tag=uas100");
     struct usipy_sip_tm_run_in rin = {0};
     struct usipy_sip_tm_run_out rout;
@@ -1587,7 +1835,7 @@ test_invite_fr_timeout_single_100(void)
     txp = usipy_sip_tm_get_transaction(tm, tx_index);
     assert(txp != NULL);
     reqp = dup_tx_request(txp);
-    resp = build_basic_response(reqp, &trying_status, &to_tag);
+    resp = build_basic_response(reqp, &usipy_sip_res_trying, &to_tag);
     usipy_sip_msg_dtor(reqp);
 
     hin.tm = tm;
@@ -1616,10 +1864,6 @@ test_invite_fr_timeout_repeated_100(void)
     static const char scenario[] = "INVITE -> 100 -> 100 -> FR timeout";
     struct invite_cbarg carg = {0};
     struct invite_send_arg sarg = {0};
-    const struct usipy_sip_status trying_status = {
-      .code = 100,
-      .reason_phrase = (struct usipy_str)USIPY_2STR("Trying"),
-    };
     const struct usipy_str to_tag = USIPY_2STR(";tag=uas100");
     struct usipy_sip_tm_run_in rin = {0};
     struct usipy_sip_tm_run_out rout;
@@ -1644,7 +1888,7 @@ test_invite_fr_timeout_repeated_100(void)
     txp = usipy_sip_tm_get_transaction(tm, tx_index);
     assert(txp != NULL);
     reqp = dup_tx_request(txp);
-    resp = build_basic_response(reqp, &trying_status, &to_tag);
+    resp = build_basic_response(reqp, &usipy_sip_res_trying, &to_tag);
     usipy_sip_msg_dtor(reqp);
 
     hin.tm = tm;
@@ -1675,14 +1919,6 @@ test_invite_ack_support(void)
     static const char scenario[] = "INVITE -> 100 -> 200 -> ACK -> 200 -> ACK";
     struct invite_cbarg carg = {0};
     struct invite_send_arg sarg = {0};
-    const struct usipy_sip_status trying_status = {
-      .code = 100,
-      .reason_phrase = (struct usipy_str)USIPY_2STR("Trying"),
-    };
-    const struct usipy_sip_status ok_status = {
-      .code = 200,
-      .reason_phrase = (struct usipy_str)USIPY_2STR("OK"),
-    };
     const struct usipy_str trying_tag = USIPY_2STR(";tag=uas100");
     const struct usipy_str ok_tag = USIPY_2STR(";tag=uas200");
     const struct usipy_str remote_contact = USIPY_2STR("sip:bob@127.0.0.1:5070");
@@ -1721,8 +1957,8 @@ test_invite_ack_support(void)
       txp->common.outbound.raw.l, &perr);
     assert(invite_reqp != NULL);
     assert_expires_header(invite_reqp, "1");
-    resp100 = build_basic_response(invite_reqp, &trying_status, &trying_tag);
-    resp200 = build_response_with_contact_routes(invite_reqp, &ok_status, &ok_tag,
+    resp100 = build_basic_response(invite_reqp, &usipy_sip_res_trying, &trying_tag);
+    resp200 = build_response_with_contact_routes(invite_reqp, &usipy_sip_res_ok, &ok_tag,
       &remote_contact, record_routes, sizeof(record_routes) / sizeof(record_routes[0]));
 
     hin.tm = tm;
@@ -1781,14 +2017,6 @@ test_invite_error_ack_support(void)
     static const char scenario[] = "INVITE -> 100 -> 486 -> ACK -> 486 -> ACK";
     struct invite_cbarg carg = {0};
     struct invite_send_arg sarg = {0};
-    const struct usipy_sip_status trying_status = {
-      .code = 100,
-      .reason_phrase = (struct usipy_str)USIPY_2STR("Trying"),
-    };
-    const struct usipy_sip_status busy_status = {
-      .code = 486,
-      .reason_phrase = (struct usipy_str)USIPY_2STR("Busy Here"),
-    };
     const struct usipy_str trying_tag = USIPY_2STR(";tag=uas100");
     const struct usipy_str busy_tag = USIPY_2STR(";tag=uas486");
     struct usipy_sip_tm_run_in rin = {0};
@@ -1815,8 +2043,8 @@ test_invite_error_ack_support(void)
     txp = usipy_sip_tm_get_transaction(tm, tx_index);
     assert(txp != NULL);
     invite_reqp = dup_tx_request(txp);
-    resp100 = build_basic_response(invite_reqp, &trying_status, &trying_tag);
-    resp486 = build_basic_response(invite_reqp, &busy_status, &busy_tag);
+    resp100 = build_basic_response(invite_reqp, &usipy_sip_res_trying, &trying_tag);
+    resp486 = build_basic_response(invite_reqp, &usipy_sip_res_busy_here, &busy_tag);
 
     hin.tm = tm;
     hin.peer = txp->common.peer;
@@ -1872,10 +2100,6 @@ test_invite_dialog_end_bye(void)
     static const char scenario[] = "INVITE -> 200 -> dialog -> BYE";
     struct invite_cbarg carg = {0};
     struct invite_send_arg sarg = {0};
-    const struct usipy_sip_status ok_status = {
-      .code = 200,
-      .reason_phrase = (struct usipy_str)USIPY_2STR("OK"),
-    };
     const struct usipy_str ok_tag = USIPY_2STR(";tag=uas200");
     const struct usipy_str remote_contact = USIPY_2STR("sip:bob@127.0.0.1:5070");
     const struct usipy_str record_routes[] = {
@@ -1911,7 +2135,7 @@ test_invite_dialog_end_bye(void)
     txp = usipy_sip_tm_get_transaction(tm, tx_index);
     assert(txp != NULL);
     invite_reqp = dup_tx_request(txp);
-    resp200 = build_response_with_contact_routes(invite_reqp, &ok_status, &ok_tag,
+    resp200 = build_response_with_contact_routes(invite_reqp, &usipy_sip_res_ok, &ok_tag,
       &remote_contact, record_routes, sizeof(record_routes) / sizeof(record_routes[0]));
     assert(resp200 != NULL);
 
@@ -1957,14 +2181,6 @@ test_invite_cancel_pending(void)
     static const char scenario[] = "INVITE -> cancel pending -> 100 -> CANCEL";
     struct invite_cbarg carg = {0};
     struct invite_send_arg sarg = {0};
-    const struct usipy_sip_status trying_status = {
-      .code = 100,
-      .reason_phrase = (struct usipy_str)USIPY_2STR("Trying"),
-    };
-    const struct usipy_sip_status ok_status = {
-      .code = 200,
-      .reason_phrase = (struct usipy_str)USIPY_2STR("OK"),
-    };
     const struct usipy_str trying_tag = USIPY_2STR(";tag=uas100");
     struct usipy_sip_tm_run_in rin = {0};
     struct usipy_sip_tm_run_out rout;
@@ -1990,7 +2206,7 @@ test_invite_cancel_pending(void)
     txp = usipy_sip_tm_get_transaction(tm, tx_index);
     assert(txp != NULL);
     invite_reqp = dup_tx_request(txp);
-    resp100 = build_basic_response(invite_reqp, &trying_status, &trying_tag);
+    resp100 = build_basic_response(invite_reqp, &usipy_sip_res_trying, &trying_tag);
 
     assert(usipy_sip_tm_cancel(tm, tx_index) == USIPY_SIP_TM_OK);
 
@@ -2013,7 +2229,7 @@ test_invite_cancel_pending(void)
       cancel_txp->common.outbound.raw.l, &perr);
     assert(cancel_reqp != NULL);
     assert_cancel_request(invite_reqp, cancel_reqp);
-    cancel_resp = build_basic_response(cancel_reqp, &ok_status, &trying_tag);
+    cancel_resp = build_basic_response(cancel_reqp, &usipy_sip_res_ok, &trying_tag);
 
     hin.buf = cancel_resp->onwire.s.ro;
     hin.len = cancel_resp->onwire.l;
@@ -2036,10 +2252,6 @@ test_invite_fr_timeout_auto_cancel(void)
     static const char scenario[] = "INVITE -> 100 -> FR timeout -> CANCEL";
     struct invite_cbarg carg = {0};
     struct invite_send_arg sarg = {0};
-    const struct usipy_sip_status trying_status = {
-      .code = 100,
-      .reason_phrase = (struct usipy_str)USIPY_2STR("Trying"),
-    };
     const struct usipy_str trying_tag = USIPY_2STR(";tag=uas100");
     struct usipy_sip_tm_run_in rin = {0};
     struct usipy_sip_tm_run_out rout;
@@ -2065,7 +2277,7 @@ test_invite_fr_timeout_auto_cancel(void)
     txp = usipy_sip_tm_get_transaction(tm, tx_index);
     assert(txp != NULL);
     invite_reqp = dup_tx_request(txp);
-    resp100 = build_basic_response(invite_reqp, &trying_status, &trying_tag);
+    resp100 = build_basic_response(invite_reqp, &usipy_sip_res_trying, &trying_tag);
 
     hin.tm = tm;
     hin.peer = txp->common.peer;
@@ -2111,10 +2323,6 @@ int
 main(void)
 {
     struct test_cbarg carg = {0};
-    const struct usipy_sip_status unauth_status = {
-      .code = 401,
-      .reason_phrase = (struct usipy_str)USIPY_2STR("Unauthorized"),
-    };
     const struct usipy_str to_tag = USIPY_2STR(";tag=r");
     const struct usipy_str www_auth = USIPY_2STR(
       "Digest realm=\"example.test\",nonce=\"abcdef\",algorithm=MD5,qop=auth");
@@ -2173,6 +2381,8 @@ main(void)
     test_uas_options_retransmit();
     test_uas_invite_error_ack();
     test_uas_invite_error_no_ack_timeout();
+    test_uas_invite_cancel_default();
+    test_uas_invite_cancel_callback();
     assert(fprintf(stdout, "\n-- REGISTER auth/retransmit --\n") > 0);
     carg.username = (struct usipy_str)USIPY_2STR("alice");
     carg.password = (struct usipy_str)USIPY_2STR("secret");
@@ -2223,7 +2433,8 @@ main(void)
             assert(usipy_sip_msg_get_tid(reqp, &tid) == 0);
             assert(tid.cseq != NULL);
             assert(tid.cseq->val == 2);
-            resp = build_unauth_response(reqp, &unauth_status, &to_tag, &www_auth);
+            resp = build_unauth_response(reqp, &usipy_sip_res_unauth,
+              &to_tag, &www_auth);
             assert(fwrite(resp->onwire.s.ro, 1, resp->onwire.l, stdout) == resp->onwire.l);
             hin.now_ms = usipy_tm_uac_mono_ms();
             hin.peer = tp.request_target.target;

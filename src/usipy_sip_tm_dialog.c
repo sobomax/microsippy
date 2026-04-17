@@ -119,8 +119,11 @@ usipy_sip_tm_init_in_dialog_request_params(const struct usipy_sip_tm *tm,
     USIPY_DASSERT(anchor_index < tm->max_transactions);
 
     anchorp = &tm->transactions[anchor_index];
-    if (!anchorp->active || anchorp->pub.role != USIPY_SIP_TM_ROLE_UAC ||
-      anchorp->pub.common.id.method_type != USIPY_SIP_METHOD_INVITE ||
+    if (!anchorp->active) {
+        return (USIPY_SIP_TM_ERR_UNSUPPORTED);
+    }
+    USIPY_DASSERT(anchorp->pub.role == USIPY_SIP_TM_ROLE_UAC);
+    if (anchorp->pub.common.id.method_type != USIPY_SIP_METHOD_INVITE ||
       anchorp->pub.role_data.uac.response_class != 2 ||
       msg->kind != USIPY_SIP_MSG_RES ||
       msg->sline.parsed.sl.status.code < 200 ||

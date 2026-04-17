@@ -16,6 +16,36 @@
 #include "usipy_sip_hdr_db.h"
 #include "usipy_sip_res.h"
 
+const struct usipy_sip_status usipy_sip_res_trying = {
+  .code = 100,
+  .reason_phrase = USIPY_2STR("Trying"),
+};
+
+const struct usipy_sip_status usipy_sip_res_ringing = {
+  .code = 180,
+  .reason_phrase = USIPY_2STR("Ringing"),
+};
+
+const struct usipy_sip_status usipy_sip_res_ok = {
+  .code = 200,
+  .reason_phrase = USIPY_2STR("OK"),
+};
+
+const struct usipy_sip_status usipy_sip_res_unauth = {
+  .code = 401,
+  .reason_phrase = USIPY_2STR("Unauthorized"),
+};
+
+const struct usipy_sip_status usipy_sip_res_busy_here = {
+  .code = 486,
+  .reason_phrase = USIPY_2STR("Busy Here"),
+};
+
+const struct usipy_sip_status usipy_sip_res_req_term = {
+  .code = 487,
+  .reason_phrase = USIPY_2STR("Request Terminated"),
+};
+
 static void
 scode2str(unsigned int scode, char *res)
 {

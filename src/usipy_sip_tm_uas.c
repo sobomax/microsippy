@@ -8,6 +8,7 @@
 #include "usipy_sip_hdr.h"
 #include "usipy_sip_hdr_db.h"
 #include "usipy_sip_method_db.h"
+#include "usipy_sip_res.h"
 #include "usipy_sip_tid.h"
 #include "usipy_sip_tm_internal.h"
 #include "usipy_sip_tm_priv.h"
@@ -80,11 +81,12 @@ usipy_sip_tm_uas_invite_next_send_delay_ms(const struct usipy_sip_tm_txi *tp)
 }
 
 static uint32_t
-usipy_sip_tm_uas_ack_hash(const struct usipy_sip_tm_txi *tp)
+usipy_sip_tm_uas_method_hash(const struct usipy_sip_tm_txi *tp,
+  uint8_t method_type)
 {
     struct usipy_sip_hdr_cseq cseq = {
       .val = tp->pub.common.id.cseq,
-      .method = &usipy_method_db[USIPY_SIP_METHOD_ACK],
+      .method = &usipy_method_db[method_type],
     };
     struct usipy_sip_tid tid = {
       .call_id = &tp->pub.common.id.call_id,
@@ -182,6 +184,34 @@ usipy_sip_tm_uas_handle_ack(const struct usipy_sip_tm_handle_incoming_in *inp,
         outp->transaction_index = tx_index;
         outp->message = NULL;
     }
+    return (USIPY_SIP_TM_OK);
+}
+
+static void
+usipy_sip_tm_uas_report_consumed_request(
+  struct usipy_sip_tm_handle_incoming_out *outp, size_t tx_index)
+{
+    if (outp != NULL) {
+        outp->error = USIPY_SIP_TM_OK;
+        outp->consumed = 1;
+        outp->match_kind = USIPY_SIP_TM_MATCH_EXISTING;
+        outp->event = USIPY_SIP_TM_EVENT_REQUEST_RX;
+        outp->transaction_index = tx_index;
+        outp->message = NULL;
+    }
+}
+
+static int
+usipy_sip_tm_uas_handle_cancel(struct usipy_sip_tm_handle_incoming_out *outp,
+  struct usipy_sip_tm_txi *tp, size_t tx_index, const struct usipy_msg *msg)
+{
+    USIPY_DASSERT(tp != NULL);
+    USIPY_DASSERT(msg != NULL);
+
+    if (tp->uas_callbacks.cancel != NULL) {
+        tp->uas_callbacks.cancel(tp->uas_callbacks.arg, tx_index, &tp->pub, msg);
+    }
+    usipy_sip_tm_uas_report_consumed_request(outp, tx_index);
     return (USIPY_SIP_TM_OK);
 }
 
@@ -486,6 +516,53 @@ usipy_sip_tm_find_uas_ack_transaction(const struct usipy_sip_tm *tm,
     return (-1);
 }
 
+static int
+usipy_sip_tm_uas_cancel_matches_tx(const struct usipy_sip_tid *tidp,
+  const struct usipy_sip_tm_txi *tp)
+{
+    USIPY_DASSERT(tidp != NULL);
+    USIPY_DASSERT(tp != NULL);
+
+    if (tp->pub.role != USIPY_SIP_TM_ROLE_UAS ||
+      tp->pub.common.id.method_type != USIPY_SIP_METHOD_INVITE ||
+      tidp->hash != tp->cache.uas.cancel_hash ||
+      tp->pub.state == USIPY_SIP_TM_STATE_COMPLETED ||
+      tp->pub.state == USIPY_SIP_TM_STATE_CONFIRMED ||
+      tp->pub.state == USIPY_SIP_TM_STATE_TERMINATED) {
+        return (0);
+    }
+    if (!usipy_str_eq(tidp->call_id, &tp->pub.common.id.call_id) ||
+      !usipy_str_eq(tidp->from_tag, &tp->pub.common.id.from_tag) ||
+      !usipy_str_eq(tidp->vbranch, &tp->pub.common.id.branch)) {
+        return (0);
+    }
+    return (tidp->cseq->val == tp->pub.common.id.cseq);
+}
+
+static int
+usipy_sip_tm_find_uas_cancel_transaction(const struct usipy_sip_tm *tm,
+  const struct usipy_sip_tid *tidp, size_t *indexp)
+{
+    USIPY_DASSERT(tm != NULL);
+    USIPY_DASSERT(tidp != NULL);
+    USIPY_DASSERT(indexp != NULL);
+    USIPY_DASSERT(tidp->cseq->method->cantype == USIPY_SIP_METHOD_CANCEL);
+
+    for (size_t i = 0; i < tm->max_transactions; i++) {
+        const struct usipy_sip_tm_txi *tp = &tm->transactions[i];
+
+        if (!tp->active) {
+            continue;
+        }
+        if (usipy_sip_tm_uas_cancel_matches_tx(tidp, tp)) {
+            *indexp = i;
+            return (0);
+        }
+    }
+    *indexp = USIPY_SIP_TM_TX_INDEX_NONE;
+    return (-1);
+}
+
 int
 usipy_sip_tm_new_uas_tr(struct usipy_sip_tm *tm,
   const struct usipy_sip_tm_new_uas_tr_params *tpp, size_t *indexp)
@@ -505,8 +582,7 @@ usipy_sip_tm_new_uas_tr(struct usipy_sip_tm *tm,
     *indexp = USIPY_SIP_TM_TX_INDEX_NONE;
     method_type = tpp->request->sline.parsed.rl.method->cantype;
     if (method_type == USIPY_SIP_METHOD_generic ||
-      method_type == USIPY_SIP_METHOD_ACK ||
-      method_type == USIPY_SIP_METHOD_CANCEL) {
+      method_type == USIPY_SIP_METHOD_ACK) {
         return (USIPY_SIP_TM_ERR_UNSUPPORTED);
     }
     if (usipy_sip_msg_get_tid((struct usipy_msg *)tpp->request, &tid) != 0) {
@@ -519,6 +595,7 @@ usipy_sip_tm_new_uas_tr(struct usipy_sip_tm *tm,
     if (tp == NULL) {
         return (USIPY_SIP_TM_ERR_NOSPC);
     }
+    tp->uas_callbacks = tpp->callbacks;
     tp->cache.method_type = method_type;
     if (usipy_msg_heap_append(&tp->scratch, &tp->cache.call_id, tid.call_id) != 0 ||
       usipy_msg_heap_append(&tp->scratch, &tp->cache.branch, tid.vbranch) != 0 ||
@@ -553,6 +630,12 @@ usipy_sip_tm_new_uas_tr(struct usipy_sip_tm *tm,
     tp->pub.common.id.from_tag = tp->cache.from_tag;
     tp->pub.common.id.cseq = tid.cseq->val;
     tp->pub.common.id.method_type = tp->cache.method_type;
+    tp->cache.uas.cancel_hash = 0;
+    if (tp->cache.method_type == USIPY_SIP_METHOD_INVITE &&
+      tp->uas_callbacks.cancel != NULL) {
+        tp->cache.uas.cancel_hash = usipy_sip_tm_uas_method_hash(tp,
+          USIPY_SIP_METHOD_CANCEL);
+    }
     tp->pub.role_data.uas.last_status_code = 0;
     tp->pub.role_data.uas.request_retransmits = 0;
     *indexp = tx_index;
@@ -572,9 +655,10 @@ usipy_sip_tm_send_uas_response(struct usipy_sip_tm *tm, size_t index,
     USIPY_DASSERT(index < tm->max_transactions);
     slp = &rpp->status;
     tp = &tm->transactions[index];
-    if (!tp->active || tp->pub.role != USIPY_SIP_TM_ROLE_UAS) {
+    if (!tp->active) {
         return (USIPY_SIP_TM_ERR_NOT_FOUND);
     }
+    USIPY_DASSERT(tp->pub.role == USIPY_SIP_TM_ROLE_UAS);
     if (tp->pub.state == USIPY_SIP_TM_STATE_TERMINATED) {
         return (USIPY_SIP_TM_ERR_UNSUPPORTED);
     }
@@ -598,18 +682,71 @@ usipy_sip_tm_send_uas_response(struct usipy_sip_tm *tm, size_t index,
     tp->cache.uas.ack_hash = 0;
     if (slp->code < 200) {
         tp->pub.common.timer.type = USIPY_SIP_TM_TIMER_NONE;
-        memset(&tp->uas_callbacks, '\0', sizeof(tp->uas_callbacks));
     } else if (tp->cache.method_type == USIPY_SIP_METHOD_INVITE && slp->code >= 300) {
         tp->pub.common.timer.type = USIPY_SIP_TM_TIMER_H;
         tp->pub.common.timer.value_ms = usipy_sip_tm_timer_h_ms(&tp->pub.common.timers);
         tp->pub.common.timer.due_at_ms = USIPY_SIP_TM_TIME_NONE;
-        tp->cache.uas.ack_hash = usipy_sip_tm_uas_ack_hash(tp);
-        tp->uas_callbacks = rpp->callbacks;
+        tp->cache.uas.ack_hash = usipy_sip_tm_uas_method_hash(tp,
+          USIPY_SIP_METHOD_ACK);
+        if (rpp->callbacks.arg != NULL) {
+            tp->uas_callbacks.arg = rpp->callbacks.arg;
+        }
+        tp->uas_callbacks.no_ack = rpp->callbacks.no_ack;
     } else {
         tp->pub.common.timer.type = USIPY_SIP_TM_TIMER_NONE;
-        memset(&tp->uas_callbacks, '\0', sizeof(tp->uas_callbacks));
+        tp->uas_callbacks.no_ack = NULL;
     }
     return (USIPY_SIP_TM_OK);
+}
+
+int
+usipy_sip_tm_uas_tr_cancelled(struct usipy_sip_tm *tm,
+  const struct usipy_msg *cancelp, size_t index,
+  const struct usipy_sip_tm_uas_response_params *rpp)
+{
+    const struct usipy_sip_tm_uas_response_params cancel_ok = {
+      .status = usipy_sip_res_ok,
+    };
+    const struct usipy_sip_tm_uas_response_params def_resp = {
+      .status = usipy_sip_res_req_term,
+    };
+    struct usipy_sip_tm_new_uas_tr_params tpp;
+    const struct usipy_sip_tm_tx *txp;
+    size_t cancel_index;
+    int rval;
+
+    USIPY_DASSERT(tm != NULL);
+    USIPY_DASSERT(cancelp != NULL);
+    USIPY_DASSERT(index < tm->max_transactions);
+    USIPY_DASSERT(cancelp->kind == USIPY_SIP_MSG_REQ);
+    USIPY_DASSERT(cancelp->sline.parsed.rl.method->cantype == USIPY_SIP_METHOD_CANCEL);
+
+    txp = usipy_sip_tm_get_transaction(tm, index);
+    if (txp == NULL) {
+        return (USIPY_SIP_TM_ERR_NOT_FOUND);
+    }
+    USIPY_DASSERT(txp->role == USIPY_SIP_TM_ROLE_UAS);
+    if (txp->common.id.method_type != USIPY_SIP_METHOD_INVITE) {
+        return (USIPY_SIP_TM_ERR_UNSUPPORTED);
+    }
+    tpp = (struct usipy_sip_tm_new_uas_tr_params){
+      .request = cancelp,
+      .timers = txp->common.timers,
+      .peer = txp->common.peer,
+      .local = txp->common.local,
+    };
+    rval = usipy_sip_tm_new_uas_tr(tm, &tpp, &cancel_index);
+    if (rval != USIPY_SIP_TM_OK) {
+        return (rval);
+    }
+    rval = usipy_sip_tm_send_uas_response(tm, cancel_index, &cancel_ok);
+    if (rval != USIPY_SIP_TM_OK) {
+        return (rval);
+    }
+    if (rpp == NULL) {
+        rpp = &def_resp;
+    }
+    return (usipy_sip_tm_send_uas_response(tm, index, rpp));
 }
 
 int
@@ -688,6 +825,12 @@ usipy_sip_tm_handle_incoming_request(const struct usipy_sip_tm_handle_incoming_i
         struct usipy_sip_tm_txi *tp = &tm->transactions[tx_index];
 
         return (usipy_sip_tm_uas_handle_ack(inp, outp, tp, tx_index));
+    }
+    if (msg->sline.parsed.rl.method->cantype == USIPY_SIP_METHOD_CANCEL &&
+      usipy_sip_tm_find_uas_cancel_transaction(tm, tidp, &tx_index) == 0) {
+        struct usipy_sip_tm_txi *tp = &tm->transactions[tx_index];
+
+        return (usipy_sip_tm_uas_handle_cancel(outp, tp, tx_index, msg));
     }
     if (usipy_sip_tm_find_uas_transaction(tm, tidp, &tx_index) == 0) {
         struct usipy_sip_tm_txi *tp = &tm->transactions[tx_index];

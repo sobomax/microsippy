@@ -29,7 +29,7 @@ struct usipy_sip_tm_uas_cache {
     struct usipy_str *vias;
     struct usipy_str *record_routes;
     uint32_t ack_hash;
-    uint32_t _pad0;
+    uint32_t cancel_hash;
     size_t nvias;
     size_t nrecord_routes;
 };

@@ -31,9 +31,9 @@ usipy_sip_tm_transition_allowed(const struct usipy_sip_tm_txi *tp,
   enum usipy_sip_tm_state next_state)
 {
     USIPY_DASSERT(tp != NULL);
+    USIPY_DASSERT(tp->pub.role == USIPY_SIP_TM_ROLE_UAC);
 
-    if (tp->pub.role != USIPY_SIP_TM_ROLE_UAC ||
-      next_state != USIPY_SIP_TM_STATE_CALLING) {
+    if (next_state != USIPY_SIP_TM_STATE_CALLING) {
         return (0);
     }
     return (tp->pub.state == USIPY_SIP_TM_STATE_TERMINATED ||
@@ -1341,9 +1341,10 @@ usipy_sip_tm_gen_authz_hf(const struct usipy_sip_tm *tm, size_t index, uint8_t h
         return (USIPY_SIP_TM_ERR_INVAL);
     }
     tp = &tm->transactions[index];
-    if (!tp->active || tp->pub.role != USIPY_SIP_TM_ROLE_UAC) {
+    if (!tp->active) {
         return (USIPY_SIP_TM_ERR_NOT_FOUND);
     }
+    USIPY_DASSERT(tp->pub.role == USIPY_SIP_TM_ROLE_UAC);
     uarg.urip = tp->cache.uac.request_uri;
     if (usipy_msg_heap_build(mhp, &uris, &uarg, usipy_sip_tm_build_uri_cb) != 0) {
         return (USIPY_SIP_TM_ERR_NOSPC);
@@ -1401,9 +1402,10 @@ usipy_sip_tm_cancel(struct usipy_sip_tm *tm, size_t index)
         return (USIPY_SIP_TM_ERR_INVAL);
     }
     tp = &tm->transactions[index];
-    if (!tp->active || tp->pub.role != USIPY_SIP_TM_ROLE_UAC) {
+    if (!tp->active) {
         return (USIPY_SIP_TM_ERR_NOT_FOUND);
     }
+    USIPY_DASSERT(tp->pub.role == USIPY_SIP_TM_ROLE_UAC);
     if (!usipy_sip_tm_tx_is_invite(tp) ||
       tp->pub.state == USIPY_SIP_TM_STATE_COMPLETED ||
       tp->pub.state == USIPY_SIP_TM_STATE_TERMINATED) {

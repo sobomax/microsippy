@@ -25,7 +25,7 @@
 #include "usipy_sip_tm_priv.h"
 
 #define USIPY_SIP_TM_HEAP_SIZE 512u
-#define USIPY_SIP_TM_TX_SCRATCH_SIZE 4096u
+#define USIPY_SIP_TM_TX_SCRATCH_SIZE 2048u
 #define USIPY_SIP_TM_TX_NCHECKPOINTS 2u
 
 static void usipy_sip_tm_tx_reset(struct usipy_sip_tm_txi *);
