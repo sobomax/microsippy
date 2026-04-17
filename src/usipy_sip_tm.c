@@ -209,7 +209,7 @@ static void
 usipy_sip_tm_tx_reset(struct usipy_sip_tm_txi *tp)
 {
     memset(&tp->pub, '\0', sizeof(tp->pub));
-    memset(&tp->cache.uac, '\0', sizeof(tp->cache.uac));
+    memset(&tp->cache, '\0', sizeof(tp->cache));
     tp->pub.common.timer.type = USIPY_SIP_TM_TIMER_NONE;
     tp->pub.common.timer.value_ms = 0;
     tp->pub.common.timer.due_at_ms = 0;

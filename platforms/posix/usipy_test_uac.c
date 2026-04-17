@@ -878,6 +878,9 @@ build_uas_invite_request(void)
       "To: <sip:bob@example.test>\r\n"
       "Call-ID: uas-invite-1@example.test\r\n"
       "CSeq: 1 INVITE\r\n"
+      "Contact: <sip:alice@198.51.100.10:5070>\r\n"
+      "Record-Route: <sip:edge1.example.test;lr>\r\n"
+      "Record-Route: <sip:edge2.example.test;lr>\r\n"
       "Content-Length: 0\r\n"
       "\r\n";
     struct usipy_msg_parse_err perr = USIPY_MSG_PARSE_ERR_init;
@@ -1037,6 +1040,44 @@ assert_uas_response(const struct usipy_msg *reqp, const struct usipy_msg *resp,
     assert(cseqp->val == 1);
     assert(cseqp->method == reqp->sline.parsed.rl.method);
     assert(viap != NULL);
+}
+
+static void
+assert_contact_uri(const struct usipy_msg *msg, const char *urip)
+{
+    const struct usipy_sip_hdr *contacth;
+    const struct usipy_sip_hdr_nameaddr *contactp;
+
+    assert(msg != NULL);
+    assert(urip != NULL);
+    assert(usipy_sip_msg_parse_hdrs((struct usipy_msg *)msg,
+      USIPY_HFT_MASK(USIPY_HF_CONTACT), 1) == 0);
+    contacth = find_header(msg, USIPY_HF_CONTACT);
+    assert(contacth != NULL);
+    contactp = contacth->parsed.contact;
+    assert(contactp != NULL);
+    assert(contactp->addr_spec.l == strlen(urip));
+    assert(memcmp(contactp->addr_spec.s.ro, urip, contactp->addr_spec.l) == 0);
+}
+
+static void
+assert_same_contact_uri(const struct usipy_msg *msg, const struct usipy_msg *ref)
+{
+    const struct usipy_sip_hdr_nameaddr *contactp, *ref_contactp;
+
+    assert(msg != NULL);
+    assert(ref != NULL);
+    assert(usipy_sip_msg_parse_hdrs((struct usipy_msg *)msg,
+      USIPY_HFT_MASK(USIPY_HF_CONTACT), 1) == 0);
+    assert(usipy_sip_msg_parse_hdrs((struct usipy_msg *)ref,
+      USIPY_HFT_MASK(USIPY_HF_CONTACT), 1) == 0);
+    contactp = find_header(msg, USIPY_HF_CONTACT)->parsed.contact;
+    ref_contactp = find_header(ref, USIPY_HF_CONTACT)->parsed.contact;
+    assert(contactp != NULL);
+    assert(ref_contactp != NULL);
+    assert(contactp->addr_spec.l == ref_contactp->addr_spec.l);
+    assert(memcmp(contactp->addr_spec.s.ro, ref_contactp->addr_spec.s.ro,
+      contactp->addr_spec.l) == 0);
 }
 
 static void
@@ -2147,7 +2188,7 @@ test_invite_dialog_end_bye(void)
     assert(carg.status_codes[0] == 200);
 
     invite_run_step(&sarg, &rin, &rout, 200);
-    dialogp = usipy_sip_dialog_ctor(tm, tx_index, resp200);
+    dialogp = usipy_sip_dialog_uac_ctor(tm, tx_index, resp200);
     assert(dialogp != NULL);
     assert(usipy_sip_tm_drop_transaction(tm, tx_index) == USIPY_SIP_TM_OK);
     assert(usipy_sip_tm_get_transaction(tm, tx_index) == NULL);
@@ -2242,6 +2283,101 @@ test_invite_cancel_pending(void)
     usipy_sip_msg_dtor(cancel_reqp);
     usipy_sip_msg_dtor(resp100);
     usipy_sip_msg_dtor(invite_reqp);
+    usipy_sip_tm_dtor(tm);
+    close(sock);
+}
+
+static void
+test_uas_dialog_end_bye(void)
+{
+    static const char scenario[] = "UAS INVITE -> 200 dialog -> BYE";
+    static const char *routev[] = {
+      "<sip:edge1.example.test;lr>",
+      "<sip:edge2.example.test;lr>",
+    };
+    struct invite_send_arg sarg = {.scenario = scenario};
+    struct usipy_sip_tm_ctor_params tm_ctorp = {0};
+    struct usipy_sip_tm_run_in rin = {0};
+    struct usipy_sip_tm_run_out rout;
+    struct usipy_sip_tm_new_uas_tr_params tpp;
+    struct usipy_sip_tm_uas_response_params rpp = {
+      .status = usipy_sip_res_ok,
+    };
+    struct usipy_msg_parse_err perr = USIPY_MSG_PARSE_ERR_init;
+    const struct usipy_sip_tm_tx *txp, *bye_txp;
+    struct usipy_sip_dialog *dialogp;
+    struct usipy_sip_tm *tm;
+    struct usipy_msg *invitep, *resp200, *bye_reqp;
+    size_t tx_index, bye_index;
+    int sock;
+
+    invite_print_banner(scenario);
+    sock = bind_loopback_udp();
+    tm_ctorp.sock = sock;
+    tm_ctorp.transport = USIPY_SIP_TM_TRANSPORT_UDP;
+    tm_ctorp.max_transactions = 4;
+    tm = usipy_sip_tm_ctor(&tm_ctorp);
+    assert(tm != NULL);
+    invitep = build_uas_invite_request();
+    assert(invitep != NULL);
+    tpp = (struct usipy_sip_tm_new_uas_tr_params){
+      .request = invitep,
+      .timers = {
+        .t1_ms = 50,
+        .t2_ms = 200,
+        .t4_ms = 400,
+      },
+      .peer = {
+        .af = AF_INET,
+        .port = 5060,
+        .transport = USIPY_SIP_TM_TRANSPORT_UDP,
+        .host = (struct usipy_str)USIPY_2STR("198.51.100.10"),
+      },
+      .local = {
+        .af = AF_INET,
+        .port = 5060,
+        .transport = USIPY_SIP_TM_TRANSPORT_UDP,
+        .host = (struct usipy_str)USIPY_2STR("192.0.2.55"),
+      },
+    };
+    assert(usipy_sip_tm_new_uas_tr(tm, &tpp, &tx_index) == USIPY_SIP_TM_OK);
+    dialogp = usipy_sip_dialog_uas_ctor(tm, tx_index, &rpp);
+    assert(dialogp != NULL);
+
+    rin.tm = tm;
+    rin.send_to = invite_send_to;
+    rin.send_to_arg = &sarg;
+
+    invite_run_step(&sarg, &rin, &rout, 100);
+    assert(sarg.nsent == 1);
+    txp = usipy_sip_tm_get_transaction(tm, tx_index);
+    assert(txp != NULL);
+    resp200 = usipy_sip_msg_ctor_fromwire(txp->common.outbound.raw.s.ro,
+      txp->common.outbound.raw.l, &perr);
+    assert(resp200 != NULL);
+    assert_uas_response(invitep, resp200, 200);
+    assert(find_header(resp200, USIPY_HF_CONTACT) != NULL);
+
+    assert(usipy_sip_tm_drop_transaction(tm, tx_index) == USIPY_SIP_TM_OK);
+    assert(usipy_sip_dialog_end(dialogp, NULL, &bye_index) == USIPY_SIP_TM_OK);
+
+    invite_run_step(&sarg, &rin, &rout, 110);
+    assert(sarg.nsent == 2);
+    assert(sarg.tx_indexes[1] == bye_index);
+    bye_txp = usipy_sip_tm_get_transaction(tm, bye_index);
+    assert(bye_txp != NULL);
+    assert_tx_target(bye_txp, "edge1.example.test", 5060);
+    bye_reqp = usipy_sip_msg_ctor_fromwire(bye_txp->common.outbound.raw.s.ro,
+      bye_txp->common.outbound.raw.l, &perr);
+    assert(bye_reqp != NULL);
+    assert_bye_request(invitep, bye_reqp, "caller1", "sip:alice@198.51.100.10:5070",
+      routev, sizeof(routev) / sizeof(routev[0]));
+    assert_same_contact_uri(resp200, bye_reqp);
+
+    usipy_sip_msg_dtor(bye_reqp);
+    usipy_sip_msg_dtor(resp200);
+    usipy_sip_msg_dtor(invitep);
+    usipy_sip_dialog_dtor(dialogp);
     usipy_sip_tm_dtor(tm);
     close(sock);
 }
@@ -2376,6 +2512,7 @@ main(void)
     test_invite_ack_support();
     test_invite_error_ack_support();
     test_invite_dialog_end_bye();
+    test_uas_dialog_end_bye();
     test_invite_cancel_pending();
     test_invite_fr_timeout_auto_cancel();
     test_uas_options_retransmit();

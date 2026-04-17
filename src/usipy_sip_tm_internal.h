@@ -6,8 +6,11 @@ struct usipy_sip_tm_txi;
 struct usipy_msg;
 struct usipy_sip_tid;
 
-int usipy_sip_tm_init_in_dialog_request_params(const struct usipy_sip_tm *, size_t,
+int usipy_sip_tm_init_uac_dialog_request_params(const struct usipy_sip_tm *, size_t,
   const struct usipy_msg *, uint8_t, struct usipy_msg_heap *,
+  struct usipy_sip_tm_new_in_dialog_transaction_params *);
+int usipy_sip_tm_init_uas_dialog_request_params(const struct usipy_sip_tm *, size_t,
+  uint8_t, struct usipy_msg_heap *,
   struct usipy_sip_tm_new_in_dialog_transaction_params *);
 int usipy_sip_tm_apply_uac_2xx_ack_dialog(const struct usipy_sip_tm *, size_t,
   const struct usipy_msg *, struct usipy_sip_tm_txi *);

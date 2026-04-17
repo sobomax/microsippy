@@ -24,7 +24,7 @@ usipy_sip_hdr_via_parse(struct usipy_msg_heap *mhp,
 {
     struct usipy_str s4;
     struct usipy_str sent_by, sent_by_port;
-    union usipy_sip_hdr_parsed usp;
+    union usipy_sip_hdr_parsed usp = {.via = NULL};
     struct usipy_sip_hdr_via *vp;
     struct usipy_msg_heap_cnt cnt;
 
@@ -33,6 +33,7 @@ usipy_sip_hdr_via_parse(struct usipy_msg_heap *mhp,
         return (usp);
     }
     vp = usp.via;
+    *vp = (struct usipy_sip_hdr_via){0};
 
     if (usipy_str_split3(hvp, '/', &vp->sent_protocol.name, &vp->sent_protocol.version, &s4) != 0) {
         goto rollback;

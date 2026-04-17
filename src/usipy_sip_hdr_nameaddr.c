@@ -24,7 +24,7 @@ usipy_sip_hdr_nameaddr_parse(struct usipy_msg_heap *mhp,
 {
     struct usipy_str iup = *hvp;
     struct usipy_str paramspace = USIPY_STR_NULL;
-    union usipy_sip_hdr_parsed usp;
+    union usipy_sip_hdr_parsed usp = {.contact = NULL};
     struct usipy_sip_hdr_nameaddr *nap;
     struct usipy_msg_heap_cnt cnt;
 
@@ -33,6 +33,7 @@ usipy_sip_hdr_nameaddr_parse(struct usipy_msg_heap *mhp,
         return (usp);
     }
     nap = usp.contact;
+    *nap = (struct usipy_sip_hdr_nameaddr){0};
 
     if (usipy_str_split_elem(&iup, '<', &nap->display_name) != 0) {
         if (usipy_str_split_elem(&iup, ';', &nap->addr_spec) == 0) {

@@ -104,6 +104,7 @@ usipy_sip_hdr_auth_parse(struct usipy_msg_heap *mhp, const struct usipy_str *hvp
         return (usp);
     }
     ap = usp.auth;
+    *ap = (struct usipy_sip_hdr_auth){0};
     if (usipy_str_splitlws(hvp, &ap->scheme, &paramspace) != 0) {
         goto rollback;
     }

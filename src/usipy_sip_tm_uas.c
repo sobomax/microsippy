@@ -281,13 +281,22 @@ usipy_sip_tm_uas_copy_hdrs(struct usipy_msg_heap *mhp, struct usipy_str **dstpp,
 static int
 usipy_sip_tm_uas_cache_request(const struct usipy_msg *reqp, struct usipy_sip_tm_txi *tp)
 {
-    const struct usipy_sip_hdr *fromp = NULL, *top = NULL, *cseqp = NULL;
+    uint64_t parse_mask;
+    const struct usipy_sip_hdr *fromp = NULL, *top = NULL, *cseqp = NULL, *contactp = NULL;
     const struct usipy_sip_hdr *viasp[32];
     const struct usipy_sip_hdr *rrsp[32];
     size_t nvias = 0, nrrs = 0;
 
     USIPY_DASSERT(reqp != NULL);
     USIPY_DASSERT(tp != NULL);
+    parse_mask = USIPY_HFT_MASK(USIPY_HF_FROM) | USIPY_HFT_MASK(USIPY_HF_TO) |
+      USIPY_HFT_MASK(USIPY_HF_CSEQ);
+    if (USIPY_MSG_HDR_PRESENT(reqp, USIPY_HF_CONTACT)) {
+        parse_mask |= USIPY_HFT_MASK(USIPY_HF_CONTACT);
+    }
+    if (usipy_sip_msg_parse_hdrs((struct usipy_msg *)reqp, parse_mask, 0) != 0) {
+        return (-1);
+    }
 
     for (unsigned int i = 0; i < reqp->nhdrs; i++) {
         const struct usipy_sip_hdr *shp = &reqp->hdrs[i];
@@ -316,6 +325,12 @@ usipy_sip_tm_uas_cache_request(const struct usipy_msg *reqp, struct usipy_sip_tm
             }
             break;
 
+        case USIPY_HF_CONTACT:
+            if (contactp == NULL) {
+                contactp = shp;
+            }
+            break;
+
         case USIPY_HF_RECORDROUTE:
             USIPY_DASSERT(nrrs < sizeof(rrsp) / sizeof(rrsp[0]));
             rrsp[nrrs++] = shp;
@@ -325,13 +340,40 @@ usipy_sip_tm_uas_cache_request(const struct usipy_msg *reqp, struct usipy_sip_tm
     USIPY_DASSERT(fromp != NULL);
     USIPY_DASSERT(top != NULL);
     USIPY_DASSERT(cseqp != NULL);
-    if (nvias == 0 || usipy_msg_heap_append(&tp->scratch, &tp->cache.uas.from,
-      &fromp->onwire.value) != 0 ||
-      usipy_msg_heap_append(&tp->scratch, &tp->cache.uas.to, &top->onwire.value) != 0 ||
-      usipy_sip_tm_uas_copy_hdrs(&tp->scratch, &tp->cache.uas.vias,
-        &tp->cache.uas.nvias, viasp, nvias) != 0 ||
-      usipy_sip_tm_uas_copy_hdrs(&tp->scratch, &tp->cache.uas.record_routes,
-        &tp->cache.uas.nrecord_routes, rrsp, nrrs) != 0) {
+    if (nvias == 0) {
+        return (-1);
+    }
+    if (usipy_msg_heap_append(&tp->scratch, &tp->cache.uas.from,
+      &fromp->onwire.value) != 0) {
+        return (-1);
+    }
+    if (usipy_msg_heap_append(&tp->scratch, &tp->cache.uas.to, &top->onwire.value) != 0) {
+        return (-1);
+    }
+    if (usipy_msg_heap_append(&tp->scratch, &tp->cache.uas.request_uri,
+      &reqp->sline.parsed.rl.onwire.ruri) != 0) {
+        return (-1);
+    }
+    if (usipy_msg_heap_append(&tp->scratch, &tp->cache.uas.from_uri,
+      &fromp->parsed.from->addr_spec) != 0) {
+        return (-1);
+    }
+    if (usipy_msg_heap_append(&tp->scratch, &tp->cache.uas.to_uri,
+      &top->parsed.to->addr_spec) != 0) {
+        return (-1);
+    }
+    if (usipy_sip_tm_uas_copy_hdrs(&tp->scratch, &tp->cache.uas.vias,
+      &tp->cache.uas.nvias, viasp, nvias) != 0) {
+        return (-1);
+    }
+    if (usipy_sip_tm_uas_copy_hdrs(&tp->scratch, &tp->cache.uas.record_routes,
+      &tp->cache.uas.nrecord_routes, rrsp, nrrs) != 0) {
+        return (-1);
+    }
+    if (contactp != NULL && contactp->parsed.contact != NULL &&
+      contactp->parsed.contact->addr_spec.l != 0 &&
+      usipy_msg_heap_append(&tp->scratch, &tp->cache.uas.contact_uri,
+        &contactp->parsed.contact->addr_spec) != 0) {
         return (-1);
     }
     tp->cache.cseq = *cseqp->parsed.cseq;
@@ -339,6 +381,7 @@ usipy_sip_tm_uas_cache_request(const struct usipy_msg *reqp, struct usipy_sip_tm
 }
 
 struct usipy_sip_tm_uas_build_arg {
+    const struct usipy_sip_tm *tm;
     const struct usipy_sip_tm_txi *tp;
     const struct usipy_sip_status *slp;
 };
@@ -352,6 +395,7 @@ usipy_sip_tm_uas_build_response_cb(void *arg, char *buf, size_t len)
     static const struct usipy_str server_value = USIPY_2STR("uSippy");
     static const struct usipy_str clen_value = USIPY_2STR("0");
     const struct usipy_sip_tm_uas_build_arg *barg = arg;
+    const struct usipy_sip_tm *tm = barg->tm;
     const struct usipy_sip_tm_txi *tp = barg->tp;
     const struct usipy_sip_status *slp = barg->slp;
     const struct usipy_hdr_db_entr *via_hfp = usipy_hdr_db_byid(USIPY_HF_VIA);
@@ -360,6 +404,7 @@ usipy_sip_tm_uas_build_response_cb(void *arg, char *buf, size_t len)
     const struct usipy_hdr_db_entr *callid_hfp = usipy_hdr_db_byid(USIPY_HF_CALLID);
     const struct usipy_hdr_db_entr *cseq_hfp = usipy_hdr_db_byid(USIPY_HF_CSEQ);
     const struct usipy_hdr_db_entr *rr_hfp = usipy_hdr_db_byid(USIPY_HF_RECORDROUTE);
+    const struct usipy_hdr_db_entr *contact_hfp = usipy_hdr_db_byid(USIPY_HF_CONTACT);
     const struct usipy_hdr_db_entr *server_hfp = usipy_hdr_db_byid(USIPY_HF_SERVER);
     const struct usipy_hdr_db_entr *clen_hfp = usipy_hdr_db_byid(USIPY_HF_CONTENTLENGTH);
     size_t off = 0;
@@ -378,6 +423,7 @@ usipy_sip_tm_uas_build_response_cb(void *arg, char *buf, size_t len)
     USIPY_DASSERT(callid_hfp != NULL);
     USIPY_DASSERT(cseq_hfp != NULL);
     USIPY_DASSERT(rr_hfp != NULL);
+    USIPY_DASSERT(contact_hfp != NULL);
     USIPY_DASSERT(server_hfp != NULL);
     USIPY_DASSERT(clen_hfp != NULL);
     APPEND_STR(&sip20_sp);
@@ -420,6 +466,15 @@ usipy_sip_tm_uas_build_response_cb(void *arg, char *buf, size_t len)
         APPEND_STR(&rr_hfp->name);
         APPEND_STR(&colon_sp);
         APPEND_STR(&tp->cache.uas.record_routes[i]);
+        APPEND_MEM(USIPY_CRLF, USIPY_CRLF_LEN);
+    }
+    if (tp->cache.method_type == USIPY_SIP_METHOD_INVITE &&
+      slp->code >= 200 && slp->code < 300) {
+        APPEND_STR(&contact_hfp->name);
+        APPEND_STR(&colon_sp);
+        APPEND_MEM("<", 1);
+        APPEND_STR(&tm->luri);
+        APPEND_MEM(">", 1);
         APPEND_MEM(USIPY_CRLF, USIPY_CRLF_LEN);
     }
     APPEND_STR(&server_hfp->name);
@@ -601,6 +656,7 @@ usipy_sip_tm_new_uas_tr(struct usipy_sip_tm *tm,
       usipy_msg_heap_append(&tp->scratch, &tp->cache.branch, tid.vbranch) != 0 ||
       usipy_msg_heap_append(&tp->scratch, &tp->cache.from_tag, tid.from_tag) != 0 ||
       usipy_sip_tm_uas_cache_request(tpp->request, tp) != 0) {
+        usipy_sip_tm_tx_fini(tp);
         return (USIPY_SIP_TM_ERR_NOSPC);
     }
     if (usipy_sip_tm_uas_prepare_local_tag(tm, tp, tx_index, tid.cseq->val,
@@ -667,6 +723,7 @@ usipy_sip_tm_send_uas_response(struct usipy_sip_tm *tm, size_t index,
     }
     USIPY_DASSERT(tp->outbound.checkpoint != USIPY_MSG_HEAP_CHECKPOINT_NONE);
     usipy_msg_heap_rollback(&tp->scratch, tp->outbound.checkpoint);
+    barg.tm = tm;
     barg.tp = tp;
     barg.slp = slp;
     if (usipy_msg_heap_build(&tp->scratch, &tp->outbound.pub.raw, &barg,

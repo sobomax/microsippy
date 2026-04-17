@@ -26,6 +26,10 @@ struct usipy_sip_tm_uac_cache {
 struct usipy_sip_tm_uas_cache {
     struct usipy_str from;
     struct usipy_str to;
+    struct usipy_str request_uri;
+    struct usipy_str from_uri;
+    struct usipy_str to_uri;
+    struct usipy_str contact_uri;
     struct usipy_str *vias;
     struct usipy_str *record_routes;
     uint32_t ack_hash;

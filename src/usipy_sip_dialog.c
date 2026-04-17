@@ -27,7 +27,7 @@ struct usipy_sip_dialog {
 };
 
 struct usipy_sip_dialog *
-usipy_sip_dialog_ctor(struct usipy_sip_tm *tm, size_t invite_index,
+usipy_sip_dialog_uac_ctor(struct usipy_sip_tm *tm, size_t invite_index,
   const struct usipy_msg *msg)
 {
     struct usipy_sip_dialog *dp;
@@ -40,8 +40,34 @@ usipy_sip_dialog_ctor(struct usipy_sip_tm *tm, size_t invite_index,
     }
     usipy_msg_heap_init(&dp->heap, dp->_storage, sizeof(dp->_storage), NULL, 0);
     dp->tm = tm;
-    if (usipy_sip_tm_init_in_dialog_request_params(tm, invite_index, msg,
+    if (usipy_sip_tm_init_uac_dialog_request_params(tm, invite_index, msg,
       USIPY_SIP_METHOD_BYE, &dp->heap, &dp->request_template) != USIPY_SIP_TM_OK) {
+        free(dp);
+        return (NULL);
+    }
+    return (dp);
+}
+
+struct usipy_sip_dialog *
+usipy_sip_dialog_uas_ctor(struct usipy_sip_tm *tm, size_t invite_index,
+  const struct usipy_sip_tm_uas_response_params *rpp)
+{
+    struct usipy_sip_dialog *dp;
+
+    USIPY_DASSERT(tm != NULL);
+    USIPY_DASSERT(rpp != NULL);
+    if (rpp->status.code < 200 || rpp->status.code > 299) {
+        return (NULL);
+    }
+    dp = calloc(1, sizeof(*dp));
+    if (dp == NULL) {
+        return (NULL);
+    }
+    usipy_msg_heap_init(&dp->heap, dp->_storage, sizeof(dp->_storage), NULL, 0);
+    dp->tm = tm;
+    if (usipy_sip_tm_init_uas_dialog_request_params(tm, invite_index,
+      USIPY_SIP_METHOD_BYE, &dp->heap, &dp->request_template) != USIPY_SIP_TM_OK ||
+      usipy_sip_tm_send_uas_response(tm, invite_index, rpp) != USIPY_SIP_TM_OK) {
         free(dp);
         return (NULL);
     }
