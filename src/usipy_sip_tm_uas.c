@@ -7,6 +7,7 @@
 #include "public/usipy_sip_tm.h"
 #include "usipy_sip_hdr.h"
 #include "usipy_sip_hdr_db.h"
+#include "usipy_sip_hdr_nameaddr.h"
 #include "usipy_sip_method_db.h"
 #include "usipy_sip_res.h"
 #include "usipy_sip_tid.h"
@@ -15,29 +16,6 @@
 
 static void usipy_sip_tm_uas_run_out_consider(struct usipy_sip_tm_run_out *, uint64_t);
 static void usipy_sip_tm_uas_mark_terminated(struct usipy_sip_tm_txi *);
-
-static const struct usipy_str *usipy_sip_tm_uas_nameaddr_get_param(
-  const struct usipy_sip_hdr_nameaddr *, const char *);
-
-static const struct usipy_str *
-usipy_sip_tm_uas_nameaddr_get_param(const struct usipy_sip_hdr_nameaddr *nap,
-  const char *name)
-{
-    const size_t nlen = strlen(name);
-
-    USIPY_DASSERT(nap != NULL);
-    USIPY_DASSERT(name != NULL);
-
-    for (int i = 0; i < nap->nparams; i++) {
-        const struct usipy_tvpair *pp = &nap->params[i];
-
-        if (pp->token.l != nlen || memcmp(pp->token.s.ro, name, nlen) != 0) {
-            continue;
-        }
-        return (&pp->value);
-    }
-    return (NULL);
-}
 
 static uint32_t
 usipy_sip_tm_timer_j_ms(const struct usipy_sip_tm_timer_policy *tp)
@@ -188,7 +166,7 @@ usipy_sip_tm_find_uas_ack_transaction(const struct usipy_sip_tm *tm,
         *indexp = USIPY_SIP_TM_TX_INDEX_NONE;
         return (-1);
     }
-    to_tagp = usipy_sip_tm_uas_nameaddr_get_param(top, "tag");
+    to_tagp = usipy_sip_hdr_nameaddr_get_param(top, "tag");
     if (to_tagp != NULL && to_tagp->l != 0) {
         dialog_hash = usipy_sip_dialog_tid_hash(tidp->call_id, tidp->from_tag,
           to_tagp, tidp->cseq->val, USIPY_SIP_METHOD_ACK);

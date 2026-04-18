@@ -150,6 +150,17 @@ usipy_sip_ua_get_state(const struct usipy_sip_ua *uap)
 }
 
 int
+usipy_sip_ua_matches_transaction(const struct usipy_sip_ua *uap, const struct usipy_msg *msg)
+{
+    USIPY_DASSERT(uap != NULL);
+    USIPY_DASSERT(msg != NULL);
+    if (uap->dialogp == NULL) {
+        return (0);
+    }
+    return (usipy_sip_dialog_matches_uas_transaction(uap->dialogp, msg));
+}
+
+int
 usipy_sip_ua_on_event(struct usipy_sip_ua *uap, const struct usipy_sip_ua_event *eventp,
   size_t *indexp)
 {

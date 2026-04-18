@@ -8,22 +8,15 @@ static int
 usipy_sip_ua_connected_on_transaction(struct usipy_sip_ua *uap, size_t tx_index,
   const struct usipy_msg *msg)
 {
-    const struct usipy_sip_tm_tx *txp;
-    const struct usipy_sip_tm_uas_response_params ok = {
-      .status = usipy_sip_res_ok,
-    };
     int rval;
 
     USIPY_DASSERT(uap != NULL);
     USIPY_DASSERT(msg != NULL);
 
-    rval = usipy_sip_ua_expect_transaction(uap, tx_index, USIPY_SIP_TM_ROLE_UAS,
-      USIPY_SIP_METHOD_BYE, &txp);
-    if (rval != USIPY_SIP_TM_OK) {
-        return (rval);
+    if (uap->dialogp == NULL) {
+        return (USIPY_SIP_TM_ERR_UNSUPPORTED);
     }
-    (void)txp;
-    rval = usipy_sip_tm_send_uas_response(uap->tm, tx_index, &ok);
+    rval = usipy_sip_dialog_handle_uas_transaction(uap->dialogp, tx_index, msg);
     if (rval != USIPY_SIP_TM_OK) {
         return (rval);
     }

@@ -1,6 +1,7 @@
 #include <stddef.h>
 
 #include "usipy_debug.h"
+#include "usipy_sip_res.h"
 #include "sip_ua/usipy_sip_ua_internal.h"
 
 static int
@@ -8,6 +9,9 @@ usipy_sip_ua_idle_on_transaction(struct usipy_sip_ua *uap, size_t tx_index,
   const struct usipy_msg *msg)
 {
     const struct usipy_sip_tm_tx *txp;
+    const struct usipy_sip_tm_uas_response_params trying = {
+      .status = usipy_sip_res_trying,
+    };
     int rval;
 
     USIPY_DASSERT(uap != NULL);
@@ -15,6 +19,10 @@ usipy_sip_ua_idle_on_transaction(struct usipy_sip_ua *uap, size_t tx_index,
 
     rval = usipy_sip_ua_expect_transaction(uap, tx_index, USIPY_SIP_TM_ROLE_UAS,
       USIPY_SIP_METHOD_INVITE, &txp);
+    if (rval != USIPY_SIP_TM_OK) {
+        return (rval);
+    }
+    rval = usipy_sip_tm_send_uas_response(uap->tm, tx_index, &trying);
     if (rval != USIPY_SIP_TM_OK) {
         return (rval);
     }

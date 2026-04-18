@@ -5,7 +5,6 @@
 #include <assert.h>
 #include <stdio.h>
 #include <string.h>
-
 #include "public/microsippy.h"
 #include "usipy_sip_hdr.h"
 #include "usipy_sip_hdr_db.h"
@@ -15,9 +14,12 @@
 #include "usipy_sip_res.h"
 
 struct emit_log {
+    struct usipy_sip_tm *tm;
     size_t count;
     struct usipy_sip_ua_emit emits[8];
 };
+
+static void run_tm_once(struct usipy_sip_tm *tm, uint64_t now_ms);
 
 static int
 noop_send_to(void *arg, size_t tx_index, const struct usipy_sip_tm_tx *txp,
@@ -54,6 +56,9 @@ capture_emit(void *arg, const struct usipy_sip_ua_emit *emitp)
     assert(emitp != NULL);
     assert(elog->count < sizeof(elog->emits) / sizeof(elog->emits[0]));
     elog->emits[elog->count++] = *emitp;
+    if (elog->tm != NULL) {
+        run_tm_once(elog->tm, 0);
+    }
 }
 
 static struct usipy_sip_tm *
@@ -248,6 +253,7 @@ test_ua_outgoing_connect_disconnect(void)
     int sock;
 
     tm = make_tm(&sock);
+    elog.tm = tm;
     ucp.tm = tm;
     ucp.emit = capture_emit;
     ucp.emit_arg = &elog;
@@ -324,6 +330,7 @@ test_ua_outgoing_reject(void)
     int sock;
 
     tm = make_tm(&sock);
+    elog.tm = tm;
     ucp.tm = tm;
     ucp.emit = capture_emit;
     ucp.emit_arg = &elog;
@@ -391,6 +398,7 @@ test_ua_incoming_connect_bye(void)
     int sock;
 
     tm = make_tm(&sock);
+    elog.tm = tm;
     ucp.tm = tm;
     ucp.emit = capture_emit;
     ucp.emit_arg = &elog;
@@ -421,6 +429,9 @@ test_ua_incoming_connect_bye(void)
     assert(usipy_sip_tm_new_uas_tr(tm, &tpp, &invite_index) == USIPY_SIP_TM_OK);
     assert(usipy_sip_ua_on_transaction(uap, invite_index, invp) == USIPY_SIP_TM_OK);
     assert(usipy_sip_ua_get_state(uap) == USIPY_SIP_UA_STATE_TRYING);
+    txp = usipy_sip_tm_get_transaction(tm, invite_index);
+    assert(txp != NULL);
+    assert(txp->role_data.uas.last_status_code == 100);
     assert(elog.count == 1);
     assert(elog.emits[0].type == USIPY_SIP_UA_EMIT_DIAL);
     assert(elog.emits[0].message == invp);
@@ -440,6 +451,7 @@ test_ua_incoming_connect_bye(void)
     assert(respp != NULL);
 
     byep = build_connected_bye(invp, respp);
+    assert(usipy_sip_ua_matches_transaction(uap, byep) == 1);
     tpp.request = byep;
     assert(usipy_sip_tm_new_uas_tr(tm, &tpp, &bye_index) == USIPY_SIP_TM_OK);
     assert(usipy_sip_ua_on_transaction(uap, bye_index, byep) == USIPY_SIP_TM_OK);

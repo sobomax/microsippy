@@ -17,6 +17,7 @@
 #include "usipy_sip_hdr_auth.h"
 #include "usipy_sip_hdr_authz.h"
 #include "usipy_sip_hdr_db.h"
+#include "usipy_sip_hdr_nameaddr.h"
 #include "usipy_sip_method_db.h"
 #include "usipy_sip_tid.h"
 #include "usipy_sip_tm_internal.h"
@@ -475,26 +476,6 @@ usipy_sip_tm_tx_waits_for_invite_ack(const struct usipy_sip_tm_txi *tp)
       tp->pub.common.timer.type == USIPY_SIP_TM_TIMER_D);
 }
 
-static const struct usipy_str *
-usipy_sip_tm_nameaddr_get_param(const struct usipy_sip_hdr_nameaddr *nap,
-  const char *name)
-{
-    const size_t nlen = strlen(name);
-
-    USIPY_DASSERT(nap != NULL);
-    USIPY_DASSERT(name != NULL);
-
-    for (int i = 0; i < nap->nparams; i++) {
-        const struct usipy_tvpair *pp = &nap->params[i];
-
-        if (pp->token.l != nlen || memcmp(pp->token.s.ro, name, nlen) != 0) {
-            continue;
-        }
-        return (&pp->value);
-    }
-    return (NULL);
-}
-
 static int
 usipy_sip_tm_extract_response_to_tag(struct usipy_msg *msg, struct usipy_str *tagp)
 {
@@ -515,7 +496,7 @@ usipy_sip_tm_extract_response_to_tag(struct usipy_msg *msg, struct usipy_str *ta
     if (top == NULL) {
         return (-1);
     }
-    vp = usipy_sip_tm_nameaddr_get_param(top, "tag");
+    vp = usipy_sip_hdr_nameaddr_get_param(top, "tag");
     if (vp == NULL || vp->l == 0) {
         return (-1);
     }

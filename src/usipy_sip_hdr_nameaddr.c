@@ -137,3 +137,23 @@ usipy_sip_hdr_nameaddr_dump(const union usipy_sip_hdr_parsed *up, const char *lo
         DUMP_PARAM(nap, params, i, canname);
     }
 }
+
+const struct usipy_str *
+usipy_sip_hdr_nameaddr_get_param(const struct usipy_sip_hdr_nameaddr *nap,
+  const char *name)
+{
+    const size_t nlen = strlen(name);
+
+    USIPY_DASSERT(nap != NULL);
+    USIPY_DASSERT(name != NULL);
+
+    for (int i = 0; i < nap->nparams; i++) {
+        const struct usipy_tvpair *pp = &nap->params[i];
+
+        if (pp->token.l != nlen || memcmp(pp->token.s.ro, name, nlen) != 0) {
+            continue;
+        }
+        return (&pp->value);
+    }
+    return (NULL);
+}

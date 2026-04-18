@@ -56,6 +56,7 @@ struct usipy_sip_ua_ctor_params {
 struct usipy_sip_ua *usipy_sip_ua_ctor(const struct usipy_sip_ua_ctor_params *);
 void usipy_sip_ua_dtor(struct usipy_sip_ua *);
 enum usipy_sip_ua_state usipy_sip_ua_get_state(const struct usipy_sip_ua *);
+int usipy_sip_ua_matches_transaction(const struct usipy_sip_ua *, const struct usipy_msg *);
 int usipy_sip_ua_on_event(struct usipy_sip_ua *, const struct usipy_sip_ua_event *,
   size_t *);
 int usipy_sip_ua_on_transaction(struct usipy_sip_ua *, size_t, const struct usipy_msg *);

@@ -8,6 +8,7 @@
 #include "public/usipy_sip_method_types.h"
 #include "usipy_sip_hdr.h"
 #include "usipy_sip_hdr_db.h"
+#include "usipy_sip_hdr_nameaddr.h"
 #include "usipy_sip_tm_internal.h"
 #include "usipy_sip_tm_priv.h"
 #include "usipy_tvpair.h"
@@ -15,26 +16,6 @@
 static int usipy_sip_tm_dialog_uri_has_param(const struct usipy_sip_uri *, const char *);
 static void usipy_sip_tm_dialog_set_target_from_uri(struct usipy_sip_tm_addr *,
   const struct usipy_sip_tm_addr *, const struct usipy_sip_uri *);
-
-static const struct usipy_str *
-usipy_sip_tm_dialog_nameaddr_get_param(const struct usipy_sip_hdr_nameaddr *nap,
-  const char *name)
-{
-    const size_t nlen = strlen(name);
-
-    USIPY_DASSERT(nap != NULL);
-    USIPY_DASSERT(name != NULL);
-
-    for (int i = 0; i < nap->nparams; i++) {
-        const struct usipy_tvpair *pp = &nap->params[i];
-
-        if (pp->token.l != nlen || memcmp(pp->token.s.ro, name, nlen) != 0) {
-            continue;
-        }
-        return (&pp->value);
-    }
-    return (NULL);
-}
 
 static int
 usipy_sip_tm_dialog_has_lr(const struct usipy_str *sp)
@@ -217,7 +198,7 @@ usipy_sip_tm_init_uac_dialog_request_params(const struct usipy_sip_tm *tm,
     if (top == NULL || contactp == NULL) {
         return (USIPY_SIP_TM_ERR_BADMSG);
     }
-    tagp = usipy_sip_tm_dialog_nameaddr_get_param(top, "tag");
+    tagp = usipy_sip_hdr_nameaddr_get_param(top, "tag");
     if (tagp == NULL || tagp->l == 0 || contactp->addr_spec.l == 0) {
         return (USIPY_SIP_TM_ERR_BADMSG);
     }
