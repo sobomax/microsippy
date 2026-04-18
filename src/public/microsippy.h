@@ -9,5 +9,6 @@
 #include "usipy_sip_msg.h"
 #include "usipy_sip_tm.h"
 #include "usipy_sip_dialog.h"
+#include "usipy_sip_ua.h"
 
 #endif

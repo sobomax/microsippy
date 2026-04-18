@@ -16,6 +16,29 @@
 static void usipy_sip_tm_uas_run_out_consider(struct usipy_sip_tm_run_out *, uint64_t);
 static void usipy_sip_tm_uas_mark_terminated(struct usipy_sip_tm_txi *);
 
+static const struct usipy_str *usipy_sip_tm_uas_nameaddr_get_param(
+  const struct usipy_sip_hdr_nameaddr *, const char *);
+
+static const struct usipy_str *
+usipy_sip_tm_uas_nameaddr_get_param(const struct usipy_sip_hdr_nameaddr *nap,
+  const char *name)
+{
+    const size_t nlen = strlen(name);
+
+    USIPY_DASSERT(nap != NULL);
+    USIPY_DASSERT(name != NULL);
+
+    for (int i = 0; i < nap->nparams; i++) {
+        const struct usipy_tvpair *pp = &nap->params[i];
+
+        if (pp->token.l != nlen || memcmp(pp->token.s.ro, name, nlen) != 0) {
+            continue;
+        }
+        return (&pp->value);
+    }
+    return (NULL);
+}
+
 static uint32_t
 usipy_sip_tm_timer_j_ms(const struct usipy_sip_tm_timer_policy *tp)
 {
@@ -102,6 +125,7 @@ usipy_sip_tm_uas_method_hash(const struct usipy_sip_tm_txi *tp,
 
 static int
 usipy_sip_tm_uas_ack_matches_tx(const struct usipy_sip_tid *tidp,
+  const struct usipy_str *to_tagp, uint32_t dialog_hash,
   const struct usipy_sip_tm_txi *tp)
 {
     USIPY_DASSERT(tidp != NULL);
@@ -111,16 +135,77 @@ usipy_sip_tm_uas_ack_matches_tx(const struct usipy_sip_tid *tidp,
       tp->pub.role != USIPY_SIP_TM_ROLE_UAS ||
       tp->pub.common.id.method_type != USIPY_SIP_METHOD_INVITE ||
       tp->pub.state != USIPY_SIP_TM_STATE_COMPLETED ||
-      tp->cache.uas.ack_hash == 0 ||
-      tidp->hash != tp->cache.uas.ack_hash) {
+      tp->cache.uas.ack_hash == 0) {
         return (0);
     }
-    if (!usipy_str_eq(tidp->call_id, &tp->pub.common.id.call_id) ||
-      !usipy_str_eq(tidp->from_tag, &tp->pub.common.id.from_tag) ||
-      !usipy_str_eq(tidp->vbranch, &tp->pub.common.id.branch)) {
-        return (0);
+    if (tp->pub.role_data.uas.last_status_code >= 200 &&
+      tp->pub.role_data.uas.last_status_code < 300) {
+        if (to_tagp == NULL || to_tagp->l == 0 ||
+          dialog_hash != tp->cache.uas.ack_hash) {
+            return (0);
+        }
+        if (!usipy_str_eq(tidp->call_id, &tp->pub.common.id.call_id) ||
+          !usipy_str_eq(tidp->from_tag, &tp->pub.common.id.from_tag) ||
+          !usipy_str_eq(to_tagp, &tp->cache.to_tag)) {
+            return (0);
+        }
+    } else {
+        if (tidp->hash != tp->cache.uas.ack_hash) {
+            return (0);
+        }
+        if (!usipy_str_eq(tidp->call_id, &tp->pub.common.id.call_id) ||
+          !usipy_str_eq(tidp->from_tag, &tp->pub.common.id.from_tag) ||
+          !usipy_str_eq(tidp->vbranch, &tp->pub.common.id.branch)) {
+            return (0);
+        }
     }
     return (tidp->cseq->val == tp->pub.common.id.cseq);
+}
+
+static int
+usipy_sip_tm_find_uas_ack_transaction(const struct usipy_sip_tm *tm,
+  struct usipy_msg *msg, const struct usipy_sip_tid *tidp, size_t *indexp)
+{
+    struct usipy_sip_hdr_match *matchp;
+    const struct usipy_sip_hdr_nameaddr *top;
+    const struct usipy_str *to_tagp = NULL;
+    uint32_t dialog_hash = 0;
+
+    USIPY_DASSERT(tm != NULL);
+    USIPY_DASSERT(msg != NULL);
+    USIPY_DASSERT(tidp != NULL);
+    USIPY_DASSERT(indexp != NULL);
+
+    matchp = __builtin_alloca(USIPY_SIP_HDR_MATCH_SIZE(msg->nhdrs));
+    *matchp = (struct usipy_sip_hdr_match){.hdrslen = msg->nhdrs};
+    if (usipy_sip_msg_parse_hdrs_get(msg, USIPY_HFT_MASK(USIPY_HF_TO), 1,
+      matchp) != 0 || matchp->nhdrs == 0) {
+        *indexp = USIPY_SIP_TM_TX_INDEX_NONE;
+        return (-1);
+    }
+    top = matchp->hdrsp[0]->parsed.to;
+    if (top == NULL) {
+        *indexp = USIPY_SIP_TM_TX_INDEX_NONE;
+        return (-1);
+    }
+    to_tagp = usipy_sip_tm_uas_nameaddr_get_param(top, "tag");
+    if (to_tagp != NULL && to_tagp->l != 0) {
+        dialog_hash = usipy_sip_dialog_tid_hash(tidp->call_id, tidp->from_tag,
+          to_tagp, tidp->cseq->val, USIPY_SIP_METHOD_ACK);
+    }
+    for (size_t i = 0; i < tm->max_transactions; i++) {
+        const struct usipy_sip_tm_txi *tp = &tm->transactions[i];
+
+        if (!tp->active) {
+            continue;
+        }
+        if (usipy_sip_tm_uas_ack_matches_tx(tidp, to_tagp, dialog_hash, tp)) {
+            *indexp = i;
+            return (0);
+        }
+    }
+    *indexp = USIPY_SIP_TM_TX_INDEX_NONE;
+    return (-1);
 }
 
 static void
@@ -279,7 +364,36 @@ usipy_sip_tm_uas_copy_hdrs(struct usipy_msg_heap *mhp, struct usipy_str **dstpp,
 }
 
 static int
-usipy_sip_tm_uas_cache_request(const struct usipy_msg *reqp, struct usipy_sip_tm_txi *tp)
+usipy_sip_tm_uas_rebase_substr(const struct usipy_str *src_basep,
+  const struct usipy_str *dst_basep, const struct usipy_str *srcp,
+  struct usipy_str *dstp)
+{
+    size_t off;
+
+    USIPY_DASSERT(src_basep != NULL);
+    USIPY_DASSERT(dst_basep != NULL);
+    USIPY_DASSERT(srcp != NULL);
+    USIPY_DASSERT(dstp != NULL);
+
+    if (srcp->l == 0) {
+        *dstp = USIPY_STR_NULL;
+        return (0);
+    }
+    if (srcp->s.ro < src_basep->s.ro) {
+        return (-1);
+    }
+    off = (size_t)(srcp->s.ro - src_basep->s.ro);
+    if (off > src_basep->l || srcp->l > src_basep->l - off) {
+        return (-1);
+    }
+    dstp->s.ro = dst_basep->s.ro + off;
+    dstp->l = srcp->l;
+    return (0);
+}
+
+static int
+usipy_sip_tm_uas_cache_request(const struct usipy_msg *reqp,
+  const struct usipy_sip_tid *tidp, struct usipy_sip_tm_txi *tp)
 {
     uint64_t parse_mask;
     const struct usipy_sip_hdr *fromp = NULL, *top = NULL, *cseqp = NULL, *contactp = NULL;
@@ -288,6 +402,7 @@ usipy_sip_tm_uas_cache_request(const struct usipy_msg *reqp, struct usipy_sip_tm
     size_t nvias = 0, nrrs = 0;
 
     USIPY_DASSERT(reqp != NULL);
+    USIPY_DASSERT(tidp != NULL);
     USIPY_DASSERT(tp != NULL);
     parse_mask = USIPY_HFT_MASK(USIPY_HF_FROM) | USIPY_HFT_MASK(USIPY_HF_TO) |
       USIPY_HFT_MASK(USIPY_HF_CSEQ);
@@ -354,16 +469,20 @@ usipy_sip_tm_uas_cache_request(const struct usipy_msg *reqp, struct usipy_sip_tm
       &reqp->sline.parsed.rl.onwire.ruri) != 0) {
         return (-1);
     }
-    if (usipy_msg_heap_append(&tp->scratch, &tp->cache.uas.from_uri,
-      &fromp->parsed.from->addr_spec) != 0) {
+    if (usipy_sip_tm_uas_rebase_substr(&fromp->onwire.value, &tp->cache.uas.from,
+      &fromp->parsed.from->addr_spec, &tp->cache.uas.from_uri) != 0) {
         return (-1);
     }
-    if (usipy_msg_heap_append(&tp->scratch, &tp->cache.uas.to_uri,
-      &top->parsed.to->addr_spec) != 0) {
+    if (usipy_sip_tm_uas_rebase_substr(&top->onwire.value, &tp->cache.uas.to,
+      &top->parsed.to->addr_spec, &tp->cache.uas.to_uri) != 0) {
         return (-1);
     }
     if (usipy_sip_tm_uas_copy_hdrs(&tp->scratch, &tp->cache.uas.vias,
       &tp->cache.uas.nvias, viasp, nvias) != 0) {
+        return (-1);
+    }
+    if (usipy_sip_tm_uas_rebase_substr(&viasp[0]->onwire.value, &tp->cache.uas.vias[0],
+      tidp->vbranch, &tp->cache.branch) != 0) {
         return (-1);
     }
     if (usipy_sip_tm_uas_copy_hdrs(&tp->scratch, &tp->cache.uas.record_routes,
@@ -376,6 +495,10 @@ usipy_sip_tm_uas_cache_request(const struct usipy_msg *reqp, struct usipy_sip_tm
         &contactp->parsed.contact->addr_spec) != 0) {
         return (-1);
     }
+    if (usipy_sip_tm_uas_rebase_substr(&fromp->onwire.value, &tp->cache.uas.from,
+      tidp->from_tag, &tp->cache.from_tag) != 0) {
+        return (-1);
+    }
     tp->cache.cseq = *cseqp->parsed.cseq;
     return (0);
 }
@@ -383,7 +506,7 @@ usipy_sip_tm_uas_cache_request(const struct usipy_msg *reqp, struct usipy_sip_tm
 struct usipy_sip_tm_uas_build_arg {
     const struct usipy_sip_tm *tm;
     const struct usipy_sip_tm_txi *tp;
-    const struct usipy_sip_status *slp;
+    const struct usipy_sip_tm_uas_response_params *rpp;
 };
 
 static int
@@ -393,11 +516,11 @@ usipy_sip_tm_uas_build_response_cb(void *arg, char *buf, size_t len)
     static const struct usipy_str colon_sp = USIPY_2STR(": ");
     static const struct usipy_str tag_param = USIPY_2STR(";tag=");
     static const struct usipy_str server_value = USIPY_2STR("uSippy");
-    static const struct usipy_str clen_value = USIPY_2STR("0");
     const struct usipy_sip_tm_uas_build_arg *barg = arg;
     const struct usipy_sip_tm *tm = barg->tm;
     const struct usipy_sip_tm_txi *tp = barg->tp;
-    const struct usipy_sip_status *slp = barg->slp;
+    const struct usipy_sip_tm_uas_response_params *rpp = barg->rpp;
+    const struct usipy_sip_status *slp = &rpp->status;
     const struct usipy_hdr_db_entr *via_hfp = usipy_hdr_db_byid(USIPY_HF_VIA);
     const struct usipy_hdr_db_entr *from_hfp = usipy_hdr_db_byid(USIPY_HF_FROM);
     const struct usipy_hdr_db_entr *to_hfp = usipy_hdr_db_byid(USIPY_HF_TO);
@@ -406,7 +529,9 @@ usipy_sip_tm_uas_build_response_cb(void *arg, char *buf, size_t len)
     const struct usipy_hdr_db_entr *rr_hfp = usipy_hdr_db_byid(USIPY_HF_RECORDROUTE);
     const struct usipy_hdr_db_entr *contact_hfp = usipy_hdr_db_byid(USIPY_HF_CONTACT);
     const struct usipy_hdr_db_entr *server_hfp = usipy_hdr_db_byid(USIPY_HF_SERVER);
+    const struct usipy_hdr_db_entr *ctype_hfp = usipy_hdr_db_byid(USIPY_HF_CONTENTTYPE);
     const struct usipy_hdr_db_entr *clen_hfp = usipy_hdr_db_byid(USIPY_HF_CONTENTLENGTH);
+    char clen_buf[32];
     size_t off = 0;
     char sbuf[4];
     int rval;
@@ -425,6 +550,7 @@ usipy_sip_tm_uas_build_response_cb(void *arg, char *buf, size_t len)
     USIPY_DASSERT(rr_hfp != NULL);
     USIPY_DASSERT(contact_hfp != NULL);
     USIPY_DASSERT(server_hfp != NULL);
+    USIPY_DASSERT(ctype_hfp != NULL);
     USIPY_DASSERT(clen_hfp != NULL);
     APPEND_STR(&sip20_sp);
     usipy_sip_tm_uas_scode2str(slp->code, sbuf);
@@ -481,11 +607,24 @@ usipy_sip_tm_uas_build_response_cb(void *arg, char *buf, size_t len)
     APPEND_STR(&colon_sp);
     APPEND_STR(&server_value);
     APPEND_MEM(USIPY_CRLF, USIPY_CRLF_LEN);
+    if (rpp->body.l != 0 && rpp->content_type.l != 0) {
+        APPEND_STR(&ctype_hfp->name);
+        APPEND_STR(&colon_sp);
+        APPEND_STR(&rpp->content_type);
+        APPEND_MEM(USIPY_CRLF, USIPY_CRLF_LEN);
+    }
     APPEND_STR(&clen_hfp->name);
     APPEND_STR(&colon_sp);
-    APPEND_STR(&clen_value);
+    rval = snprintf(clen_buf, sizeof(clen_buf), "%zu", rpp->body.l);
+    if (rval < 0 || (size_t)rval >= sizeof(clen_buf)) {
+        return (-1);
+    }
+    APPEND_MEM(clen_buf, (size_t)rval);
     APPEND_MEM(USIPY_CRLF, USIPY_CRLF_LEN);
     APPEND_MEM(USIPY_CRLF, USIPY_CRLF_LEN);
+    if (rpp->body.l != 0) {
+        APPEND_STR(&rpp->body);
+    }
 #undef APPEND_MEM
 #undef APPEND_STR
     return ((int)off);
@@ -539,30 +678,6 @@ usipy_sip_tm_find_uas_transaction(const struct usipy_sip_tm *tm,
             continue;
         }
         if (usipy_sip_tm_tid_matches_tx(tidp, &tp->pub)) {
-            *indexp = i;
-            return (0);
-        }
-    }
-    *indexp = USIPY_SIP_TM_TX_INDEX_NONE;
-    return (-1);
-}
-
-static int
-usipy_sip_tm_find_uas_ack_transaction(const struct usipy_sip_tm *tm,
-  const struct usipy_sip_tid *tidp, size_t *indexp)
-{
-    USIPY_DASSERT(tm != NULL);
-    USIPY_DASSERT(tidp != NULL);
-    USIPY_DASSERT(indexp != NULL);
-
-    for (size_t i = 0; i < tm->max_transactions; i++) {
-        const struct usipy_sip_tm_txi *tp = &tm->transactions[i];
-
-        if (!tp->active) {
-            continue;
-        }
-        if (usipy_sip_tm_uas_ack_matches_tx(tidp, tp) &&
-          usipy_sip_tm_uas_is_invite_non2xx_final(tp)) {
             *indexp = i;
             return (0);
         }
@@ -653,9 +768,7 @@ usipy_sip_tm_new_uas_tr(struct usipy_sip_tm *tm,
     tp->uas_callbacks = tpp->callbacks;
     tp->cache.method_type = method_type;
     if (usipy_msg_heap_append(&tp->scratch, &tp->cache.call_id, tid.call_id) != 0 ||
-      usipy_msg_heap_append(&tp->scratch, &tp->cache.branch, tid.vbranch) != 0 ||
-      usipy_msg_heap_append(&tp->scratch, &tp->cache.from_tag, tid.from_tag) != 0 ||
-      usipy_sip_tm_uas_cache_request(tpp->request, tp) != 0) {
+      usipy_sip_tm_uas_cache_request(tpp->request, &tid, tp) != 0) {
         usipy_sip_tm_tx_fini(tp);
         return (USIPY_SIP_TM_ERR_NOSPC);
     }
@@ -725,7 +838,7 @@ usipy_sip_tm_send_uas_response(struct usipy_sip_tm *tm, size_t index,
     usipy_msg_heap_rollback(&tp->scratch, tp->outbound.checkpoint);
     barg.tm = tm;
     barg.tp = tp;
-    barg.slp = slp;
+    barg.rpp = rpp;
     if (usipy_msg_heap_build(&tp->scratch, &tp->outbound.pub.raw, &barg,
       usipy_sip_tm_uas_build_response_cb) != 0) {
         return (USIPY_SIP_TM_ERR_NOSPC);
@@ -739,6 +852,12 @@ usipy_sip_tm_send_uas_response(struct usipy_sip_tm *tm, size_t index,
     tp->cache.uas.ack_hash = 0;
     if (slp->code < 200) {
         tp->pub.common.timer.type = USIPY_SIP_TM_TIMER_NONE;
+    } else if (tp->cache.method_type == USIPY_SIP_METHOD_INVITE && slp->code < 300) {
+        tp->pub.common.timer.type = USIPY_SIP_TM_TIMER_NONE;
+        tp->cache.uas.ack_hash = usipy_sip_dialog_tid_hash(&tp->pub.common.id.call_id,
+          &tp->pub.common.id.from_tag, &tp->cache.to_tag, tp->pub.common.id.cseq,
+          USIPY_SIP_METHOD_ACK);
+        tp->uas_callbacks.no_ack = NULL;
     } else if (tp->cache.method_type == USIPY_SIP_METHOD_INVITE && slp->code >= 300) {
         tp->pub.common.timer.type = USIPY_SIP_TM_TIMER_H;
         tp->pub.common.timer.value_ms = usipy_sip_tm_timer_h_ms(&tp->pub.common.timers);
@@ -878,9 +997,21 @@ usipy_sip_tm_handle_incoming_request(const struct usipy_sip_tm_handle_incoming_i
 
     tm = inp->tm;
     if (msg->sline.parsed.rl.method->cantype == USIPY_SIP_METHOD_ACK &&
-      usipy_sip_tm_find_uas_ack_transaction(tm, tidp, &tx_index) == 0) {
+      usipy_sip_tm_find_uas_ack_transaction(tm, msg, tidp, &tx_index) == 0) {
         struct usipy_sip_tm_txi *tp = &tm->transactions[tx_index];
 
+        if (tp->pub.role_data.uas.last_status_code >= 200 &&
+          tp->pub.role_data.uas.last_status_code < 300) {
+            if (outp != NULL) {
+                outp->error = USIPY_SIP_TM_OK;
+                outp->consumed = 1;
+                outp->match_kind = USIPY_SIP_TM_MATCH_EXISTING;
+                outp->event = USIPY_SIP_TM_EVENT_ACK_RX;
+                outp->transaction_index = tx_index;
+                outp->message = NULL;
+            }
+            return (USIPY_SIP_TM_OK);
+        }
         return (usipy_sip_tm_uas_handle_ack(inp, outp, tp, tx_index));
     }
     if (msg->sline.parsed.rl.method->cantype == USIPY_SIP_METHOD_CANCEL &&

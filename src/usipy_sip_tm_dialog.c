@@ -187,9 +187,14 @@ usipy_sip_tm_init_uac_dialog_request_params(const struct usipy_sip_tm *tm,
     }
     matchp = __builtin_alloca(USIPY_SIP_HDR_MATCH_SIZE(msg->nhdrs));
     *matchp = (struct usipy_sip_hdr_match){.hdrslen = msg->nhdrs};
-    if (usipy_sip_msg_parse_hdrs_get((struct usipy_msg *)msg,
-      USIPY_HFT_MASK(USIPY_HF_TO) | USIPY_HFT_MASK(USIPY_HF_CONTACT) |
-      USIPY_HFT_MASK(USIPY_HF_RECORDROUTE), 0, matchp) != 0) {
+    uint64_t parse_mask = USIPY_HFT_MASK(USIPY_HF_TO) |
+      USIPY_HFT_MASK(USIPY_HF_CONTACT);
+
+    if (USIPY_MSG_HDR_PRESENT(msg, USIPY_HF_RECORDROUTE)) {
+        parse_mask |= USIPY_HFT_MASK(USIPY_HF_RECORDROUTE);
+    }
+    if (usipy_sip_msg_parse_hdrs_get((struct usipy_msg *)msg, parse_mask, 0,
+      matchp) != 0) {
         return (USIPY_SIP_TM_ERR_BADMSG);
     }
     top = NULL;

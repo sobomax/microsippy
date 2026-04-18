@@ -19,3 +19,5 @@ struct usipy_sip_tid {
 void usipy_sip_tid_dump(const struct usipy_sip_tid *, const char *,
   const char *);
 uint32_t usipy_sip_tid_hash(const struct usipy_sip_tid *);
+uint32_t usipy_sip_dialog_tid_hash(const struct usipy_str *,
+  const struct usipy_str *, const struct usipy_str *, uint32_t, uint8_t);

@@ -14,6 +14,7 @@ const struct usipy_method_db_entr usipy_method_db[USIPY_SIP_METHOD_max + 1] = {
     [USIPY_SIP_METHOD_CANCEL] = {.cantype = USIPY_SIP_METHOD_CANCEL, .name = USIPY_2STR("CANCEL")},
     [USIPY_SIP_METHOD_INFO] = {.cantype = USIPY_SIP_METHOD_INFO, .name = USIPY_2STR("INFO")},
     [USIPY_SIP_METHOD_INVITE] = {.cantype = USIPY_SIP_METHOD_INVITE, .name = USIPY_2STR("INVITE")},
+    [USIPY_SIP_METHOD_NOTIFY] = {.cantype = USIPY_SIP_METHOD_NOTIFY, .name = USIPY_2STR("NOTIFY")},
     [USIPY_SIP_METHOD_OPTIONS] = {.cantype = USIPY_SIP_METHOD_OPTIONS, .name = USIPY_2STR("OPTIONS")},
     [USIPY_SIP_METHOD_PRACK] = {.cantype = USIPY_SIP_METHOD_PRACK, .name = USIPY_2STR("PRACK")},
     [USIPY_SIP_METHOD_REFER] = {.cantype = USIPY_SIP_METHOD_REFER, .name = USIPY_2STR("REFER")},
@@ -82,6 +83,10 @@ usipy_method_db_lookup(const struct usipy_str *tp)
       &usipy_method_db[USIPY_SIP_METHOD_ACK],
     };
 
+    if (tp->l == sizeof("NOTIFY") - 1 &&
+      turbo_casebcmp(tp->s.ro, "NOTIFY", sizeof("NOTIFY") - 1) == 0) {
+        return (&usipy_method_db[USIPY_SIP_METHOD_NOTIFY]);
+    }
     if (tp->l <= MAX_WORD_LENGTH && tp->l >= MIN_WORD_LENGTH) {
         int key = method_hash(tp);
 

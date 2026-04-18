@@ -11,7 +11,9 @@ TEST_BIG_ENDIAN(IS_BIG_ENDIAN)
 
 add_executable(usipy_test "usipy_test.c" "usipy_stdout_watch.c")
 add_executable(usipy_test_uac "usipy_test_uac.c" "usipy_tm_uac.c")
-add_executable(usipy_register_cli "usipy_register_cli.c" "usipy_tm_uac.c")
+add_executable(usipy_test_ua "usipy_test_ua.c")
+add_executable(usipy_register_cli "usipy_register_cli.c" "usipy_tm_uac.c" "usipy_tm_uac_cli.c")
+add_executable(ua_cli "ua_cli.c" "usipy_tm_uac.c" "usipy_tm_uac_cli.c")
 add_subdirectory(../../src microsippy)
 target_include_directories(usipy_test PUBLIC
   ${CMAKE_CURRENT_SOURCE_DIR}/../../src
@@ -19,7 +21,13 @@ target_include_directories(usipy_test PUBLIC
 target_include_directories(usipy_test_uac PUBLIC
   ${CMAKE_CURRENT_SOURCE_DIR}/../../src
 )
+target_include_directories(usipy_test_ua PUBLIC
+  ${CMAKE_CURRENT_SOURCE_DIR}/../../src
+)
 target_include_directories(usipy_register_cli PUBLIC
+  ${CMAKE_CURRENT_SOURCE_DIR}/../../src
+)
+target_include_directories(ua_cli PUBLIC
   ${CMAKE_CURRENT_SOURCE_DIR}/../../src
 )
 target_include_directories(microsippy PRIVATE
@@ -33,7 +41,13 @@ target_link_libraries(usipy_test PRIVATE
 target_link_libraries(usipy_test_uac PRIVATE
   microsippy
 )
+target_link_libraries(usipy_test_ua PRIVATE
+  microsippy
+)
 target_link_libraries(usipy_register_cli PRIVATE
+  microsippy
+)
+target_link_libraries(ua_cli PRIVATE
   microsippy
 )
 
@@ -41,7 +55,9 @@ set(POSIX_TARGETS
   microsippy
   usipy_test
   usipy_test_uac
+  usipy_test_ua
   usipy_register_cli
+  ua_cli
 )
 
 foreach(target ${POSIX_TARGETS})
@@ -61,12 +77,16 @@ IF (IS_BIG_ENDIAN)
     target_compile_definitions(microsippy PRIVATE -DUSIPY_BIGENDIAN=1)
     target_compile_definitions(usipy_test PRIVATE -DUSIPY_BIGENDIAN=1)
     target_compile_definitions(usipy_test_uac PRIVATE -DUSIPY_BIGENDIAN=1)
+    target_compile_definitions(usipy_test_ua PRIVATE -DUSIPY_BIGENDIAN=1)
     target_compile_definitions(usipy_register_cli PRIVATE -DUSIPY_BIGENDIAN=1)
+    target_compile_definitions(ua_cli PRIVATE -DUSIPY_BIGENDIAN=1)
 ELSE (IS_BIG_ENDIAN)
     target_compile_definitions(microsippy PRIVATE -DUSIPY_BIGENDIAN=0)
     target_compile_definitions(usipy_test PRIVATE -DUSIPY_BIGENDIAN=0)
     target_compile_definitions(usipy_test_uac PRIVATE -DUSIPY_BIGENDIAN=0)
+    target_compile_definitions(usipy_test_ua PRIVATE -DUSIPY_BIGENDIAN=0)
     target_compile_definitions(usipy_register_cli PRIVATE -DUSIPY_BIGENDIAN=0)
+    target_compile_definitions(ua_cli PRIVATE -DUSIPY_BIGENDIAN=0)
 ENDIF (IS_BIG_ENDIAN)
 
 enable_testing()

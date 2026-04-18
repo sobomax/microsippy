@@ -31,6 +31,11 @@ const struct usipy_sip_status usipy_sip_res_ok = {
   .reason_phrase = USIPY_2STR("OK"),
 };
 
+const struct usipy_sip_status usipy_sip_res_not_impl = {
+  .code = 501,
+  .reason_phrase = USIPY_2STR("Not Implemented"),
+};
+
 const struct usipy_sip_status usipy_sip_res_unauth = {
   .code = 401,
   .reason_phrase = USIPY_2STR("Unauthorized"),

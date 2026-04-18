@@ -927,6 +927,48 @@ build_uas_invite_ack(const struct usipy_msg *invite_reqp, const struct usipy_msg
 }
 
 static struct usipy_msg *
+build_uas_invite_2xx_ack(const struct usipy_msg *invite_reqp, const struct usipy_msg *respp)
+{
+    char raw[1024];
+    struct usipy_msg_parse_err perr = USIPY_MSG_PARSE_ERR_init;
+    const struct usipy_sip_hdr *fromh, *toh, *callidh, *contacth;
+    const struct usipy_sip_hdr_nameaddr *contactp;
+    const struct usipy_sip_hdr_cseq *cseqp;
+    int blen;
+
+    assert(invite_reqp != NULL);
+    assert(respp != NULL);
+    assert(usipy_sip_msg_parse_hdrs((struct usipy_msg *)invite_reqp,
+      USIPY_HFT_MASK(USIPY_HF_CSEQ), 1) == 0);
+    assert(usipy_sip_msg_parse_hdrs((struct usipy_msg *)respp,
+      USIPY_HFT_MASK(USIPY_HF_CONTACT), 1) == 0);
+    fromh = find_header(invite_reqp, USIPY_HF_FROM);
+    toh = find_header(respp, USIPY_HF_TO);
+    callidh = find_header(invite_reqp, USIPY_HF_CALLID);
+    contacth = find_header(respp, USIPY_HF_CONTACT);
+    contactp = contacth->parsed.contact;
+    cseqp = find_header(invite_reqp, USIPY_HF_CSEQ)->parsed.cseq;
+    assert(contactp != NULL);
+    assert(cseqp != NULL);
+    blen = snprintf(raw, sizeof(raw),
+      "ACK %.*s SIP/2.0\r\n"
+      "Via: SIP/2.0/UDP 198.51.100.10:5060;branch=z9hG4bK-ack-2xx-1;rport\r\n"
+      "From: %.*s\r\n"
+      "To: %.*s\r\n"
+      "Call-ID: %.*s\r\n"
+      "CSeq: %u ACK\r\n"
+      "Content-Length: 0\r\n"
+      "\r\n",
+      USIPY_SFMT(&contactp->addr_spec),
+      USIPY_SFMT(&fromh->onwire.value),
+      USIPY_SFMT(&toh->onwire.value),
+      USIPY_SFMT(&callidh->onwire.value),
+      cseqp->val);
+    assert(blen > 0 && (size_t)blen < sizeof(raw));
+    return (usipy_sip_msg_ctor_fromwire(raw, (size_t)blen, &perr));
+}
+
+static struct usipy_msg *
 build_uas_invite_cancel(const struct usipy_msg *invite_reqp)
 {
     char raw[1024];
@@ -2383,6 +2425,94 @@ test_uas_dialog_end_bye(void)
 }
 
 static void
+test_uas_invite_2xx_ack(void)
+{
+    static const char scenario[] = "UAS INVITE -> 200 -> 2xx ACK";
+    struct invite_send_arg sarg = {.scenario = scenario};
+    struct usipy_sip_tm_ctor_params tm_ctorp = {0};
+    struct usipy_sip_tm_run_in rin = {0};
+    struct usipy_sip_tm_run_out rout;
+    struct usipy_sip_tm_new_uas_tr_params tpp;
+    struct usipy_sip_tm_uas_response_params rpp = {
+      .status = usipy_sip_res_ok,
+    };
+    struct usipy_sip_tm_handle_incoming_in hin = {0};
+    struct usipy_sip_tm_handle_incoming_out hout;
+    struct usipy_msg_parse_err perr = USIPY_MSG_PARSE_ERR_init;
+    const struct usipy_sip_tm_tx *txp;
+    struct usipy_sip_tm *tm;
+    struct usipy_msg *invitep, *respp, *ackp;
+    size_t tx_index;
+    int sock;
+
+    invite_print_banner(scenario);
+    sock = bind_loopback_udp();
+    tm_ctorp.sock = sock;
+    tm_ctorp.transport = USIPY_SIP_TM_TRANSPORT_UDP;
+    tm_ctorp.max_transactions = 4;
+    tm = usipy_sip_tm_ctor(&tm_ctorp);
+    assert(tm != NULL);
+    invitep = build_uas_invite_request();
+    assert(invitep != NULL);
+    tpp = (struct usipy_sip_tm_new_uas_tr_params){
+      .request = invitep,
+      .timers = {
+        .t1_ms = 50,
+        .t2_ms = 200,
+        .t4_ms = 400,
+      },
+      .peer = {
+        .af = AF_INET,
+        .port = 5060,
+        .transport = USIPY_SIP_TM_TRANSPORT_UDP,
+        .host = (struct usipy_str)USIPY_2STR("198.51.100.10"),
+      },
+      .local = {
+        .af = AF_INET,
+        .port = 5060,
+        .transport = USIPY_SIP_TM_TRANSPORT_UDP,
+        .host = (struct usipy_str)USIPY_2STR("192.0.2.55"),
+      },
+    };
+    assert(usipy_sip_tm_new_uas_tr(tm, &tpp, &tx_index) == USIPY_SIP_TM_OK);
+    assert(usipy_sip_tm_send_uas_response(tm, tx_index, &rpp) == USIPY_SIP_TM_OK);
+
+    rin.tm = tm;
+    rin.send_to = invite_send_to;
+    rin.send_to_arg = &sarg;
+    invite_run_step(&sarg, &rin, &rout, 100);
+    assert(sarg.nsent == 1);
+    txp = usipy_sip_tm_get_transaction(tm, tx_index);
+    assert(txp != NULL);
+    assert(txp->state == USIPY_SIP_TM_STATE_COMPLETED);
+    respp = usipy_sip_msg_ctor_fromwire(txp->common.outbound.raw.s.ro,
+      txp->common.outbound.raw.l, &perr);
+    assert(respp != NULL);
+    ackp = build_uas_invite_2xx_ack(invitep, respp);
+    assert(ackp != NULL);
+
+    dump_onwire(scenario, "recv", 150, 0, &ackp->onwire);
+    hin.tm = tm;
+    hin.now_ms = 150;
+    hin.buf = ackp->onwire.s.ro;
+    hin.len = ackp->onwire.l;
+    assert(usipy_sip_tm_handle_incoming(&hin, &hout) == USIPY_SIP_TM_OK);
+    assert(hout.match_kind == USIPY_SIP_TM_MATCH_EXISTING);
+    assert(hout.event == USIPY_SIP_TM_EVENT_ACK_RX);
+    assert(hout.transaction_index == tx_index);
+
+    txp = usipy_sip_tm_get_transaction(tm, tx_index);
+    assert(txp != NULL);
+    assert(txp->state == USIPY_SIP_TM_STATE_COMPLETED);
+
+    usipy_sip_msg_dtor(ackp);
+    usipy_sip_msg_dtor(respp);
+    usipy_sip_msg_dtor(invitep);
+    usipy_sip_tm_dtor(tm);
+    close(sock);
+}
+
+static void
 test_invite_fr_timeout_auto_cancel(void)
 {
     static const char scenario[] = "INVITE -> 100 -> FR timeout -> CANCEL";
@@ -2513,6 +2643,7 @@ main(void)
     test_invite_error_ack_support();
     test_invite_dialog_end_bye();
     test_uas_dialog_end_bye();
+    test_uas_invite_2xx_ack();
     test_invite_cancel_pending();
     test_invite_fr_timeout_auto_cancel();
     test_uas_options_retransmit();

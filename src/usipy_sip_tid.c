@@ -125,3 +125,18 @@ usipy_sip_tid_hash(const struct usipy_sip_tid *tp)
     MurmurHash3_32(&tp->cseq->val, sizeof(tp->cseq->val), rval, &rval);
     return (rval);
 }
+
+uint32_t
+usipy_sip_dialog_tid_hash(const struct usipy_str *call_idp,
+  const struct usipy_str *from_tagp, const struct usipy_str *to_tagp,
+  uint32_t cseq, uint8_t method_type)
+{
+    uint32_t rval;
+
+    HASH_STR(call_idp, 0, &rval);
+    HASH_STR(from_tagp, rval, &rval);
+    HASH_STR(to_tagp, rval, &rval);
+    MurmurHash3_32(&method_type, sizeof(method_type), rval, &rval);
+    MurmurHash3_32(&cseq, sizeof(cseq), rval, &rval);
+    return (rval);
+}

@@ -8,6 +8,7 @@ struct usipy_str;
 extern const struct usipy_sip_status usipy_sip_res_trying;
 extern const struct usipy_sip_status usipy_sip_res_ringing;
 extern const struct usipy_sip_status usipy_sip_res_ok;
+extern const struct usipy_sip_status usipy_sip_res_not_impl;
 extern const struct usipy_sip_status usipy_sip_res_unauth;
 extern const struct usipy_sip_status usipy_sip_res_busy_here;
 extern const struct usipy_sip_status usipy_sip_res_req_term;
