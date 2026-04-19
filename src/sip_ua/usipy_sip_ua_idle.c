@@ -48,8 +48,14 @@ usipy_sip_ua_idle_on_event(struct usipy_sip_ua *uap,
     if (eventp->type != USIPY_SIP_UA_EVENT_DIAL) {
         return (USIPY_SIP_TM_ERR_UNSUPPORTED);
     }
-    rval = usipy_sip_tm_new_uac_tr(uap->tm, &eventp->data.dial, &tx_index);
+    rval = usipy_sip_ua_store_dialing_request(uap, &eventp->data.dial);
     if (rval != USIPY_SIP_TM_OK) {
+        return (rval);
+    }
+    USIPY_DASSERT(uap->dialingp != NULL);
+    rval = usipy_sip_tm_new_uac_tr(uap->tm, &uap->dialingp->params.request, &tx_index);
+    if (rval != USIPY_SIP_TM_OK) {
+        usipy_sip_ua_clear_dialing_request(uap);
         return (rval);
     }
     uap->role = USIPY_SIP_TM_ROLE_UAC;

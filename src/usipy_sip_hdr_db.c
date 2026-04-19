@@ -60,8 +60,13 @@ static const struct usipy_hdr_db_entr usipy_hdr_db[USIPY_HF_max + 1] = {
     },
     [USIPY_HF_CONTENTLENGTH] = {.cantype = USIPY_HF_CONTENTLENGTH,
       .name = USIPY_2STR("Content-Length"), .build = usipy_sip_hdr_1token_build},
-    [USIPY_HF_CONTENTTYPE] = {.cantype = USIPY_HF_CONTENTTYPE,
-      .name = USIPY_2STR("Content-Type")},
+    [USIPY_HF_CONTENTTYPE] = {
+      .cantype = USIPY_HF_CONTENTTYPE,
+      .name = USIPY_2STR("Content-Type"),
+      .parse = usipy_sip_hdr_1token_parse,
+      .build = usipy_sip_hdr_1token_build,
+      .parsed_memb_name = "generic"
+    },
     [USIPY_HF_DIVERSION] = {.cantype = USIPY_HF_DIVERSION,
       .name = USIPY_2STR("Diversion")},
     [USIPY_HF_EXPIRES] = {
@@ -173,8 +178,13 @@ static const struct usipy_hdr_db_entr usipy_hdr_db[USIPY_HF_max + 1] = {
     },
     [USIPY_HF_CONTENTLENGTH_c] = {.cantype = USIPY_HF_CONTENTLENGTH,
       .name = USIPY_2STR("l"), .build = usipy_sip_hdr_1token_build},
-    [USIPY_HF_CONTENTTYPE_c] = {.cantype = USIPY_HF_CONTENTTYPE,
-      .name = USIPY_2STR("c")},
+    [USIPY_HF_CONTENTTYPE_c] = {
+      .cantype = USIPY_HF_CONTENTTYPE,
+      .name = USIPY_2STR("c"),
+      .parse = usipy_sip_hdr_1token_parse,
+      .build = usipy_sip_hdr_1token_build,
+      .parsed_memb_name = "generic",
+    },
     [USIPY_HF_FROM_c] = {
       .cantype = USIPY_HF_FROM,
       .name = USIPY_2STR("f"),

@@ -24,8 +24,14 @@
 #include "usipy_sip_tm_priv.h"
 #include "usipy_tvpair.h"
 
+struct usipy_sip_tm_build_request_params {
+    const struct usipy_sip_tm_request_payload *payload;
+    const struct usipy_sip_tm_extra_header *extra_headers;
+    size_t nextra_headers;
+};
+
 static int usipy_sip_tm_build_request(struct usipy_sip_tm_txi *, size_t,
-  const struct usipy_sip_tm *, const struct usipy_sip_tm_extra_header *, size_t);
+  const struct usipy_sip_tm *, const struct usipy_sip_tm_build_request_params *);
 
 static int
 usipy_sip_tm_transition_allowed(const struct usipy_sip_tm_txi *tp,
@@ -177,6 +183,8 @@ usipy_sip_tm_init_uac_request(struct usipy_sip_tm_txi *tp,
   const struct usipy_sip_tm_request_target *request_targetp,
   const struct usipy_method_db_entr *mdp)
 {
+    struct usipy_str req_uri;
+
     USIPY_DASSERT(tp != NULL);
     USIPY_DASSERT(request_idp != NULL);
     USIPY_DASSERT(request_targetp != NULL);
@@ -186,8 +194,11 @@ usipy_sip_tm_init_uac_request(struct usipy_sip_tm_txi *tp,
       &request_idp->call_id) != 0) {
         return (USIPY_SIP_TM_ERR_NOSPC);
     }
-    tp->cache.uac.request_uri = usipy_sip_uri_parse(&tp->scratch,
-      &request_targetp->request_uri);
+    if (usipy_msg_heap_append(&tp->scratch, &req_uri,
+      &request_targetp->request_uri) != 0) {
+        return (USIPY_SIP_TM_ERR_NOSPC);
+    }
+    tp->cache.uac.request_uri = usipy_sip_uri_parse(&tp->scratch, &req_uri);
     if (tp->cache.uac.request_uri == NULL) {
         return (USIPY_SIP_TM_ERR_NOSPC);
     }
@@ -640,8 +651,7 @@ usipy_sip_tm_uac_start_cancel(struct usipy_sip_tm *tm, size_t parent_index)
     cancelp->callbacks.arg = parentp->callbacks.arg;
     cancelp->callbacks.response = NULL;
     cancelp->callbacks.timeout = NULL;
-    if (usipy_sip_tm_build_request(cancelp, cancel_index, tm, NULL, 0) !=
-      USIPY_SIP_TM_OK) {
+    if (usipy_sip_tm_build_request(cancelp, cancel_index, tm, NULL) != USIPY_SIP_TM_OK) {
         usipy_sip_tm_tx_fini(cancelp);
         if (tm->nactive > 0) {
             tm->nactive -= 1;
@@ -739,8 +749,7 @@ usipy_sip_tm_uac_handle_invite_final(struct usipy_sip_tm *tm,
             }
         }
         ackp->outbound.checkpoint = usipy_msg_heap_checkpoint(&ackp->scratch);
-        if (usipy_sip_tm_build_request(ackp, ack_index, tm, NULL, 0) !=
-          USIPY_SIP_TM_OK) {
+        if (usipy_sip_tm_build_request(ackp, ack_index, tm, NULL) != USIPY_SIP_TM_OK) {
             return (USIPY_SIP_TM_ERR_NOSPC);
         }
     }
@@ -824,12 +833,22 @@ usipy_sip_tm_handle_incoming_response(const struct usipy_sip_tm_handle_incoming_
 
 static int
 usipy_sip_tm_build_request(struct usipy_sip_tm_txi *tp, size_t tx_index,
-  const struct usipy_sip_tm *tm, const struct usipy_sip_tm_extra_header *ehp, size_t neh)
+  const struct usipy_sip_tm *tm, const struct usipy_sip_tm_build_request_params *bpp)
 {
     struct usipy_msg tmsg = {0};
+    const struct usipy_sip_tm_request_payload empty_payload = {0};
+    const struct usipy_sip_tm_request_payload *payloadp =
+      bpp != NULL && bpp->payload != NULL ? bpp->payload : &empty_payload;
+    const struct usipy_sip_tm_extra_header *ehp =
+      bpp != NULL ? bpp->extra_headers : NULL;
+    const size_t neh = bpp != NULL ? bpp->nextra_headers : 0;
+    const struct usipy_str *content_typep = &payloadp->content_type;
+    const struct usipy_str *bodyp = &payloadp->body;
     const int include_expires = tp->pub.common.id.method_type == USIPY_SIP_METHOD_INVITE;
+    const int include_ctype = bodyp->l != 0 && content_typep->l != 0;
     const size_t nbase_hdrs = 6 + tp->cache.uac.nroutes +
-      (tp->cache.uac.include_contact != 0 ? 1 : 0) + (include_expires ? 1 : 0);
+      (tp->cache.uac.include_contact != 0 ? 1 : 0) + (include_expires ? 1 : 0) +
+      (include_ctype ? 1 : 0);
     struct usipy_sip_hdr thdrs[nbase_hdrs + neh];
     struct usipy_hdr_db_entr ehdb[neh];
     struct usipy_sip_tm_default_via via;
@@ -879,11 +898,21 @@ usipy_sip_tm_build_request(struct usipy_sip_tm_txi *tp, size_t tx_index,
             return (USIPY_SIP_TM_ERR_NOSPC);
         }
     }
+    if (bodyp->l != 0) {
+        if (content_typep->l == 0) {
+            return (USIPY_SIP_TM_ERR_INVAL);
+        }
+        if (usipy_msg_heap_sprintf(&tp->scratch, &clen, "%zu",
+          bodyp->l) != 0) {
+            return (USIPY_SIP_TM_ERR_NOSPC);
+        }
+    }
 
     tmsg.kind = USIPY_SIP_MSG_REQ;
     tmsg.sline.parsed.rl.method = tp->cache.cseq.method;
     tmsg.sline.parsed.rl.ruri = tp->cache.uac.request_uri;
     tmsg.sline.parsed.rl.version = (struct usipy_str)USIPY_2STR("SIP/2.0");
+    tmsg.body = *bodyp;
     tmsg.hdrs = thdrs;
     tmsg.nhdrs = nbase_hdrs + neh;
 
@@ -931,6 +960,12 @@ usipy_sip_tm_build_request(struct usipy_sip_tm_txi *tp, size_t tx_index,
         hfp = usipy_hdr_db_byid(USIPY_HF_EXPIRES);
         thdrs[hindex].hf_type = hfp;
         thdrs[hindex].parsed.generic = &expires;
+        hindex += 1;
+    }
+    if (include_ctype) {
+        hfp = usipy_hdr_db_byid(USIPY_HF_CONTENTTYPE);
+        thdrs[hindex].hf_type = hfp;
+        thdrs[hindex].parsed.generic = content_typep;
         hindex += 1;
     }
 
@@ -1154,7 +1189,7 @@ usipy_sip_tm_uac_run(struct usipy_sip_tm_txi *tp, size_t index, const struct usi
     }
     USIPY_DASSERT(inp->send_to != NULL);
     if (tp->outbound.pub.raw.l == 0) {
-        rval = usipy_sip_tm_build_request(tp, index, tm, NULL, 0);
+        rval = usipy_sip_tm_build_request(tp, index, tm, NULL);
         if (rval != 0) {
             return (rval);
         }
@@ -1225,6 +1260,16 @@ usipy_sip_tm_new_uac_tr(struct usipy_sip_tm *tm,
       tpp->request_id.method_type == USIPY_SIP_METHOD_INVITE ?
       USIPY_SIP_TM_STATE_CALLING : USIPY_SIP_TM_STATE_TRYING,
       &tpp->request_id, &tpp->request_target, &tpp->callbacks, &timers);
+    rval = usipy_sip_tm_build_request(tp, tx_index, tm,
+      &(struct usipy_sip_tm_build_request_params){
+        .payload = &(struct usipy_sip_tm_request_payload){
+            .content_type = tpp->content_type,
+            .body = tpp->body,
+        },
+      });
+    if (rval != USIPY_SIP_TM_OK) {
+        goto nospc;
+    }
     *indexp = tx_index;
     return (USIPY_SIP_TM_OK);
 
@@ -1344,9 +1389,11 @@ usipy_sip_tm_gen_authz_hf(const struct usipy_sip_tm *tm, size_t index, uint8_t h
 
 int
 usipy_sip_tm_next_transaction(struct usipy_sip_tm *tm, size_t index,
+  const struct usipy_sip_tm_request_payload *payloadp,
   const struct usipy_sip_tm_extra_header *ehp, size_t neh)
 {
     struct usipy_sip_tm_txi *tp;
+    struct usipy_sip_tm_txi *childp;
     int rval;
 
     USIPY_DASSERT(tm != NULL);
@@ -1360,8 +1407,15 @@ usipy_sip_tm_next_transaction(struct usipy_sip_tm *tm, size_t index,
     if (!tp->active) {
         return (USIPY_SIP_TM_ERR_NOT_FOUND);
     }
-    if (tp->child_index != USIPY_SIP_TM_TX_INDEX_NONE ||
-      tp->invite_cancel_state == USIPY_SIP_TM_INVITE_CANCEL_SCHEDULED) {
+    if (tp->child_index != USIPY_SIP_TM_TX_INDEX_NONE) {
+        USIPY_DASSERT(tp->child_index < tm->max_transactions);
+        childp = &tm->transactions[tp->child_index];
+        if (!childp->active || !usipy_sip_tm_tx_is_ack(childp)) {
+            return (USIPY_SIP_TM_ERR_UNSUPPORTED);
+        }
+        tp->child_index = USIPY_SIP_TM_TX_INDEX_NONE;
+    }
+    if (tp->invite_cancel_state == USIPY_SIP_TM_INVITE_CANCEL_SCHEDULED) {
         return (USIPY_SIP_TM_ERR_UNSUPPORTED);
     }
     rval = usipy_sip_tm_transition(tp, USIPY_SIP_TM_STATE_CALLING);
@@ -1371,7 +1425,12 @@ usipy_sip_tm_next_transaction(struct usipy_sip_tm *tm, size_t index,
     tp->cache.cseq.val += 1;
     tp->pub.common.id.cseq = tp->cache.cseq.val;
     usipy_sip_tm_tx_reset_uac_runtime(tp);
-    return (usipy_sip_tm_build_request(tp, index, tm, ehp, neh));
+    return (usipy_sip_tm_build_request(tp, index, tm,
+      &(struct usipy_sip_tm_build_request_params){
+        .payload = payloadp,
+        .extra_headers = ehp,
+        .nextra_headers = neh,
+      }));
 }
 
 int

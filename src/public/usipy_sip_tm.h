@@ -269,6 +269,11 @@ struct usipy_sip_tm_request_parties {
     struct usipy_str to;
 };
 
+struct usipy_sip_tm_request_payload {
+    struct usipy_str content_type;
+    struct usipy_str body;
+};
+
 struct usipy_sip_tm_route_set {
     const struct usipy_str *routes;
     size_t nroutes;
@@ -285,6 +290,8 @@ struct usipy_sip_tm_new_uac_tr_params {
     struct usipy_sip_tm_request_parties parties_by_username;
     uint32_t contact_expires;
     uint32_t invite_expires;
+    struct usipy_str content_type;
+    struct usipy_str body;
     struct usipy_sip_tm_uac_callbacks callbacks;
 };
 
@@ -387,6 +394,7 @@ int usipy_sip_tm_uas_tr_cancelled(struct usipy_sip_tm *,
   const struct usipy_msg *, size_t,
   const struct usipy_sip_tm_uas_response_params *);
 int usipy_sip_tm_next_transaction(struct usipy_sip_tm *, size_t,
+  const struct usipy_sip_tm_request_payload *,
   const struct usipy_sip_tm_extra_header *, size_t);
 int usipy_sip_tm_cancel(struct usipy_sip_tm *, size_t);
 int usipy_sip_tm_run(struct usipy_sip_tm_run_in *,

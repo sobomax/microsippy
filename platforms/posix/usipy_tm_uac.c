@@ -105,7 +105,7 @@ usipy_tm_uac_register_reply_auth(struct usipy_sip_tm *tm, size_t tx_index,
     rval = usipy_sip_tm_gen_authz_hf(tm, tx_index, auth_hf_type, &auth_heap,
       challengep, usernamep, passwordp, NULL, effective_qopp, &hdrsp[nbase_hdrs]);
     if (rval == USIPY_SIP_TM_OK) {
-        rval = usipy_sip_tm_next_transaction(tm, tx_index, hdrsp, nbase_hdrs + 1);
+        rval = usipy_sip_tm_next_transaction(tm, tx_index, NULL, hdrsp, nbase_hdrs + 1);
     }
     return (rval);
 }

@@ -52,6 +52,16 @@ struct ua_cli_ctx {
     struct usipy_str sdp;
     int ua_reset_needed;
     int auto_hangup_pending;
+    int stdin_closed;
+    int stdin_line_overflow;
+    uint32_t next_invite_cseq;
+    uint32_t next_call_id;
+    uint16_t server_port;
+    size_t pending_dial_len;
+    size_t stdin_line_len;
+    char server_uri_host[INET6_ADDRSTRLEN + 2];
+    char pending_dial[512];
+    char stdin_line[512];
     const char *stop_reason;
     char sdp_buf[512];
 };
@@ -71,6 +81,11 @@ static void register_response(void *, size_t, const struct usipy_sip_tm_tx *,
 static void register_timeout(void *, size_t, const struct usipy_sip_tm_tx *,
   enum usipy_sip_tm_uac_timeout_id);
 static void ua_emit(void *, const struct usipy_sip_ua_emit *);
+static void outgoing_response(void *, size_t, const struct usipy_sip_tm_tx *,
+  const struct usipy_msg *);
+static void outgoing_timeout(void *, size_t, const struct usipy_sip_tm_tx *,
+  enum usipy_sip_tm_uac_timeout_id);
+static int apply_ua_reset(struct ua_cli_ctx *);
 
 static const char *sip_tm_err_name(int);
 static void format_first_line(char *, size_t, const char *, size_t);
@@ -270,6 +285,131 @@ clear_call(struct ua_cli_ctx *ctx)
 }
 
 static int
+start_pending_dial(struct ua_cli_ctx *ctx)
+{
+    struct usipy_sip_ua_event ev = {0};
+    const struct usipy_str to_user = {
+      .s.ro = ctx->pending_dial,
+      .l = ctx->pending_dial_len,
+    };
+    char req_uri_buf[1024];
+    char call_id_buf[128];
+    size_t tx_index;
+    int blen, rval;
+
+    if (ctx == NULL || ctx->pending_dial_len == 0 || ctx->uap == NULL) {
+        return (USIPY_SIP_TM_ERR_UNSUPPORTED);
+    }
+    if (usipy_sip_ua_get_state(ctx->uap) != USIPY_SIP_UA_STATE_IDLE) {
+        return (USIPY_SIP_TM_ERR_UNSUPPORTED);
+    }
+    blen = (ctx->server_port == 5060 ?
+      snprintf(req_uri_buf, sizeof(req_uri_buf), "sip:%s@%s",
+        ctx->pending_dial, ctx->server_uri_host) :
+      snprintf(req_uri_buf, sizeof(req_uri_buf), "sip:%s@%s:%u",
+        ctx->pending_dial, ctx->server_uri_host, ctx->server_port));
+    if (blen < 0 || (size_t)blen >= sizeof(req_uri_buf)) {
+        report_activityf(ctx, "ignored dial target-too-long");
+        ctx->pending_dial_len = 0;
+        ctx->pending_dial[0] = '\0';
+        return (USIPY_SIP_TM_OK);
+    }
+    blen = snprintf(call_id_buf, sizeof(call_id_buf), "call-%u@%s",
+      ctx->next_call_id++, ctx->server_uri_host);
+    if (blen < 0 || (size_t)blen >= sizeof(call_id_buf)) {
+        return (USIPY_SIP_TM_ERR_INVAL);
+    }
+    ev.type = USIPY_SIP_UA_EVENT_DIAL;
+    ev.data.dial = (struct usipy_sip_ua_dial_params){
+      .request = {
+        .request_id = {
+        .call_id = (struct usipy_str){.s.ro = call_id_buf, .l = (size_t)blen},
+        .cseq = ctx->next_invite_cseq++,
+        .method_type = USIPY_SIP_METHOD_INVITE,
+        },
+        .request_target = {
+        .request_uri = (struct usipy_str){.s.ro = req_uri_buf, .l = (size_t)strlen(req_uri_buf)},
+        .target = ctx->peer,
+        },
+        .parties_by_username = {
+        .from = ctx->username,
+        .to = to_user,
+        .contact = ctx->username,
+        },
+        .invite_expires = 60,
+        .content_type = (struct usipy_str)USIPY_2STR("application/sdp"),
+        .body = ctx->sdp,
+        .callbacks = {
+          .arg = ctx,
+          .response = outgoing_response,
+          .timeout = outgoing_timeout,
+        },
+      },
+      .auth = {
+        .username = ctx->username,
+        .password = ctx->password,
+        .qop = ctx->qop,
+      },
+    };
+    rval = usipy_sip_ua_on_event(ctx->uap, &ev, &tx_index);
+    if (rval != USIPY_SIP_TM_OK) {
+        report_activityf(ctx, "dial failed: %s (%d) target=%s",
+          sip_tm_err_name(rval), rval, ctx->pending_dial);
+        ctx->pending_dial_len = 0;
+        ctx->pending_dial[0] = '\0';
+        return (USIPY_SIP_TM_OK);
+    }
+    ctx->invite_index = tx_index;
+    ctx->pending_dial_len = 0;
+    ctx->pending_dial[0] = '\0';
+    report_activityf(ctx, "dialing %.*s", USIPY_SFMT(&to_user));
+    return (USIPY_SIP_TM_OK);
+}
+
+static int
+queue_or_start_dial(struct ua_cli_ctx *ctx, const char *line, size_t len)
+{
+    struct usipy_sip_ua_event ev = {
+      .type = USIPY_SIP_UA_EVENT_DISCONNECT,
+    };
+    enum usipy_sip_ua_state state;
+    size_t tx_index;
+    int rval;
+
+    if (ctx == NULL || line == NULL || len == 0) {
+        return (USIPY_SIP_TM_ERR_INVAL);
+    }
+    if (len >= sizeof(ctx->pending_dial)) {
+        report_activityf(ctx, "ignored dial line-too-long");
+        return (USIPY_SIP_TM_ERR_INVAL);
+    }
+    memcpy(ctx->pending_dial, line, len);
+    ctx->pending_dial[len] = '\0';
+    ctx->pending_dial_len = len;
+    if (apply_ua_reset(ctx) != USIPY_SIP_TM_OK) {
+        return (USIPY_SIP_TM_ERR_UNSUPPORTED);
+    }
+    if (ctx->uap == NULL) {
+        return (USIPY_SIP_TM_ERR_UNSUPPORTED);
+    }
+    state = usipy_sip_ua_get_state(ctx->uap);
+    if (state == USIPY_SIP_UA_STATE_IDLE) {
+        return (start_pending_dial(ctx));
+    }
+    if (state == USIPY_SIP_UA_STATE_DISCONNECTED) {
+        ctx->ua_reset_needed = 1;
+        return (USIPY_SIP_TM_OK);
+    }
+    rval = usipy_sip_ua_on_event(ctx->uap, &ev, &tx_index);
+    if (rval != USIPY_SIP_TM_OK) {
+        report_activityf(ctx, "disconnect-before-dial failed: %s (%d)",
+          sip_tm_err_name(rval), rval);
+        return (rval);
+    }
+    return (USIPY_SIP_TM_OK);
+}
+
+static int
 apply_ua_reset(struct ua_cli_ctx *ctx)
 {
     if (ctx == NULL || !ctx->ua_reset_needed) {
@@ -287,6 +427,67 @@ apply_ua_reset(struct ua_cli_ctx *ctx)
         return (USIPY_SIP_TM_ERR_NOMEM);
     }
     ctx->ua_reset_needed = 0;
+    return (USIPY_SIP_TM_OK);
+}
+
+static int
+process_stdin(struct ua_cli_ctx *ctx)
+{
+    char buf[256];
+    ssize_t nread;
+
+    if (ctx == NULL || ctx->stdin_closed) {
+        return (USIPY_SIP_TM_OK);
+    }
+    nread = read(STDIN_FILENO, buf, sizeof(buf));
+    if (nread < 0) {
+        if (errno == EINTR) {
+            return (USIPY_SIP_TM_OK);
+        }
+        return (USIPY_SIP_TM_ERR_INVAL);
+    }
+    if (nread == 0) {
+        ctx->stdin_closed = 1;
+        return (USIPY_SIP_TM_OK);
+    }
+    for (ssize_t i = 0; i < nread; i++) {
+        const char ch = buf[i];
+
+        if (ctx->stdin_line_overflow) {
+            if (ch == '\n') {
+                ctx->stdin_line_overflow = 0;
+                ctx->stdin_line_len = 0;
+                report_activityf(ctx, "ignored dial line-too-long");
+            }
+            continue;
+        }
+        if (ch == '\r') {
+            continue;
+        }
+        if (ch != '\n') {
+            if (ctx->stdin_line_len >= sizeof(ctx->stdin_line) - 1) {
+                ctx->stdin_line_overflow = 1;
+                continue;
+            }
+            ctx->stdin_line[ctx->stdin_line_len++] = ch;
+            continue;
+        }
+        while (ctx->stdin_line_len != 0 &&
+          (ctx->stdin_line[ctx->stdin_line_len - 1] == ' ' ||
+           ctx->stdin_line[ctx->stdin_line_len - 1] == '\t')) {
+            ctx->stdin_line_len -= 1;
+        }
+        size_t off = 0;
+        while (off < ctx->stdin_line_len &&
+          (ctx->stdin_line[off] == ' ' || ctx->stdin_line[off] == '\t')) {
+            off += 1;
+        }
+        if (ctx->stdin_line_len > off) {
+            (void)queue_or_start_dial(ctx, ctx->stdin_line + off,
+              ctx->stdin_line_len - off);
+        }
+        ctx->stdin_line_len = 0;
+    }
     return (USIPY_SIP_TM_OK);
 }
 
@@ -327,7 +528,8 @@ ua_emit(void *arg, const struct usipy_sip_ua_emit *emitp)
     case USIPY_SIP_UA_EMIT_CONNECT:
         ctx->invite_index = emitp->transaction_index;
         ctx->hangup_at_ms = usipy_tm_uac_mono_ms() + 60000u;
-        report_activityf(ctx, "answered");
+        report_activityf(ctx, emitp->role == USIPY_SIP_TM_ROLE_UAS ?
+          "answered" : "connected");
         return;
 
     case USIPY_SIP_UA_EMIT_DISCONNECT:
@@ -336,11 +538,53 @@ ua_emit(void *arg, const struct usipy_sip_ua_emit *emitp)
         } else if (emitp->message != NULL && emitp->message->kind == USIPY_SIP_MSG_REQ &&
           emitp->message->sline.parsed.rl.method->cantype == USIPY_SIP_METHOD_BYE) {
             report_activityf(ctx, "hangup remote");
+        } else if (emitp->message != NULL && emitp->message->kind == USIPY_SIP_MSG_RES) {
+            report_activityf(ctx, "call failed %u",
+              emitp->message->sline.parsed.sl.status.code);
+        } else {
+            report_activityf(ctx, "hangup local");
         }
         ctx->auto_hangup_pending = 0;
         ctx->ua_reset_needed = 1;
         return;
     }
+}
+
+static void
+outgoing_response(void *arg, size_t tx_index, const struct usipy_sip_tm_tx *txp,
+  const struct usipy_msg *msg)
+{
+    struct ua_cli_ctx *ctx = arg;
+    int rval;
+
+    (void)txp;
+    if (ctx == NULL || msg == NULL || msg->kind != USIPY_SIP_MSG_RES || ctx->uap == NULL) {
+        return;
+    }
+    if (msg->sline.parsed.sl.status.code > 100 &&
+      msg->sline.parsed.sl.status.code < 200) {
+        report_activityf(ctx, "progress %u", msg->sline.parsed.sl.status.code);
+    }
+    rval = usipy_sip_ua_on_tx_response(ctx->uap, tx_index, msg);
+    if (rval != USIPY_SIP_TM_OK) {
+        report_activityf(ctx, "outgoing-response failed: %s (%d)",
+          sip_tm_err_name(rval), rval);
+        ctx->error = 1;
+        ctx->stop = 1;
+        ctx->stop_reason = "outgoing-response";
+    }
+}
+
+static void
+outgoing_timeout(void *arg, size_t tx_index, const struct usipy_sip_tm_tx *txp,
+  enum usipy_sip_tm_uac_timeout_id timeout_id)
+{
+    struct ua_cli_ctx *ctx = arg;
+
+    (void)tx_index;
+    (void)txp;
+    report_activityf(ctx, "call timeout %u", (unsigned int)timeout_id);
+    ctx->ua_reset_needed = 1;
 }
 
 static int
@@ -580,7 +824,7 @@ incoming_request(void *arg, const struct usipy_sip_tm_handle_incoming_in *hin,
         int rval;
 
         if (ctx->uap == NULL || usipy_sip_ua_get_state(ctx->uap) != USIPY_SIP_UA_STATE_IDLE) {
-            if (send_simple_response(ctx, hin, msg, &usipy_sip_res_busy_here) !=
+            if (send_stateless_response(ctx, msg, &usipy_sip_res_busy_here) !=
               USIPY_SIP_TM_OK) {
                 ctx->error = 1;
                 ctx->stop = 1;
@@ -663,6 +907,8 @@ main(int argc, char **argv)
       .max_transactions = 32,
       .qop = (struct usipy_str)USIPY_2STR("auth"),
       .next_register_cseq = 1,
+      .next_invite_cseq = 1,
+      .next_call_id = 1,
       .next_refresh_at_ms = USIPY_SIP_TM_TIME_NONE,
       .hangup_at_ms = USIPY_SIP_TM_TIME_NONE,
       .invite_index = USIPY_SIP_TM_TX_INDEX_NONE,
@@ -681,7 +927,7 @@ main(int argc, char **argv)
     struct usipy_sip_tm_run_out rout;
     struct usipy_sip_tm_handle_incoming_in hin;
     struct usipy_sip_tm_handle_incoming_out hout;
-    struct pollfd pfd;
+    struct pollfd pfds[2];
     const struct usipy_sip_tm_tx *txp;
     size_t reg_index;
     char uri_host[INET6_ADDRSTRLEN + 2];
@@ -773,6 +1019,8 @@ main(int argc, char **argv)
         fprintf(stderr, "unable to format URI host\n");
         return (1);
     }
+    memcpy(ctx.server_uri_host, uri_host, strlen(uri_host) + 1);
+    ctx.server_port = (uint16_t)port;
     blen = (port == 5060 ?
       snprintf(request_uri_buf, sizeof(request_uri_buf), "sip:%s", uri_host) :
       snprintf(request_uri_buf, sizeof(request_uri_buf), "sip:%s:%u", uri_host, port));
@@ -864,6 +1112,12 @@ main(int argc, char **argv)
             exit_reason = "ua-reset";
             goto done;
         }
+        if (ctx.pending_dial_len != 0 &&
+          usipy_sip_ua_get_state(ctx.uap) == USIPY_SIP_UA_STATE_IDLE &&
+          start_pending_dial(&ctx) != USIPY_SIP_TM_OK) {
+            exit_reason = "dial-start";
+            goto done;
+        }
         if (!ctx.registered_once && register_deadline_ms != USIPY_SIP_TM_TIME_NONE &&
           now_ms >= register_deadline_ms) {
             fprintf(stderr, "register timeout\n");
@@ -922,10 +1176,13 @@ main(int argc, char **argv)
         if (wake_at_ms != USIPY_SIP_TM_TIME_NONE) {
             wait_ms = (wake_at_ms > now_ms) ? (int)(wake_at_ms - now_ms) : 0;
         }
-        pfd.fd = ctx.sock;
-        pfd.events = POLLIN;
-        pfd.revents = 0;
-        poll_r = poll(&pfd, 1, wait_ms);
+        pfds[0].fd = ctx.sock;
+        pfds[0].events = POLLIN;
+        pfds[0].revents = 0;
+        pfds[1].fd = STDIN_FILENO;
+        pfds[1].events = (ctx.stdin_closed ? 0 : POLLIN);
+        pfds[1].revents = 0;
+        poll_r = poll(pfds, ctx.stdin_closed ? 1 : 2, wait_ms);
         if (poll_r < 0) {
             if (errno == EINTR) {
                 continue;
@@ -934,7 +1191,20 @@ main(int argc, char **argv)
             exit_reason = "poll";
             goto done;
         }
-        if (poll_r == 0 || (pfd.revents & POLLIN) == 0) {
+        if (poll_r == 0) {
+            continue;
+        }
+        if (!ctx.stdin_closed && (pfds[1].revents & POLLIN) != 0) {
+            if (process_stdin(&ctx) != USIPY_SIP_TM_OK) {
+                perror("read");
+                exit_reason = "stdin-read";
+                goto done;
+            }
+            if (ctx.stop) {
+                break;
+            }
+        }
+        if ((pfds[0].revents & POLLIN) == 0) {
             continue;
         }
         nread = recv(ctx.sock, rxbuf, sizeof(rxbuf), 0);

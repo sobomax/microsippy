@@ -2683,7 +2683,8 @@ main(void)
         total_sent += rout.nsent;
         total_timeouts += rout.ntimeouts;
         if (!second_started && carg.ntimeouts == 1) {
-            assert(usipy_sip_tm_next_transaction(tm, tx_index, &carg.extra_hdrs[0], 1) ==
+            assert(usipy_sip_tm_next_transaction(tm, tx_index, NULL,
+              &carg.extra_hdrs[0], 1) ==
               USIPY_SIP_TM_OK);
             second_started = 1;
             txp = (struct usipy_sip_tm_tx *)usipy_sip_tm_get_transaction(tm, tx_index);

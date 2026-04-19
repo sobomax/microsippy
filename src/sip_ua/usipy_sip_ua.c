@@ -37,6 +37,101 @@ usipy_sip_ua_unsupported_response(struct usipy_sip_ua *uap, size_t tx_index,
     return (USIPY_SIP_TM_ERR_UNSUPPORTED);
 }
 
+static void *
+usipy_sip_ua_heap_buf(struct usipy_sip_ua *uap)
+{
+    USIPY_DASSERT(uap != NULL);
+
+    return ((void *)(uap + 1));
+}
+
+static void
+usipy_sip_ua_heap_str_dup(struct usipy_sip_ua *uap, struct usipy_str *dstp,
+  const struct usipy_str *srcp)
+{
+    USIPY_DASSERT(uap != NULL);
+    USIPY_DASSERT(dstp != NULL);
+    USIPY_DASSERT(srcp != NULL);
+
+    *dstp = USIPY_STR_NULL;
+    if (srcp->l == 0) {
+        return (void)0;
+    }
+    if (usipy_msg_heap_append(&uap->heap, dstp, srcp) != 0) {
+        dstp->l = 0;
+    }
+}
+
+void
+usipy_sip_ua_clear_dialing_request(struct usipy_sip_ua *uap)
+{
+    USIPY_DASSERT(uap != NULL);
+
+    usipy_msg_heap_init(&uap->heap, usipy_sip_ua_heap_buf(uap), USIPY_SIP_UA_HEAP_SIZE,
+      NULL, 0);
+    uap->dialingp = NULL;
+}
+
+int
+usipy_sip_ua_store_dialing_request(struct usipy_sip_ua *uap,
+  const struct usipy_sip_ua_dial_params *dialp)
+{
+    struct usipy_sip_ua_dialing_request *dp;
+
+    USIPY_DASSERT(uap != NULL);
+    USIPY_DASSERT(dialp != NULL);
+
+    usipy_sip_ua_clear_dialing_request(uap);
+    dp = usipy_msg_heap_alloc(&uap->heap, sizeof(*dp));
+    if (dp == NULL) {
+        return (USIPY_SIP_TM_ERR_NOSPC);
+    }
+    *dp = (struct usipy_sip_ua_dialing_request){0};
+    dp->params.request = dialp->request;
+    dp->params.auth = dialp->auth;
+    usipy_sip_ua_heap_str_dup(uap, &dp->params.request.request_id.call_id,
+      &dialp->request.request_id.call_id);
+    usipy_sip_ua_heap_str_dup(uap, &dp->params.request.request_target.request_uri,
+      &dialp->request.request_target.request_uri);
+    usipy_sip_ua_heap_str_dup(uap, &dp->params.request.request_target.target.host,
+      &dialp->request.request_target.target.host);
+    usipy_sip_ua_heap_str_dup(uap, &dp->params.request.parties_by_username.contact,
+      &dialp->request.parties_by_username.contact);
+    usipy_sip_ua_heap_str_dup(uap, &dp->params.request.parties_by_username.from,
+      &dialp->request.parties_by_username.from);
+    usipy_sip_ua_heap_str_dup(uap, &dp->params.request.parties_by_username.to,
+      &dialp->request.parties_by_username.to);
+    usipy_sip_ua_heap_str_dup(uap, &dp->params.request.content_type,
+      &dialp->request.content_type);
+    usipy_sip_ua_heap_str_dup(uap, &dp->params.request.body, &dialp->request.body);
+    usipy_sip_ua_heap_str_dup(uap, &dp->params.auth.username, &dialp->auth.username);
+    usipy_sip_ua_heap_str_dup(uap, &dp->params.auth.password, &dialp->auth.password);
+    usipy_sip_ua_heap_str_dup(uap, &dp->params.auth.qop, &dialp->auth.qop);
+    if ((dialp->request.request_id.call_id.l != 0 &&
+      dp->params.request.request_id.call_id.l == 0) ||
+      (dialp->request.request_target.request_uri.l != 0 &&
+      dp->params.request.request_target.request_uri.l == 0) ||
+      (dialp->request.request_target.target.host.l != 0 &&
+      dp->params.request.request_target.target.host.l == 0) ||
+      (dialp->request.parties_by_username.contact.l != 0 &&
+      dp->params.request.parties_by_username.contact.l == 0) ||
+      (dialp->request.parties_by_username.from.l != 0 &&
+      dp->params.request.parties_by_username.from.l == 0) ||
+      (dialp->request.parties_by_username.to.l != 0 &&
+      dp->params.request.parties_by_username.to.l == 0) ||
+      (dialp->request.content_type.l != 0 && dp->params.request.content_type.l == 0) ||
+      (dialp->request.body.l != 0 && dp->params.request.body.l == 0) ||
+      (dialp->auth.username.l != 0 && dp->params.auth.username.l == 0) ||
+      (dialp->auth.password.l != 0 && dp->params.auth.password.l == 0) ||
+      (dialp->auth.qop.l != 0 && dp->params.auth.qop.l == 0)) {
+        usipy_sip_ua_clear_dialing_request(uap);
+        return (USIPY_SIP_TM_ERR_NOSPC);
+    }
+    dp->auth_retry_started = 0;
+    uap->dialingp = dp;
+    return (USIPY_SIP_TM_OK);
+}
+
 const struct usipy_sip_ua_state_ops *
 usipy_sip_ua_state_ops_get(enum usipy_sip_ua_state state)
 {
@@ -115,10 +210,12 @@ usipy_sip_ua_ctor(const struct usipy_sip_ua_ctor_params *ipp)
     if (ipp == NULL || ipp->tm == NULL) {
         return (NULL);
     }
-    uap = calloc(1, sizeof(*uap));
+    uap = calloc(1, sizeof(*uap) + USIPY_SIP_UA_HEAP_SIZE);
     if (uap == NULL) {
         return (NULL);
     }
+    usipy_msg_heap_init(&uap->heap, usipy_sip_ua_heap_buf(uap), USIPY_SIP_UA_HEAP_SIZE,
+      NULL, 0);
     uap->tm = ipp->tm;
     uap->state = USIPY_SIP_UA_STATE_IDLE;
     uap->role = USIPY_SIP_TM_ROLE_UAC;

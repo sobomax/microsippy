@@ -28,10 +28,21 @@ enum usipy_sip_ua_emit_type {
     USIPY_SIP_UA_EMIT_DISCONNECT
 };
 
+struct usipy_sip_ua_credentials {
+    struct usipy_str username;
+    struct usipy_str password;
+    struct usipy_str qop;
+};
+
+struct usipy_sip_ua_dial_params {
+    struct usipy_sip_tm_new_uac_tr_params request;
+    struct usipy_sip_ua_credentials auth;
+};
+
 struct usipy_sip_ua_event {
     enum usipy_sip_ua_event_type type;
     union {
-        struct usipy_sip_tm_new_uac_tr_params dial;
+        struct usipy_sip_ua_dial_params dial;
         struct usipy_sip_tm_uas_response_params response;
     } data;
 };

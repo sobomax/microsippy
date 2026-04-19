@@ -1,15 +1,25 @@
 #pragma once
 
+#include "public/usipy_msg_heap.h"
 #include "public/usipy_sip_ua.h"
+
+#define USIPY_SIP_UA_HEAP_SIZE 1024u
 
 struct usipy_sip_ua {
     struct usipy_sip_tm *tm;
     struct usipy_sip_dialog *dialogp;
+    struct usipy_msg_heap heap;
     enum usipy_sip_ua_state state;
     enum usipy_sip_tm_role role;
     size_t tx_index;
+    struct usipy_sip_ua_dialing_request *dialingp;
     usipy_sip_ua_emit_cb emit;
     void *emit_arg;
+};
+
+struct usipy_sip_ua_dialing_request {
+    struct usipy_sip_ua_dial_params params;
+    int auth_retry_started;
 };
 
 struct usipy_sip_ua_state_ops {
@@ -30,3 +40,6 @@ void usipy_sip_ua_emit_event(struct usipy_sip_ua *, enum usipy_sip_ua_emit_type,
   const struct usipy_msg *);
 int usipy_sip_ua_expect_transaction(const struct usipy_sip_ua *, size_t,
   enum usipy_sip_tm_role, uint8_t, const struct usipy_sip_tm_tx **);
+int usipy_sip_ua_store_dialing_request(struct usipy_sip_ua *,
+  const struct usipy_sip_ua_dial_params *);
+void usipy_sip_ua_clear_dialing_request(struct usipy_sip_ua *);

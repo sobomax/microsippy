@@ -178,6 +178,46 @@ build_response(const struct usipy_msg *reqp, const struct usipy_sip_status *stat
 }
 
 static struct usipy_msg *
+build_auth_response(const struct usipy_msg *reqp, const struct usipy_sip_status *statusp,
+  const char *to_tag, const char *header_name, const char *header_value)
+{
+    struct usipy_msg_parse_err perr = USIPY_MSG_PARSE_ERR_init;
+    const struct usipy_sip_hdr *viah, *fromh, *toh, *callidh, *cseqh;
+    char raw[1400];
+    int blen;
+
+    assert(reqp != NULL);
+    assert(statusp != NULL);
+    assert(header_name != NULL);
+    assert(header_value != NULL);
+    viah = find_header(reqp, USIPY_HF_VIA);
+    fromh = find_header(reqp, USIPY_HF_FROM);
+    toh = find_header(reqp, USIPY_HF_TO);
+    callidh = find_header(reqp, USIPY_HF_CALLID);
+    cseqh = find_header(reqp, USIPY_HF_CSEQ);
+    blen = snprintf(raw, sizeof(raw),
+      "SIP/2.0 %u %.*s\r\n"
+      "Via: %.*s\r\n"
+      "From: %.*s\r\n"
+      "To: %.*s%s%s\r\n"
+      "Call-ID: %.*s\r\n"
+      "CSeq: %.*s\r\n"
+      "%s: %s\r\n"
+      "Content-Length: 0\r\n"
+      "\r\n",
+      statusp->code, USIPY_SFMT(&statusp->reason_phrase),
+      USIPY_SFMT(&viah->onwire.value),
+      USIPY_SFMT(&fromh->onwire.value),
+      USIPY_SFMT(&toh->onwire.value),
+      (to_tag != NULL ? ";tag=" : ""), (to_tag != NULL ? to_tag : ""),
+      USIPY_SFMT(&callidh->onwire.value),
+      USIPY_SFMT(&cseqh->onwire.value),
+      header_name, header_value);
+    assert(blen > 0 && (size_t)blen < sizeof(raw));
+    return (usipy_sip_msg_ctor_fromwire(raw, (size_t)blen, &perr));
+}
+
+static struct usipy_msg *
 build_uas_invite_request(void)
 {
     static const char raw[] =
@@ -261,13 +301,14 @@ test_ua_outgoing_connect_disconnect(void)
     assert(uap != NULL);
 
     ev.type = USIPY_SIP_UA_EVENT_DIAL;
-    ev.data.dial = (struct usipy_sip_tm_new_uac_tr_params){
-      .request_id = {
+    ev.data.dial = (struct usipy_sip_ua_dial_params){
+      .request = {
+        .request_id = {
         .call_id = USIPY_2STR("ua-out-1@example.test"),
         .cseq = 1,
         .method_type = USIPY_SIP_METHOD_INVITE,
-      },
-      .request_target = {
+        },
+        .request_target = {
         .request_uri = USIPY_2STR("sip:bob@example.test"),
         .target = {
           .af = AF_INET,
@@ -275,13 +316,21 @@ test_ua_outgoing_connect_disconnect(void)
           .transport = USIPY_SIP_TM_TRANSPORT_UDP,
           .host = USIPY_2STR("198.51.100.10"),
         },
-      },
-      .parties_by_username = {
+        },
+        .parties_by_username = {
         .from = USIPY_2STR("alice"),
         .to = USIPY_2STR("bob"),
         .contact = USIPY_2STR("alice"),
+        },
+        .invite_expires = 1,
+        .content_type = USIPY_2STR("application/sdp"),
+        .body = USIPY_2STR("v=0\r\n"),
       },
-      .invite_expires = 1,
+      .auth = {
+        .username = USIPY_2STR("alice"),
+        .password = USIPY_2STR("secret"),
+        .qop = USIPY_2STR("auth"),
+      },
     };
     assert(usipy_sip_ua_on_event(uap, &ev, &invite_index) == USIPY_SIP_TM_OK);
     assert(usipy_sip_ua_get_state(uap) == USIPY_SIP_UA_STATE_DIALING);
@@ -291,6 +340,15 @@ test_ua_outgoing_connect_disconnect(void)
     txp = usipy_sip_tm_get_transaction(tm, invite_index);
     assert(txp != NULL);
     reqp = dup_tx_request(txp);
+    struct usipy_sip_hdr_match ctype_match = {.hdrslen = 1};
+    assert(usipy_sip_msg_parse_hdrs_get(reqp, USIPY_HFT_MASK(USIPY_HF_CONTENTTYPE), 0,
+      &ctype_match) == 0);
+    assert(ctype_match.nhdrs == 1);
+    assert(reqp->body.l == 5);
+    assert(memcmp(reqp->body.s.ro, "v=0\r\n", 5) == 0);
+    assert(find_header(reqp, USIPY_HF_CONTENTTYPE)->onwire.value.l == 15);
+    assert(memcmp(find_header(reqp, USIPY_HF_CONTENTTYPE)->onwire.value.s.ro,
+      "application/sdp", 15) == 0);
     respp = build_response(reqp, &usipy_sip_res_ok, "uas200", "sip:bob@198.51.100.10:5070");
     handle_incoming_msg(tm, txp, respp, 100);
     assert(usipy_sip_ua_on_tx_response(uap, invite_index, respp) == USIPY_SIP_TM_OK);
@@ -338,13 +396,14 @@ test_ua_outgoing_reject(void)
     assert(uap != NULL);
 
     ev.type = USIPY_SIP_UA_EVENT_DIAL;
-    ev.data.dial = (struct usipy_sip_tm_new_uac_tr_params){
-      .request_id = {
+    ev.data.dial = (struct usipy_sip_ua_dial_params){
+      .request = {
+        .request_id = {
         .call_id = USIPY_2STR("ua-out-2@example.test"),
         .cseq = 1,
         .method_type = USIPY_SIP_METHOD_INVITE,
-      },
-      .request_target = {
+        },
+        .request_target = {
         .request_uri = USIPY_2STR("sip:bob@example.test"),
         .target = {
           .af = AF_INET,
@@ -352,13 +411,14 @@ test_ua_outgoing_reject(void)
           .transport = USIPY_SIP_TM_TRANSPORT_UDP,
           .host = USIPY_2STR("198.51.100.10"),
         },
-      },
-      .parties_by_username = {
+        },
+        .parties_by_username = {
         .from = USIPY_2STR("alice"),
         .to = USIPY_2STR("bob"),
         .contact = USIPY_2STR("alice"),
+        },
+        .invite_expires = 1,
       },
-      .invite_expires = 1,
     };
     assert(usipy_sip_ua_on_event(uap, &ev, &invite_index) == USIPY_SIP_TM_OK);
     txp = usipy_sip_tm_get_transaction(tm, invite_index);
@@ -377,6 +437,99 @@ test_ua_outgoing_reject(void)
 
     usipy_sip_msg_dtor(respp);
     usipy_sip_msg_dtor(reqp);
+    usipy_sip_ua_dtor(uap);
+    usipy_sip_tm_dtor(tm);
+    close(sock);
+}
+
+static void
+test_ua_outgoing_auth_retry(void)
+{
+    struct usipy_sip_ua_ctor_params ucp = {0};
+    struct usipy_sip_ua_event ev = {0};
+    struct emit_log elog = {0};
+    struct usipy_sip_tm *tm;
+    struct usipy_sip_ua *uap;
+    const struct usipy_sip_tm_tx *txp;
+    struct usipy_msg *req1p, *req2p, *res401p, *res200p;
+    size_t invite_index;
+    int sock;
+
+    tm = make_tm(&sock);
+    elog.tm = tm;
+    ucp.tm = tm;
+    ucp.emit = capture_emit;
+    ucp.emit_arg = &elog;
+    uap = usipy_sip_ua_ctor(&ucp);
+    assert(uap != NULL);
+
+    ev.type = USIPY_SIP_UA_EVENT_DIAL;
+    ev.data.dial = (struct usipy_sip_ua_dial_params){
+      .request = {
+        .request_id = {
+          .call_id = USIPY_2STR("ua-out-auth@example.test"),
+          .cseq = 1,
+          .method_type = USIPY_SIP_METHOD_INVITE,
+        },
+        .request_target = {
+          .request_uri = USIPY_2STR("sip:bob@example.test"),
+          .target = {
+            .af = AF_INET,
+            .port = 5060,
+            .transport = USIPY_SIP_TM_TRANSPORT_UDP,
+            .host = USIPY_2STR("198.51.100.10"),
+          },
+        },
+        .parties_by_username = {
+          .from = USIPY_2STR("alice"),
+          .to = USIPY_2STR("bob"),
+          .contact = USIPY_2STR("alice"),
+        },
+        .invite_expires = 1,
+        .content_type = USIPY_2STR("application/sdp"),
+        .body = USIPY_2STR("v=0\r\n"),
+      },
+      .auth = {
+        .username = USIPY_2STR("alice"),
+        .password = USIPY_2STR("secret"),
+        .qop = USIPY_2STR("auth"),
+      },
+    };
+    assert(usipy_sip_ua_on_event(uap, &ev, &invite_index) == USIPY_SIP_TM_OK);
+    run_tm_once(tm, 0);
+    txp = usipy_sip_tm_get_transaction(tm, invite_index);
+    assert(txp != NULL);
+    req1p = dup_tx_request(txp);
+    res401p = build_auth_response(req1p, &usipy_sip_res_unauth, "uas401",
+      "WWW-Authenticate",
+      "Digest realm=\"example.test\", nonce=\"abcdef\", qop=\"auth\"");
+    handle_incoming_msg(tm, txp, res401p, 100);
+    assert(usipy_sip_ua_on_tx_response(uap, invite_index, res401p) == USIPY_SIP_TM_OK);
+    assert(usipy_sip_ua_get_state(uap) == USIPY_SIP_UA_STATE_DIALING);
+    txp = usipy_sip_tm_get_transaction(tm, invite_index);
+    assert(txp != NULL);
+    req2p = dup_tx_request(txp);
+    assert(find_header(req2p, USIPY_HF_CSEQ)->onwire.value.l == sizeof("2 INVITE") - 1);
+    assert(memcmp(find_header(req2p, USIPY_HF_CSEQ)->onwire.value.s.ro,
+      "2 INVITE", sizeof("2 INVITE") - 1) == 0);
+    assert(find_header(req2p, USIPY_HF_AUTHORIZATION)->onwire.value.l != 0);
+    assert(find_header(req2p, USIPY_HF_CONTENTTYPE)->onwire.value.l == 15);
+    assert(memcmp(find_header(req2p, USIPY_HF_CONTENTTYPE)->onwire.value.s.ro,
+      "application/sdp", 15) == 0);
+    assert(req2p->body.l == 5);
+    assert(memcmp(req2p->body.s.ro, "v=0\r\n", 5) == 0);
+    res200p = build_response(req2p, &usipy_sip_res_ok, "uas200",
+      "sip:bob@198.51.100.10:5070");
+    handle_incoming_msg(tm, txp, res200p, 200);
+    assert(usipy_sip_ua_on_tx_response(uap, invite_index, res200p) == USIPY_SIP_TM_OK);
+    assert(usipy_sip_ua_get_state(uap) == USIPY_SIP_UA_STATE_CONNECTED);
+    assert(elog.count == 1);
+    assert(elog.emits[0].type == USIPY_SIP_UA_EMIT_CONNECT);
+
+    usipy_sip_msg_dtor(res200p);
+    usipy_sip_msg_dtor(req2p);
+    usipy_sip_msg_dtor(res401p);
+    usipy_sip_msg_dtor(req1p);
     usipy_sip_ua_dtor(uap);
     usipy_sip_tm_dtor(tm);
     close(sock);
@@ -474,6 +627,7 @@ int
 main(void)
 {
     test_ua_outgoing_connect_disconnect();
+    test_ua_outgoing_auth_retry();
     test_ua_outgoing_reject();
     test_ua_incoming_connect_bye();
     return (0);
