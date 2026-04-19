@@ -11,6 +11,9 @@
 #include "public/usipy_sip_msg.h"
 #include "public/usipy_sip_dialog.h"
 #include "public/usipy_sip_ua.h"
+#include "public/usipy_sip_tm_utils.h"
+#include "public/usipy_sip_ua_utils.h"
+#include "public/usipy_sip_response_utils.h"
 #include "public/usipy_str.h"
 #include "usipy_sip_method_db.h"
 #include "usipy_sip_res.h"
@@ -200,45 +203,6 @@ run_tm_now(struct ua_cli_ctx *ctx, uint64_t now_ms, const char *stop_reason)
     return (USIPY_SIP_TM_OK);
 }
 
-static struct usipy_sip_ua *
-new_ua(struct ua_cli_ctx *ctx)
-{
-    const struct usipy_sip_ua_ctor_params ucp = {
-      .tm = ctx->tm,
-      .emit = ua_emit,
-      .emit_arg = ctx,
-    };
-
-    return (usipy_sip_ua_ctor(&ucp));
-}
-
-static int
-peer_matches_server(const struct ua_cli_ctx *ctx, const struct usipy_sip_tm_addr *peerp)
-{
-    if (ctx == NULL || peerp == NULL) {
-        return (0);
-    }
-    return (peerp->af == ctx->peer.af &&
-      peerp->port == ctx->peer.port &&
-      peerp->transport == ctx->peer.transport &&
-      usipy_str_eq(&peerp->host, &ctx->peer.host));
-}
-
-static int
-request_targets_user(const struct usipy_msg *msg, const struct usipy_str *usernamep)
-{
-    const struct usipy_sip_uri *urip;
-
-    if (msg == NULL || usernamep == NULL || msg->kind != USIPY_SIP_MSG_REQ) {
-        return (0);
-    }
-    urip = msg->sline.parsed.rl.ruri;
-    if (urip == NULL) {
-        return (0);
-    }
-    return (usipy_str_eq(&urip->user, usernamep));
-}
-
 static int
 build_fixed_sdp(struct ua_cli_ctx *ctx)
 {
@@ -416,11 +380,11 @@ apply_ua_reset(struct ua_cli_ctx *ctx)
         return (USIPY_SIP_TM_OK);
     }
     clear_call(ctx);
-    if (ctx->uap != NULL) {
-        usipy_sip_ua_dtor(ctx->uap);
-    }
-    ctx->uap = new_ua(ctx);
-    if (ctx->uap == NULL) {
+    if (usipy_sip_ua_reset(&ctx->uap, &(const struct usipy_sip_ua_ctor_params){
+          .tm = ctx->tm,
+          .emit = ua_emit,
+          .emit_arg = ctx,
+        }) != USIPY_SIP_TM_OK) {
         ctx->error = 1;
         ctx->stop = 1;
         ctx->stop_reason = "ua-reset";
@@ -588,26 +552,6 @@ outgoing_timeout(void *arg, size_t tx_index, const struct usipy_sip_tm_tx *txp,
 }
 
 static int
-schedule_refresh(struct ua_cli_ctx *ctx, uint64_t now_ms)
-{
-    uint64_t refresh_delay_s;
-
-    if (ctx == NULL || ctx->expires == 0) {
-        return (-1);
-    }
-    if (ctx->expires > 90) {
-        refresh_delay_s = ctx->expires - 30u;
-    } else {
-        refresh_delay_s = ctx->expires / 2u;
-    }
-    if (refresh_delay_s == 0) {
-        refresh_delay_s = 1;
-    }
-    ctx->next_refresh_at_ms = now_ms + (refresh_delay_s * 1000u);
-    return (0);
-}
-
-static int
 start_register(struct ua_cli_ctx *ctx, size_t *indexp)
 {
     struct usipy_sip_tm_new_uac_tr_params tp = {0};
@@ -643,51 +587,13 @@ start_register(struct ua_cli_ctx *ctx, size_t *indexp)
 }
 
 static int
-send_simple_response(struct ua_cli_ctx *ctx,
-  const struct usipy_sip_tm_handle_incoming_in *hin, const struct usipy_msg *msg,
-  const struct usipy_sip_status *statusp)
+send_stateless_response(void *arg, const void *buf, size_t len)
 {
-    struct usipy_sip_tm_new_uas_tr_params tp = {
-      .request = msg,
-      .timers = hin->timers,
-      .peer = hin->peer,
-      .local = hin->local,
-    };
-    struct usipy_sip_tm_uas_response_params rp = {
-      .status = *statusp,
-    };
-    size_t tx_index;
-    int rval;
-
-    rval = usipy_sip_tm_new_uas_tr(ctx->tm, &tp, &tx_index);
-    if (rval != USIPY_SIP_TM_OK) {
-        return (rval);
-    }
-    return (usipy_sip_tm_send_uas_response(ctx->tm, tx_index, &rp));
-}
-
-static int
-send_stateless_response(const struct ua_cli_ctx *ctx, const struct usipy_msg *msg,
-  const struct usipy_sip_status *statusp)
-{
-    struct usipy_msg *resp;
-    size_t raw_len;
+    const struct ua_cli_ctx *ctx = arg;
     ssize_t sent;
 
-    if (ctx == NULL || msg == NULL || statusp == NULL) {
-        return (USIPY_SIP_TM_ERR_INVAL);
-    }
-    resp = usipy_sip_res_ctor_fromreq(msg, statusp);
-    if (resp == NULL) {
-        return (USIPY_SIP_TM_ERR_NOMEM);
-    }
-    raw_len = resp->onwire.l;
-    sent = send(ctx->sock, resp->onwire.s.ro, raw_len, 0);
-    usipy_sip_msg_dtor(resp);
-    if (sent != (ssize_t)raw_len) {
-        return (USIPY_SIP_TM_ERR_INVAL);
-    }
-    return (USIPY_SIP_TM_OK);
+    sent = send(ctx->sock, buf, len, 0);
+    return (sent == (ssize_t)len ? 0 : -1);
 }
 
 static void
@@ -718,7 +624,9 @@ register_response(void *arg, size_t tx_index, const struct usipy_sip_tm_tx *txp,
     ctx->next_register_cseq = txp->common.id.cseq + 1;
     if (scode >= 200 && scode < 300) {
         if (usipy_tm_uac_extract_register_expires(msg, &ctx->username,
-          &ctx->expires) != 0 || schedule_refresh(ctx, now_ms) != 0) {
+          &ctx->expires) != 0 ||
+          usipy_sip_ua_schedule_refresh(ctx->expires, now_ms,
+            &ctx->next_refresh_at_ms) != 0) {
             ctx->error = 1;
             ctx->stop = 1;
             return;
@@ -767,8 +675,9 @@ incoming_request(void *arg, const struct usipy_sip_tm_handle_incoming_in *hin,
         return;
     }
     method_type = msg->sline.parsed.rl.method->cantype;
-    if (!peer_matches_server(ctx, &hin->peer)) {
-        if (send_simple_response(ctx, hin, msg, &ua_cli_res_forbidden) != USIPY_SIP_TM_OK) {
+    if (!usipy_sip_tm_addr_same(&ctx->peer, &hin->peer)) {
+        if (usipy_sip_tm_send_simple_response(ctx->tm, hin, msg,
+              &ua_cli_res_forbidden) != USIPY_SIP_TM_OK) {
             ctx->error = 1;
             ctx->stop = 1;
             ctx->stop_reason = "forbidden-response";
@@ -803,8 +712,9 @@ incoming_request(void *arg, const struct usipy_sip_tm_handle_incoming_in *hin,
         }
         return;
     }
-    if (!request_targets_user(msg, &ctx->username)) {
-        if (send_simple_response(ctx, hin, msg, &ua_cli_res_not_found) != USIPY_SIP_TM_OK) {
+    if (!usipy_sip_ua_request_targets_user(msg, &ctx->username)) {
+        if (usipy_sip_tm_send_simple_response(ctx->tm, hin, msg,
+              &ua_cli_res_not_found) != USIPY_SIP_TM_OK) {
             ctx->error = 1;
             ctx->stop = 1;
             ctx->stop_reason = "not-found-response";
@@ -824,7 +734,8 @@ incoming_request(void *arg, const struct usipy_sip_tm_handle_incoming_in *hin,
         int rval;
 
         if (ctx->uap == NULL || usipy_sip_ua_get_state(ctx->uap) != USIPY_SIP_UA_STATE_IDLE) {
-            if (send_stateless_response(ctx, msg, &usipy_sip_res_busy_here) !=
+            if (usipy_sip_send_stateless_response(msg, &usipy_sip_res_busy_here,
+                  send_stateless_response, ctx) !=
               USIPY_SIP_TM_OK) {
                 ctx->error = 1;
                 ctx->stop = 1;
@@ -860,7 +771,8 @@ incoming_request(void *arg, const struct usipy_sip_tm_handle_incoming_in *hin,
         return;
     }
     if (method_type == USIPY_SIP_METHOD_BYE) {
-        if (send_simple_response(ctx, hin, msg, &ua_cli_res_not_found) != USIPY_SIP_TM_OK) {
+        if (usipy_sip_tm_send_simple_response(ctx->tm, hin, msg,
+              &ua_cli_res_not_found) != USIPY_SIP_TM_OK) {
             ctx->error = 1;
             ctx->stop = 1;
             ctx->stop_reason = "bye-not-found-response";
@@ -869,31 +781,14 @@ incoming_request(void *arg, const struct usipy_sip_tm_handle_incoming_in *hin,
         }
         return;
     }
-    if (send_stateless_response(ctx, msg, &usipy_sip_res_not_impl) != USIPY_SIP_TM_OK) {
+    if (usipy_sip_send_stateless_response(msg, &usipy_sip_res_not_impl,
+          send_stateless_response, ctx) != USIPY_SIP_TM_OK) {
         ctx->error = 1;
         ctx->stop = 1;
         ctx->stop_reason = "unsupported-request";
     } else {
         report_activityf(ctx, "rejected unsupported: %.*s",
           USIPY_SFMT(&msg->sline.parsed.rl.onwire.method));
-    }
-}
-
-static void
-reap_terminated(struct ua_cli_ctx *ctx)
-{
-    size_t i;
-
-    if (ctx == NULL || ctx->tm == NULL) {
-        return;
-    }
-    for (i = 0; i < ctx->max_transactions; i++) {
-        const struct usipy_sip_tm_tx *txp = usipy_sip_tm_get_transaction(ctx->tm, i);
-
-        if (txp == NULL || txp->state != USIPY_SIP_TM_STATE_TERMINATED) {
-            continue;
-        }
-        (void)usipy_sip_tm_drop_transaction(ctx->tm, i);
     }
 }
 
@@ -1067,8 +962,11 @@ main(int argc, char **argv)
         exit_reason = "tm-ctor";
         goto done;
     }
-    ctx.uap = new_ua(&ctx);
-    if (ctx.uap == NULL) {
+    if (usipy_sip_ua_reset(&ctx.uap, &(const struct usipy_sip_ua_ctor_params){
+          .tm = ctx.tm,
+          .emit = ua_emit,
+          .emit_arg = &ctx,
+        }) != USIPY_SIP_TM_OK) {
         fprintf(stderr, "unable to initialize SIP UA\n");
         exit_reason = "ua-ctor";
         goto done;
@@ -1144,7 +1042,7 @@ main(int argc, char **argv)
                 exit_reason = "auto-bye";
                 goto done;
             }
-            reap_terminated(&ctx);
+            usipy_sip_tm_reap_terminated(ctx.tm);
             continue;
         }
         rin.now_ms = now_ms;
@@ -1153,7 +1051,7 @@ main(int argc, char **argv)
             exit_reason = "tm-run";
             goto done;
         }
-        reap_terminated(&ctx);
+        usipy_sip_tm_reap_terminated(ctx.tm);
         if (ctx.stop) {
             break;
         }
@@ -1241,7 +1139,7 @@ main(int argc, char **argv)
                 goto done;
             }
         }
-        reap_terminated(&ctx);
+        usipy_sip_tm_reap_terminated(ctx.tm);
     }
     if (ctx.error) {
         exit_reason = (ctx.stop_reason != NULL ? ctx.stop_reason : "callback-error");
