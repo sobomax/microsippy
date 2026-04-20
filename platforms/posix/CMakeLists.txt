@@ -33,7 +33,9 @@ target_include_directories(ua_cli PUBLIC
 target_include_directories(microsippy PRIVATE
   ${CMAKE_CURRENT_SOURCE_DIR}
 )
-target_sources(microsippy PUBLIC "${CMAKE_CURRENT_SOURCE_DIR}/usipy_log.c")
+target_sources(microsippy PRIVATE
+  "${CMAKE_CURRENT_SOURCE_DIR}/usipy_platform_default.c"
+)
 target_link_libraries(usipy_test PRIVATE
   microsippy
   ${CMAKE_THREAD_LIBS_INIT}

@@ -1,6 +1,7 @@
 #include <stddef.h>
 #include <stdint.h>
-#include <string.h>
+
+#include "usipy_port/string_compat.h"
 
 #include "usipy_debug.h"
 #include "public/usipy_msg_heap.h"
