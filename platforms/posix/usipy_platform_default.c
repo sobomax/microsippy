@@ -47,21 +47,19 @@ _usipy_log_unlock(void)
 }
 
 static uint64_t
-usipy_platform_default_mono_ms(void *arg)
+usipy_platform_default_mono_ms(void)
 {
     struct timespec ts;
 
-    (void)arg;
     assert(clock_gettime(CLOCK_MONOTONIC, &ts) == 0);
     return ((uint64_t)ts.tv_sec * 1000u) + ((uint64_t)ts.tv_nsec / 1000000u);
 }
 
 static void
-usipy_platform_default_sleep_until_ms(void *arg, uint64_t when_ms)
+usipy_platform_default_sleep_until_ms(uint64_t when_ms)
 {
     struct timespec ts;
 
-    (void)arg;
     ts.tv_sec = when_ms / 1000u;
     ts.tv_nsec = (long)((when_ms % 1000u) * 1000000u);
     while (clock_nanosleep(CLOCK_MONOTONIC, TIMER_ABSTIME, &ts, NULL) != 0) {
@@ -90,13 +88,12 @@ usipy_platform_default_seed_fallback(unsigned char *buf, size_t len)
 }
 
 static int
-usipy_platform_default_random_fill(void *arg, void *buf, size_t len)
+usipy_platform_default_random_fill(void *buf, size_t len)
 {
     int fd;
     unsigned char *bp = buf;
     size_t off = 0;
 
-    (void)arg;
     if (buf == NULL) {
         return (-1);
     }
@@ -122,13 +119,15 @@ usipy_platform_default_random_fill(void *arg, void *buf, size_t len)
     return (0);
 }
 
+static void usipy_platform_default_log_vwrite(int lvl, const char *tag,
+  const char *fmt, va_list ap) __attribute__ ((format (printf, 3, 0)));
+
 static void
-usipy_platform_default_log_vwrite(void *arg, int lvl, const char *tag,
-  const char *fmt, va_list ap)
+usipy_platform_default_log_vwrite(int lvl, const char *tag, const char *fmt,
+  va_list ap)
 {
     int ch = (lvl == 0 ? 'I' : 'E');
 
-    (void)arg;
     _usipy_log_lock();
     fwrite(_color_pre, sizeof(_color_pre) - 1, 1, stderr);
     fprintf(stderr, "%c %s: ", ch, tag);
@@ -138,9 +137,20 @@ usipy_platform_default_log_vwrite(void *arg, int lvl, const char *tag,
     _usipy_log_unlock();
 }
 
-const struct usipy_platform_handlers usipy_platform_handlers USIPY_WEAK = {
+const struct usipy_platform usipy_platform_default = {
   .mono_ms = usipy_platform_default_mono_ms,
   .sleep_until_ms = usipy_platform_default_sleep_until_ms,
   .random_fill = usipy_platform_default_random_fill,
   .log_vwrite = usipy_platform_default_log_vwrite,
+  .get_user_agent = usipy_platform_default_get_user_agent,
+  .get_server = usipy_platform_default_get_server,
+};
+
+const struct usipy_platform usipy_platform USIPY_WEAK = {
+  .mono_ms = usipy_platform_default_mono_ms,
+  .sleep_until_ms = usipy_platform_default_sleep_until_ms,
+  .random_fill = usipy_platform_default_random_fill,
+  .log_vwrite = usipy_platform_default_log_vwrite,
+  .get_user_agent = usipy_platform_default_get_user_agent,
+  .get_server = usipy_platform_default_get_server,
 };

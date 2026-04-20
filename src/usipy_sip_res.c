@@ -5,6 +5,7 @@
 
 #include "usipy_debug.h"
 #include "usipy_types.h"
+#include "public/usipy_platform.h"
 #include "public/usipy_str.h"
 #include "public/usipy_sip_sline.h"
 #include "public/usipy_msg_heap.h"
@@ -66,30 +67,33 @@ struct append_hdr {
     struct usipy_str value;
 };
 
-static const struct append_hdr append_hdrs[] = {
-    {
-        .type = USIPY_HF_SERVER,
-        .value = USIPY_2STR("uSippy")
-    },
-    {
-        .type = USIPY_HF_CONTENTLENGTH,
-        .value = USIPY_2STR("0")
-    },
-    {
-        .value = USIPY_STR_NULL
-    }
-};
-
 static const struct {
     uint64_t copyfirst;
     uint64_t copyall;
-    const struct append_hdr *append_hdrs;
 } res_tmpl = {
     .copyfirst = USIPY_HFT_MASK(USIPY_HF_FROM) | USIPY_HFT_MASK(USIPY_HF_CALLID) | \
       USIPY_HFT_MASK(USIPY_HF_TO) | USIPY_HFT_MASK(USIPY_HF_CSEQ),
     .copyall = USIPY_HFT_MASK(USIPY_HF_VIA) | USIPY_HFT_MASK(USIPY_HF_RECORDROUTE),
-    .append_hdrs = append_hdrs
 };
+
+static size_t
+usipy_sip_res_init_append_hdrs(struct append_hdr *hdrsp)
+{
+    const struct usipy_str *serverp = USIPY_PLATFORM.get_server();
+    size_t nhdrs = 0;
+
+    if (serverp->l != 0) {
+        hdrsp[nhdrs++] = (struct append_hdr){
+          .type = USIPY_HF_SERVER,
+          .value = *serverp,
+        };
+    }
+    hdrsp[nhdrs++] = (struct append_hdr){
+      .type = USIPY_HF_CONTENTLENGTH,
+      .value = USIPY_2STR("0"),
+    };
+    return (nhdrs);
+}
 
 static size_t
 usipy_sip_res_to_tag_extra(const struct usipy_str *tagp)
@@ -100,10 +104,12 @@ usipy_sip_res_to_tag_extra(const struct usipy_str *tagp)
 static size_t
 usipy_sip_res_append_raw_size(void)
 {
+    struct append_hdr append_hdrs[2];
+    const size_t nhdrs = usipy_sip_res_init_append_hdrs(append_hdrs);
     size_t raw_len;
 
     raw_len = USIPY_CRLF_LEN;
-    for (int i = 0; append_hdrs[i].value.l != 0; i++) {
+    for (size_t i = 0; i < nhdrs; i++) {
         const struct append_hdr *ahp = &append_hdrs[i];
         const struct usipy_hdr_db_entr *hfp = usipy_hdr_db_byid(ahp->type);
 
@@ -116,12 +122,14 @@ usipy_sip_res_append_raw_size(void)
 static int
 usipy_sip_res_alloc_extra_hdr_space(size_t *spacep)
 {
+    struct append_hdr append_hdrs[2];
+    const size_t nhdrs = usipy_sip_res_init_append_hdrs(append_hdrs);
     size_t extra_hdr_space;
 
     USIPY_DASSERT(spacep != NULL);
 
     extra_hdr_space = 0;
-    for (int i = 0; append_hdrs[i].value.l != 0; i++) {
+    for (size_t i = 0; i < nhdrs; i++) {
         extra_hdr_space += sizeof(struct usipy_sip_hdr);
     }
     *spacep = USIPY_ALIGNED_SIZE(extra_hdr_space);
@@ -152,6 +160,7 @@ usipy_sip_res_alloc_size_ctor(const struct usipy_msg *reqp, const struct usipy_s
   size_t *raw_spacep, size_t *heap_spacep)
 {
     size_t extra_hdr_space;
+    size_t heap_span;
 
     USIPY_DASSERT(reqp != NULL);
     USIPY_DASSERT(raw_spacep != NULL);
@@ -159,7 +168,8 @@ usipy_sip_res_alloc_size_ctor(const struct usipy_msg *reqp, const struct usipy_s
 
     usipy_sip_res_alloc_size_build(reqp, tagp, raw_spacep, heap_spacep);
     usipy_sip_res_alloc_extra_hdr_space(&extra_hdr_space);
-    *heap_spacep = USIPY_ALIGNED_SIZE(reqp->heap.tsize + extra_hdr_space + *raw_spacep);
+    heap_span = reqp->heap.tsize + extra_hdr_space + *raw_spacep;
+    *heap_spacep = USIPY_ALIGNED_SIZE(heap_span);
     return (sizeof(struct usipy_msg) + *raw_spacep + *heap_spacep);
 }
 
@@ -311,27 +321,31 @@ usipy_sip_res_build_fromreq_tagged_sz(struct usipy_msg_heap *hp,
     if (copyfirst != 0) {
         goto e0;
     }
-    const struct append_hdr *ahdrs = res_tmpl.append_hdrs;
-    for (int i = 0; ahdrs[i].value.l != 0; i++) {
-        const struct append_hdr *ahp = &ahdrs[i];
-        struct usipy_sip_hdr *ohp = get_next_ohp(rp, &cnt);
-        if (ohp == NULL)
-            goto e0;
+    {
+        struct append_hdr ahdrs[2];
+        const size_t nahdrs = usipy_sip_res_init_append_hdrs(ahdrs);
 
-        ohp->hf_type = ohp->onwire.hf_type = usipy_hdr_db_byid(ahp->type);
-        memcpy(cp, ohp->hf_type->name.s.ro, ohp->hf_type->name.l);
-        ohp->onwire.name.s.ro = ohp->onwire.full.s.ro = cp;
-        ohp->onwire.name.l = ohp->hf_type->name.l;
-        cp += ohp->hf_type->name.l;
-        memcpy(cp, ": ", 2);
-        cp += 2;
-        memcpy(cp, ahp->value.s.ro, ahp->value.l);
-        ohp->onwire.value.s.ro = cp;
-        ohp->onwire.value.l = ahp->value.l;
-        cp += ahp->value.l;
-        ohp->onwire.full.l = cp - ohp->onwire.full.s.ro;
-        memcpy(cp, USIPY_CRLF, USIPY_CRLF_LEN);
-        cp += USIPY_CRLF_LEN;
+        for (size_t i = 0; i < nahdrs; i++) {
+            const struct append_hdr *ahp = &ahdrs[i];
+            struct usipy_sip_hdr *ohp = get_next_ohp(rp, &cnt);
+            if (ohp == NULL)
+                goto e0;
+
+            ohp->hf_type = ohp->onwire.hf_type = usipy_hdr_db_byid(ahp->type);
+            memcpy(cp, ohp->hf_type->name.s.ro, ohp->hf_type->name.l);
+            ohp->onwire.name.s.ro = ohp->onwire.full.s.ro = cp;
+            ohp->onwire.name.l = ohp->hf_type->name.l;
+            cp += ohp->hf_type->name.l;
+            memcpy(cp, ": ", 2);
+            cp += 2;
+            memcpy(cp, ahp->value.s.ro, ahp->value.l);
+            ohp->onwire.value.s.ro = cp;
+            ohp->onwire.value.l = ahp->value.l;
+            cp += ahp->value.l;
+            ohp->onwire.full.l = cp - ohp->onwire.full.s.ro;
+            memcpy(cp, USIPY_CRLF, USIPY_CRLF_LEN);
+            cp += USIPY_CRLF_LEN;
+        }
     }
 
     memcpy(cp, USIPY_CRLF, USIPY_CRLF_LEN);

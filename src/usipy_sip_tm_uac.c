@@ -6,6 +6,7 @@
 #include "usipy_port/network.h"
 
 #include "usipy_debug.h"
+#include "public/usipy_platform.h"
 #include "public/usipy_msg_heap.h"
 #include "public/usipy_sip_hdr_types.h"
 #include "public/usipy_sip_method_types.h"
@@ -562,22 +563,6 @@ usipy_sip_tm_build_uri_cb(void *arg, char *buf, size_t len)
     return (usipy_sip_uri_build(uarg->urip, buf, len));
 }
 
-struct usipy_sip_tm_build_authz_arg {
-    const struct usipy_sip_hdr_authz *authzp;
-};
-
-static int
-usipy_sip_tm_build_authz_cb(void *arg, char *buf, size_t len)
-{
-    const struct usipy_sip_tm_build_authz_arg *aarg = arg;
-    union usipy_sip_hdr_parsed up;
-
-    USIPY_DASSERT(aarg != NULL);
-    USIPY_DASSERT(aarg->authzp != NULL);
-    up.authz = (struct usipy_sip_hdr_authz *)aarg->authzp;
-    return (usipy_sip_hdr_authz_build(&up, buf, len));
-}
-
 static void
 usipy_sip_tm_uac_arm_send_now(struct usipy_sip_tm_txi *tp, uint64_t now_ms)
 {
@@ -877,11 +862,13 @@ usipy_sip_tm_build_request(struct usipy_sip_tm_txi *tp, size_t tx_index,
     const size_t neh = bpp != NULL ? bpp->nextra_headers : 0;
     const struct usipy_str *content_typep = &payloadp->content_type;
     const struct usipy_str *bodyp = &payloadp->body;
+    const struct usipy_str *user_agentp = USIPY_PLATFORM.get_user_agent();
     const int include_expires = tp->pub.common.id.method_type == USIPY_SIP_METHOD_INVITE;
     const int include_ctype = bodyp->l != 0 && content_typep->l != 0;
+    const int include_user_agent = user_agentp->l != 0;
     const size_t nbase_hdrs = 6 + tp->cache.uac.nroutes +
       (tp->cache.uac.include_contact != 0 ? 1 : 0) + (include_expires ? 1 : 0) +
-      (include_ctype ? 1 : 0);
+      (include_ctype ? 1 : 0) + (include_user_agent ? 1 : 0);
     struct usipy_sip_hdr thdrs[nbase_hdrs + neh];
     struct usipy_hdr_db_entr ehdb[neh];
     struct usipy_sip_tm_default_via via;
@@ -1001,6 +988,12 @@ usipy_sip_tm_build_request(struct usipy_sip_tm_txi *tp, size_t tx_index,
         thdrs[hindex].parsed.generic = content_typep;
         hindex += 1;
     }
+    if (include_user_agent) {
+        hfp = usipy_hdr_db_byid(USIPY_HF_USERAGENT);
+        thdrs[hindex].hf_type = hfp;
+        thdrs[hindex].parsed.generic = user_agentp;
+        hindex += 1;
+    }
 
     for (size_t i = 0; i < neh; i++) {
         hfp = usipy_hdr_db_byid(ehp[i].hf_type);
@@ -1073,16 +1066,6 @@ usipy_sip_tm_uac_next_send_delay_ms(const struct usipy_sip_tm_txi *tp)
     }
     USIPY_DASSERT(delay <= UINT32_MAX);
     return ((uint32_t)delay);
-}
-
-static void
-usipy_sip_tm_run_out_init(struct usipy_sip_tm_run_out *outp)
-{
-    if (outp == NULL) {
-        return;
-    }
-    memset(outp, '\0', sizeof(*outp));
-    outp->next_run_at_ms = USIPY_SIP_TM_TIME_NONE;
 }
 
 static void

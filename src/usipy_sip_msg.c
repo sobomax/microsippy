@@ -548,7 +548,7 @@ crlfcompr(uintptr_t cval, bool carry)
 {
     const uintptr_t mskA = BFILL(typeof(mskA), '\r'); /* '\r' * sizeof(mskA) */
     const uintptr_t mskB = BFILL(typeof(mskB), '\n'); /* '\n' * sizeof(mskB) */
-    uintptr_t val, mvalA, mvalB;
+    uintptr_t mvalA, mvalB;
     struct crlfres rval = {.v = 0};
 
     mvalA = cval ^ mskA; /* This produces 0x00 at positions with \r */

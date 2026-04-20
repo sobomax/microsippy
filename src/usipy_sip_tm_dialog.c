@@ -19,16 +19,6 @@ static void usipy_sip_tm_dialog_set_target_from_uri(struct usipy_sip_tm_addr *,
   const struct usipy_sip_tm_addr *, const struct usipy_sip_uri *);
 
 static int
-usipy_sip_tm_dialog_has_lr(const struct usipy_str *sp)
-{
-    static const char lr[] = ";lr";
-
-    USIPY_DASSERT(sp != NULL);
-
-    return (memmem(sp->s.ro, sp->l, lr, sizeof(lr) - 1) != NULL);
-}
-
-static int
 usipy_sip_tm_dialog_resolve_target(struct usipy_msg_heap *mhp,
   const struct usipy_sip_tm_addr *basep, const struct usipy_str *remote_targetp,
   const struct usipy_str *route_srcp, size_t nroutes, int reverse,
@@ -254,8 +244,8 @@ usipy_sip_tm_init_uas_dialog_request_params(const struct usipy_sip_tm *tm,
     struct usipy_str *owned_routes = NULL;
     size_t neffective_routes = 0;
     const struct usipy_str *remote_targetp;
+    const struct usipy_str *local_contactp;
     struct usipy_sip_uri *target_uri, *first_route_uri;
-    int rval;
 
     USIPY_DASSERT(tm != NULL);
     USIPY_DASSERT(mhp != NULL);
@@ -352,10 +342,14 @@ usipy_sip_tm_init_uas_dialog_request_params(const struct usipy_sip_tm *tm,
     }
     usipy_sip_tm_dialog_set_target_from_uri(&next_target,
       &anchorp->pub.common.peer, target_uri);
+    local_contactp = &anchorp->cache.uas.local_contact_uri;
+    if (local_contactp->l == 0) {
+        local_contactp = &tm->luri;
+    }
     if (
       usipy_msg_heap_append(mhp, &outp->request_id.call_id,
         &anchorp->cache.call_id) != 0 ||
-      usipy_msg_heap_append(mhp, &outp->parties_by_uri.contact, &tm->luri) != 0 ||
+      usipy_msg_heap_append(mhp, &outp->parties_by_uri.contact, local_contactp) != 0 ||
       usipy_msg_heap_append(mhp, &outp->parties_by_uri.from,
         &anchorp->cache.uas.to_uri) != 0 ||
       usipy_msg_heap_append(mhp, &outp->parties_by_uri.to,

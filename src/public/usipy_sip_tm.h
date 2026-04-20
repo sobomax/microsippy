@@ -308,6 +308,8 @@ struct usipy_sip_tm_uas_response_params {
     struct usipy_sip_status status;
     struct usipy_str content_type;
     struct usipy_str body;
+    const struct usipy_sip_tm_extra_header *extra_headers;
+    size_t nextra_headers;
     struct usipy_sip_tm_uas_callbacks callbacks;
 };
 

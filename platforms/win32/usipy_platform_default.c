@@ -7,12 +7,10 @@
 
 #include "public/usipy_platform.h"
 
-#if defined(_MSC_VER)
-#define USIPY_SELECTANY __declspec(selectany)
-#elif defined(__GNUC__) || defined(__clang__)
-#define USIPY_SELECTANY __attribute__((selectany))
+#if defined(__GNUC__) || defined(__clang__)
+#define USIPY_WEAK __attribute__((weak))
 #else
-#define USIPY_SELECTANY
+#define USIPY_WEAK
 #endif
 
 static struct {
@@ -42,22 +40,20 @@ _usipy_log_unlock(void)
 }
 
 static uint64_t
-usipy_platform_default_mono_ms(void *arg)
+usipy_platform_default_mono_ms(void)
 {
 
-    (void)arg;
     return ((uint64_t)GetTickCount64());
 }
 
 static void
-usipy_platform_default_sleep_until_ms(void *arg, uint64_t when_ms)
+usipy_platform_default_sleep_until_ms(uint64_t when_ms)
 {
     uint64_t now_ms;
     uint64_t delay_ms;
 
-    (void)arg;
     for (;;) {
-        now_ms = usipy_platform_default_mono_ms(NULL);
+        now_ms = usipy_platform_mono_ms();
         if (now_ms >= when_ms) {
             return;
         }
@@ -79,7 +75,7 @@ usipy_platform_default_seed_fallback(unsigned char *buf, size_t len)
     GetSystemTimeAsFileTime(&ft);
     QueryPerformanceCounter(&pc);
     state = ((uint64_t)ft.dwHighDateTime << 32) ^ (uint64_t)ft.dwLowDateTime ^
-      (uint64_t)pc.QuadPart ^ usipy_platform_default_mono_ms(NULL) ^
+      (uint64_t)pc.QuadPart ^ usipy_platform_mono_ms() ^
       (uint64_t)GetCurrentProcessId() ^ (uint64_t)GetCurrentThreadId() ^
       (uintptr_t)buf;
     for (size_t i = 0; i < len; i++) {
@@ -91,10 +87,9 @@ usipy_platform_default_seed_fallback(unsigned char *buf, size_t len)
 }
 
 static int
-usipy_platform_default_random_fill(void *arg, void *buf, size_t len)
+usipy_platform_default_random_fill(void *buf, size_t len)
 {
 
-    (void)arg;
     if (buf == NULL) {
         return (-1);
     }
@@ -103,12 +98,11 @@ usipy_platform_default_random_fill(void *arg, void *buf, size_t len)
 }
 
 static void
-usipy_platform_default_log_vwrite(void *arg, int lvl, const char *tag,
-  const char *fmt, va_list ap)
+usipy_platform_default_log_vwrite(int lvl, const char *tag, const char *fmt,
+  va_list ap)
 {
     int ch = (lvl == 0 ? 'I' : 'E');
 
-    (void)arg;
     _usipy_log_lock();
     fprintf(stderr, "%c %s: ", ch, tag);
     vfprintf(stderr, fmt, ap);
@@ -117,9 +111,18 @@ usipy_platform_default_log_vwrite(void *arg, int lvl, const char *tag,
     _usipy_log_unlock();
 }
 
-const struct usipy_platform_handlers usipy_platform_handlers USIPY_SELECTANY = {
+const struct usipy_platform usipy_platform_default = {
   .mono_ms = usipy_platform_default_mono_ms,
   .sleep_until_ms = usipy_platform_default_sleep_until_ms,
   .random_fill = usipy_platform_default_random_fill,
   .log_vwrite = usipy_platform_default_log_vwrite,
+  .get_user_agent = usipy_platform_default_get_user_agent,
+  .get_server = usipy_platform_default_get_server,
 };
+
+const struct usipy_platform *USIPY_WEAK
+usipy_platform_get(void)
+{
+
+    return (&usipy_platform_default);
+}
