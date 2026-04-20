@@ -8,6 +8,7 @@
 #include "usipy_debug.h"
 #include "public/usipy_platform.h"
 #include "public/usipy_sip_tm.h"
+#include "usipy_append_priv.h"
 #include "usipy_sip_hdr.h"
 #include "usipy_sip_hdr_db.h"
 #include "usipy_sip_hdr_nameaddr.h"
@@ -544,12 +545,8 @@ usipy_sip_tm_uas_build_response_cb(void *arg, char *buf, size_t len)
     char sbuf[4];
     int rval;
 
-#define APPEND_MEM(bp, blen) do { \
-        if (off + (blen) > len) return (-1); \
-        memcpy(buf + off, (bp), (blen)); \
-        off += (blen); \
-    } while (0)
-#define APPEND_STR(sp) APPEND_MEM((sp)->s.ro, (sp)->l)
+#define APPEND_MEM(bp, blen) USIPY_APPEND_MEM_OR_RETURN(-1, buf, off, len, bp, blen)
+#define APPEND_STR(sp) USIPY_APPEND_STR_OR_RETURN(-1, buf, off, len, sp)
     USIPY_DASSERT(via_hfp != NULL);
     USIPY_DASSERT(from_hfp != NULL);
     USIPY_DASSERT(to_hfp != NULL);
