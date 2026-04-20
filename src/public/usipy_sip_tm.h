@@ -226,6 +226,7 @@ struct usipy_sip_tm_id_policy_in {
 
 struct usipy_sip_tm_id_policy_out {
     struct usipy_str branch;
+    struct usipy_str call_id;
     struct usipy_str local_tag;
 };
 

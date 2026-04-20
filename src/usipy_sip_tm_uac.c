@@ -311,8 +311,40 @@ usipy_sip_tm_prepare_default_ids(struct usipy_sip_tm_txi *tp, size_t tx_index,
       (unsigned int)tx_index, tp->cache.cseq.val) != 0) {
         return (USIPY_SIP_TM_ERR_NOSPC);
     }
-    if (usipy_msg_heap_sprintf(&tp->scratch, &outp->local_tag, "t%u-%u",
-      (unsigned int)tx_index, tp->cache.cseq.val) != 0) {
+    if (usipy_msg_heap_sprintf(&tp->scratch, &outp->local_tag, "t%u",
+      (unsigned int)tx_index) != 0) {
+        return (USIPY_SIP_TM_ERR_NOSPC);
+    }
+    return (USIPY_SIP_TM_OK);
+}
+
+static int
+usipy_sip_tm_prepare_initial_call_id(const struct usipy_sip_tm *tm,
+  struct usipy_sip_tm_txi *tp, size_t tx_index)
+{
+    struct usipy_sip_tm_id_policy_out ids = {0};
+    struct usipy_sip_tm_id_policy_in in = {
+      .transaction_index = tx_index,
+      .cseq = tp->cache.cseq.val,
+      .method_type = tp->cache.method_type,
+    };
+
+    USIPY_DASSERT(tm != NULL);
+    USIPY_DASSERT(tp != NULL);
+
+    if (tp->cache.call_id.l != 0) {
+        return (USIPY_SIP_TM_OK);
+    }
+    if (tm->id_policy.cb != NULL) {
+        if (tm->id_policy.cb(tm->id_policy.arg, &tp->scratch, &in, &ids) != 0) {
+            return (USIPY_SIP_TM_ERR_NOSPC);
+        }
+    } else if (usipy_msg_heap_sprintf(&tp->scratch, &ids.call_id, "c%u",
+      (unsigned int)tx_index) != 0) {
+        return (USIPY_SIP_TM_ERR_NOSPC);
+    }
+    if (ids.call_id.l == 0 ||
+      usipy_msg_heap_append(&tp->scratch, &tp->cache.call_id, &ids.call_id) != 0) {
         return (USIPY_SIP_TM_ERR_NOSPC);
     }
     return (USIPY_SIP_TM_OK);
@@ -340,7 +372,8 @@ usipy_sip_tm_prepare_ids(const struct usipy_sip_tm *tm, struct usipy_sip_tm_txi 
     } else if (usipy_sip_tm_prepare_default_ids(tp, tx_index, &ids) != USIPY_SIP_TM_OK) {
         return (USIPY_SIP_TM_ERR_NOSPC);
     }
-    if (ids.branch.l == 0 || (tp->cache.from_tag.l == 0 && ids.local_tag.l == 0)) {
+    if (tp->cache.call_id.l == 0 || ids.branch.l == 0 ||
+      (tp->cache.from_tag.l == 0 && ids.local_tag.l == 0)) {
         return (USIPY_SIP_TM_ERR_INVAL);
     }
     if (tp->cache.branch.l == 0) {
@@ -1232,8 +1265,7 @@ usipy_sip_tm_new_uac_tr(struct usipy_sip_tm *tm,
     USIPY_DASSERT(indexp != NULL);
 
     *indexp = USIPY_SIP_TM_TX_INDEX_NONE;
-    if (tpp->request_id.call_id.l == 0 ||
-      tpp->request_target.request_uri.l == 0) {
+    if (tpp->request_target.request_uri.l == 0) {
         return (USIPY_SIP_TM_ERR_INVAL);
     }
     rval = usipy_sip_tm_lookup_uac_method(tpp->request_id.method_type, 0, &mdp);
@@ -1246,6 +1278,10 @@ usipy_sip_tm_new_uac_tr(struct usipy_sip_tm *tm,
     }
     rval = usipy_sip_tm_init_uac_request(tp, &tpp->request_id,
       &tpp->request_target, mdp);
+    if (rval != USIPY_SIP_TM_OK) {
+        goto nospc;
+    }
+    rval = usipy_sip_tm_prepare_initial_call_id(tm, tp, tx_index);
     if (rval != USIPY_SIP_TM_OK) {
         goto nospc;
     }

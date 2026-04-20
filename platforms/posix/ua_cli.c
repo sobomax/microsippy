@@ -32,15 +32,8 @@ struct ua_cli_ctx {
     int stop;
     int error;
     int report_activity;
-    int auth_retry_started;
-    int registering;
-    int registered_once;
     size_t max_transactions;
-    uint16_t register_status;
-    uint32_t requested_expires;
-    uint32_t next_register_cseq;
-    unsigned int expires;
-    uint64_t next_refresh_at_ms;
+    struct usipy_sip_register_state reg;
     uint64_t hangup_at_ms;
     size_t invite_index;
     struct usipy_sip_tm *tm;
@@ -58,7 +51,6 @@ struct ua_cli_ctx {
     int stdin_closed;
     int stdin_line_overflow;
     uint32_t next_invite_cseq;
-    uint32_t next_call_id;
     uint16_t server_port;
     size_t pending_dial_len;
     size_t stdin_line_len;
@@ -257,7 +249,6 @@ start_pending_dial(struct ua_cli_ctx *ctx)
       .l = ctx->pending_dial_len,
     };
     char req_uri_buf[1024];
-    char call_id_buf[128];
     size_t tx_index;
     int blen, rval;
 
@@ -278,16 +269,10 @@ start_pending_dial(struct ua_cli_ctx *ctx)
         ctx->pending_dial[0] = '\0';
         return (USIPY_SIP_TM_OK);
     }
-    blen = snprintf(call_id_buf, sizeof(call_id_buf), "call-%u@%s",
-      ctx->next_call_id++, ctx->server_uri_host);
-    if (blen < 0 || (size_t)blen >= sizeof(call_id_buf)) {
-        return (USIPY_SIP_TM_ERR_INVAL);
-    }
     ev.type = USIPY_SIP_UA_EVENT_DIAL;
     ev.data.dial = (struct usipy_sip_ua_dial_params){
       .request = {
         .request_id = {
-        .call_id = (struct usipy_str){.s.ro = call_id_buf, .l = (size_t)blen},
         .cseq = ctx->next_invite_cseq++,
         .method_type = USIPY_SIP_METHOD_INVITE,
         },
@@ -554,36 +539,20 @@ outgoing_timeout(void *arg, size_t tx_index, const struct usipy_sip_tm_tx *txp,
 static int
 start_register(struct ua_cli_ctx *ctx, size_t *indexp)
 {
-    struct usipy_sip_tm_new_uac_tr_params tp = {0};
-    size_t tx_index;
-    int rval;
-
-    if (ctx == NULL || ctx->tm == NULL || ctx->registering || indexp == NULL) {
-        return (USIPY_SIP_TM_ERR_UNSUPPORTED);
-    }
-    tp.request_id.call_id = ctx->call_id;
-    tp.request_id.cseq = ctx->next_register_cseq;
-    tp.request_id.method_type = USIPY_SIP_METHOD_REGISTER;
-    tp.request_target.request_uri = ctx->request_uri;
-    tp.request_target.target = ctx->peer;
-    tp.parties_by_username.from = ctx->username;
-    tp.parties_by_username.to = ctx->username;
-    tp.parties_by_username.contact = ctx->username;
-    tp.contact_expires = ctx->requested_expires;
-    tp.callbacks.arg = ctx;
-    tp.callbacks.response = register_response;
-    tp.callbacks.timeout = register_timeout;
-    ctx->auth_retry_started = 0;
-    ctx->registering = 1;
-    ctx->register_status = 0;
-    report_activityf(ctx, "register cseq=%u", tp.request_id.cseq);
-    rval = usipy_sip_tm_new_uac_tr(ctx->tm, &tp, &tx_index);
-    if (rval != USIPY_SIP_TM_OK) {
-        ctx->registering = 0;
-        return (rval);
-    }
-    *indexp = tx_index;
-    return (USIPY_SIP_TM_OK);
+    report_activityf(ctx, "register cseq=%u", ctx->reg.next_cseq);
+    return (usipy_sip_register_start(&ctx->reg,
+      &(const struct usipy_sip_register_start_params){
+        .tm = ctx->tm,
+        .call_id = ctx->call_id,
+        .request_uri = ctx->request_uri,
+        .target = ctx->peer,
+        .username = ctx->username,
+        .callbacks = {
+          .arg = ctx,
+          .response = register_response,
+          .timeout = register_timeout,
+        },
+      }, indexp));
 }
 
 static int
@@ -601,48 +570,43 @@ register_response(void *arg, size_t tx_index, const struct usipy_sip_tm_tx *txp,
   const struct usipy_msg *msg)
 {
     struct ua_cli_ctx *ctx = arg;
+    enum usipy_sip_register_response_result reg_rval;
     const unsigned int scode = msg->sline.parsed.sl.status.code;
-    uint64_t now_ms = usipy_tm_uac_mono_ms();
+    const int was_registered = ctx->reg.registered_once;
 
-    (void)tx_index;
-    ctx->register_status = (uint16_t)scode;
-    if ((scode == 401 || scode == 407) && !ctx->auth_retry_started) {
+    if (usipy_sip_register_handle_response(&ctx->reg, ctx->tm, tx_index, txp, msg,
+          &ctx->username, &ctx->password, &ctx->qop, usipy_tm_uac_mono_ms(),
+          &reg_rval) != USIPY_SIP_TM_OK) {
+        ctx->error = 1;
+        ctx->stop = 1;
+        ctx->stop_reason = "register-auth-build";
+        return;
+    }
+    switch (reg_rval) {
+    case USIPY_SIP_REGISTER_RESPONSE_AUTH_RETRY:
         report_activityf(ctx, "register challenge %u", scode);
-        if (usipy_tm_uac_register_reply_auth(ctx->tm, tx_index, msg, &ctx->username,
-          &ctx->password, &ctx->qop, NULL, 0) != USIPY_SIP_TM_OK) {
-            ctx->error = 1;
-            ctx->stop = 1;
-            ctx->stop_reason = "register-auth-build";
-        } else {
-            ctx->auth_retry_started = 1;
-            report_activityf(ctx, "register auth-retry");
-        }
+        report_activityf(ctx, "register auth-retry");
         return;
-    }
-    ctx->registering = 0;
-    ctx->auth_retry_started = 0;
-    ctx->next_register_cseq = txp->common.id.cseq + 1;
-    if (scode >= 200 && scode < 300) {
-        if (usipy_tm_uac_extract_register_expires(msg, &ctx->username,
-          &ctx->expires) != 0 ||
-          usipy_sip_ua_schedule_refresh(ctx->expires, now_ms,
-            &ctx->next_refresh_at_ms) != 0) {
-            ctx->error = 1;
-            ctx->stop = 1;
-            return;
-        }
-        if (!ctx->registered_once) {
-            printf("%u\n", ctx->expires);
+
+    case USIPY_SIP_REGISTER_RESPONSE_ESTABLISHED:
+        if (!was_registered) {
+            printf("%u\n", ctx->reg.expires);
             fflush(stdout);
-            ctx->registered_once = 1;
         }
-        report_activityf(ctx, "registered %u", ctx->expires);
+        report_activityf(ctx, "registered %u", ctx->reg.expires);
+        return;
+
+    case USIPY_SIP_REGISTER_RESPONSE_FINAL:
+        report_activityf(ctx, "register failed %u", scode);
+        ctx->error = 1;
+        ctx->stop = 1;
+        ctx->stop_reason = "register-final";
+        return;
+
+    case USIPY_SIP_REGISTER_RESPONSE_PENDING:
+    case USIPY_SIP_REGISTER_RESPONSE_ERROR:
         return;
     }
-    report_activityf(ctx, "register failed %u", scode);
-    ctx->error = 1;
-    ctx->stop = 1;
-    ctx->stop_reason = "register-final";
 }
 
 static void
@@ -654,7 +618,7 @@ register_timeout(void *arg, size_t tx_index, const struct usipy_sip_tm_tx *txp,
     (void)tx_index;
     (void)txp;
     (void)timeout_id;
-    ctx->registering = 0;
+    usipy_sip_register_handle_timeout(&ctx->reg);
     report_activityf(ctx, "register timeout");
     ctx->error = 1;
     ctx->stop = 1;
@@ -801,10 +765,11 @@ main(int argc, char **argv)
       .sock = -1,
       .max_transactions = 32,
       .qop = (struct usipy_str)USIPY_2STR("auth"),
-      .next_register_cseq = 1,
+      .reg = {
+        .next_cseq = 1,
+        .next_refresh_at_ms = USIPY_SIP_TM_TIME_NONE,
+      },
       .next_invite_cseq = 1,
-      .next_call_id = 1,
-      .next_refresh_at_ms = USIPY_SIP_TM_TIME_NONE,
       .hangup_at_ms = USIPY_SIP_TM_TIME_NONE,
       .invite_index = USIPY_SIP_TM_TX_INDEX_NONE,
     };
@@ -865,7 +830,7 @@ main(int argc, char **argv)
         if (strcmp(argv[argi], "--expires") == 0) {
             if (++argi >= argc ||
               usipy_tm_uac_cli_parse_u32(argv[argi], 1, UINT32_MAX,
-                &ctx.requested_expires) != 0) {
+                &ctx.reg.requested_expires) != 0) {
                 usage(argv[0]);
                 return (1);
             }
@@ -897,8 +862,8 @@ main(int argc, char **argv)
         usage(argv[0]);
         return (1);
     }
-    if (ctx.requested_expires == 0) {
-        ctx.requested_expires = 300;
+    if (ctx.reg.requested_expires == 0) {
+        ctx.reg.requested_expires = 300;
     }
     server_ip = argv[argi++];
     username = argv[argi++];
@@ -1016,14 +981,14 @@ main(int argc, char **argv)
             exit_reason = "dial-start";
             goto done;
         }
-        if (!ctx.registered_once && register_deadline_ms != USIPY_SIP_TM_TIME_NONE &&
+        if (!ctx.reg.registered_once && register_deadline_ms != USIPY_SIP_TM_TIME_NONE &&
           now_ms >= register_deadline_ms) {
             fprintf(stderr, "register timeout\n");
             exit_reason = "register-deadline";
             goto done;
         }
-        if (!ctx.registering && ctx.next_refresh_at_ms != USIPY_SIP_TM_TIME_NONE &&
-          ctx.next_refresh_at_ms <= now_ms &&
+        if (!ctx.reg.registering && ctx.reg.next_refresh_at_ms != USIPY_SIP_TM_TIME_NONE &&
+          ctx.reg.next_refresh_at_ms <= now_ms &&
           start_register(&ctx, &reg_index) != USIPY_SIP_TM_OK) {
             fprintf(stderr, "unable to refresh registration\n");
             exit_reason = "refresh-start";
@@ -1058,13 +1023,13 @@ main(int argc, char **argv)
         if (rout.next_run_at_ms != USIPY_SIP_TM_TIME_NONE) {
             wake_at_ms = rout.next_run_at_ms;
         }
-        if (!ctx.registered_once && register_deadline_ms != USIPY_SIP_TM_TIME_NONE &&
+        if (!ctx.reg.registered_once && register_deadline_ms != USIPY_SIP_TM_TIME_NONE &&
           (wake_at_ms == USIPY_SIP_TM_TIME_NONE || register_deadline_ms < wake_at_ms)) {
             wake_at_ms = register_deadline_ms;
         }
-        if (!ctx.registering && ctx.next_refresh_at_ms != USIPY_SIP_TM_TIME_NONE &&
-          (wake_at_ms == USIPY_SIP_TM_TIME_NONE || ctx.next_refresh_at_ms < wake_at_ms)) {
-            wake_at_ms = ctx.next_refresh_at_ms;
+        if (!ctx.reg.registering && ctx.reg.next_refresh_at_ms != USIPY_SIP_TM_TIME_NONE &&
+          (wake_at_ms == USIPY_SIP_TM_TIME_NONE || ctx.reg.next_refresh_at_ms < wake_at_ms)) {
+            wake_at_ms = ctx.reg.next_refresh_at_ms;
         }
         if (ctx.uap != NULL && ctx.hangup_at_ms != USIPY_SIP_TM_TIME_NONE &&
           (wake_at_ms == USIPY_SIP_TM_TIME_NONE || ctx.hangup_at_ms < wake_at_ms)) {
@@ -1152,7 +1117,7 @@ done:
         report_activityf(&ctx,
           "exit reason=%s stop=%d error=%d registered=%d registering=%d status=%u active=%zu",
           (ctx.stop_reason != NULL ? ctx.stop_reason : exit_reason), ctx.stop,
-          ctx.error, ctx.registered_once, ctx.registering, ctx.register_status,
+          ctx.error, ctx.reg.registered_once, ctx.reg.registering, ctx.reg.status,
           (ctx.tm != NULL ? usipy_sip_tm_nactive(ctx.tm) : 0));
     }
     clear_call(&ctx);
