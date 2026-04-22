@@ -17,6 +17,26 @@
 static int usipy_sip_tm_dialog_uri_has_param(const struct usipy_sip_uri *, const char *);
 static void usipy_sip_tm_dialog_set_target_from_uri(struct usipy_sip_tm_addr *,
   const struct usipy_sip_tm_addr *, const struct usipy_sip_uri *);
+static int usipy_sip_tm_dialog_copy_addr(struct usipy_msg_heap *,
+  struct usipy_sip_tm_addr *, const struct usipy_sip_tm_addr *);
+
+static int
+usipy_sip_tm_dialog_copy_addr(struct usipy_msg_heap *mhp,
+  struct usipy_sip_tm_addr *dstp, const struct usipy_sip_tm_addr *srcp)
+{
+    USIPY_DASSERT(mhp != NULL);
+    USIPY_DASSERT(dstp != NULL);
+    USIPY_DASSERT(srcp != NULL);
+
+    *dstp = *srcp;
+    if (srcp->host.l == 0) {
+        return (USIPY_SIP_TM_OK);
+    }
+    if (usipy_msg_heap_append(mhp, &dstp->host, &srcp->host) != 0) {
+        return (USIPY_SIP_TM_ERR_NOSPC);
+    }
+    return (USIPY_SIP_TM_OK);
+}
 
 static int
 usipy_sip_tm_dialog_resolve_target(struct usipy_msg_heap *mhp,
@@ -225,6 +245,10 @@ usipy_sip_tm_init_uac_dialog_request_params(const struct usipy_sip_tm *tm,
     outp->route_set.routes = owned_routes;
     outp->route_set.nroutes = neffective_routes;
     outp->request_target.target = next_target;
+    if (usipy_sip_tm_dialog_copy_addr(mhp, &outp->local,
+      &anchorp->pub.common.local) != USIPY_SIP_TM_OK) {
+        return (USIPY_SIP_TM_ERR_NOSPC);
+    }
     outp->request_id.cseq = anchorp->cache.cseq.val;
     outp->request_id.method_type = method_type;
     outp->timers = anchorp->pub.common.timers;
@@ -364,6 +388,10 @@ usipy_sip_tm_init_uas_dialog_request_params(const struct usipy_sip_tm *tm,
     outp->request_target.target = next_target;
     outp->route_set.routes = owned_routes;
     outp->route_set.nroutes = neffective_routes;
+    if (usipy_sip_tm_dialog_copy_addr(mhp, &outp->local,
+      &anchorp->pub.common.local) != USIPY_SIP_TM_OK) {
+        return (USIPY_SIP_TM_ERR_NOSPC);
+    }
     outp->request_id.cseq = anchorp->cache.cseq.val;
     outp->request_id.method_type = method_type;
     outp->timers = anchorp->pub.common.timers;

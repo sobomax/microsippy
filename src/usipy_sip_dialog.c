@@ -24,6 +24,7 @@
 struct usipy_sip_dialog_state {
     struct usipy_str call_id;
     struct usipy_sip_tm_request_target request_target;
+    struct usipy_sip_tm_addr local;
     struct usipy_sip_tm_request_parties parties_by_uri;
     struct usipy_sip_tm_route_set route_set;
     struct usipy_sip_tm_dialog_tags dialog_tags;
@@ -50,6 +51,7 @@ usipy_sip_dialog_store_state(struct usipy_sip_dialog_state *dstp,
     memset(dstp, '\0', sizeof(*dstp));
     dstp->call_id = srcp->request_id.call_id;
     dstp->request_target = srcp->request_target;
+    dstp->local = srcp->local;
     dstp->parties_by_uri = srcp->parties_by_uri;
     dstp->route_set = srcp->route_set;
     dstp->dialog_tags = srcp->dialog_tags;
@@ -245,6 +247,7 @@ usipy_sip_dialog_end(struct usipy_sip_dialog *dp,
     tp.request_id.cseq = dp->state.cseq + 1;
     tp.request_id.method_type = USIPY_SIP_METHOD_BYE;
     tp.request_target = dp->state.request_target;
+    tp.local = dp->state.local;
     tp.parties_by_uri = dp->state.parties_by_uri;
     tp.route_set = dp->state.route_set;
     tp.dialog_tags = dp->state.dialog_tags;

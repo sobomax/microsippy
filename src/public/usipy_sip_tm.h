@@ -288,6 +288,7 @@ struct usipy_sip_tm_dialog_tags {
 struct usipy_sip_tm_new_uac_tr_params {
     struct usipy_sip_tm_request_id request_id;
     struct usipy_sip_tm_request_target request_target;
+    struct usipy_sip_tm_addr local;
     struct usipy_sip_tm_request_parties parties_by_username;
     uint32_t contact_expires;
     uint32_t invite_expires;
@@ -316,6 +317,7 @@ struct usipy_sip_tm_uas_response_params {
 struct usipy_sip_tm_new_in_dialog_transaction_params {
     struct usipy_sip_tm_request_id request_id;
     struct usipy_sip_tm_request_target request_target;
+    struct usipy_sip_tm_addr local;
     struct usipy_sip_tm_request_parties parties_by_uri;
     struct usipy_sip_tm_route_set route_set;
     struct usipy_sip_tm_dialog_tags dialog_tags;

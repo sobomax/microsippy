@@ -275,13 +275,13 @@ test_register_expires_helpers(void)
       contact_hdrs) == 0);
     assert(contact_hdrs->nhdrs == 2);
 
-    assert(usipy_tm_uac_extract_register_expires(msg, &alice, &expires) == 0);
+    assert(usipy_tm_uac_extract_register_expires(msg, &alice, &expires, NULL) == 0);
     assert(expires == 120);
 
-    assert(usipy_tm_uac_extract_register_expires(msg, &bob, &expires) == 0);
+    assert(usipy_tm_uac_extract_register_expires(msg, &bob, &expires, NULL) == 0);
     assert(expires == 300);
 
-    assert(usipy_tm_uac_extract_register_expires(msg, &carol, &expires) == 0);
+    assert(usipy_tm_uac_extract_register_expires(msg, &carol, &expires, NULL) == 0);
     assert(expires == 300);
 
     usipy_sip_msg_dtor(msg);
@@ -480,6 +480,14 @@ build_basic_response(const struct usipy_msg *reqp, const struct usipy_sip_status
       USIPY_SFMT(to), USIPY_SFMT(to_tagp), USIPY_SFMT(callid), USIPY_SFMT(cseq));
     assert(blen > 0 && (size_t)blen < sizeof(rawbuf));
     return (usipy_sip_msg_ctor_fromwire(rawbuf, (size_t)blen, &perr));
+}
+
+static struct usipy_msg *
+build_trying_response(const struct usipy_msg *reqp)
+{
+    const struct usipy_str no_tag = USIPY_STR_NULL;
+
+    return (build_basic_response(reqp, &usipy_sip_res_trying, &no_tag));
 }
 
 static int
@@ -1894,7 +1902,6 @@ test_invite_fr_timeout_single_100(void)
     static const char scenario[] = "INVITE -> 100 -> FR timeout";
     struct invite_cbarg carg = {0};
     struct invite_send_arg sarg = {0};
-    const struct usipy_str to_tag = USIPY_2STR(";tag=uas100");
     struct usipy_sip_tm_run_in rin = {0};
     struct usipy_sip_tm_run_out rout;
     struct usipy_sip_tm_handle_incoming_in hin = {0};
@@ -1918,7 +1925,7 @@ test_invite_fr_timeout_single_100(void)
     txp = usipy_sip_tm_get_transaction(tm, tx_index);
     assert(txp != NULL);
     reqp = dup_tx_request(txp);
-    resp = build_basic_response(reqp, &usipy_sip_res_trying, &to_tag);
+    resp = build_trying_response(reqp);
     usipy_sip_msg_dtor(reqp);
 
     hin.tm = tm;
@@ -1947,7 +1954,6 @@ test_invite_fr_timeout_repeated_100(void)
     static const char scenario[] = "INVITE -> 100 -> 100 -> FR timeout";
     struct invite_cbarg carg = {0};
     struct invite_send_arg sarg = {0};
-    const struct usipy_str to_tag = USIPY_2STR(";tag=uas100");
     struct usipy_sip_tm_run_in rin = {0};
     struct usipy_sip_tm_run_out rout;
     struct usipy_sip_tm_handle_incoming_in hin = {0};
@@ -1971,7 +1977,7 @@ test_invite_fr_timeout_repeated_100(void)
     txp = usipy_sip_tm_get_transaction(tm, tx_index);
     assert(txp != NULL);
     reqp = dup_tx_request(txp);
-    resp = build_basic_response(reqp, &usipy_sip_res_trying, &to_tag);
+    resp = build_trying_response(reqp);
     usipy_sip_msg_dtor(reqp);
 
     hin.tm = tm;
@@ -2002,7 +2008,6 @@ test_invite_ack_support(void)
     static const char scenario[] = "INVITE -> 100 -> 200 -> ACK -> 200 -> ACK";
     struct invite_cbarg carg = {0};
     struct invite_send_arg sarg = {0};
-    const struct usipy_str trying_tag = USIPY_2STR(";tag=uas100");
     const struct usipy_str ok_tag = USIPY_2STR(";tag=uas200");
     const struct usipy_str remote_contact = USIPY_2STR("sip:bob@127.0.0.1:5070");
     const struct usipy_str record_routes[] = {
@@ -2040,7 +2045,7 @@ test_invite_ack_support(void)
       txp->common.outbound.raw.l, &perr);
     assert(invite_reqp != NULL);
     assert_expires_header(invite_reqp, "1");
-    resp100 = build_basic_response(invite_reqp, &usipy_sip_res_trying, &trying_tag);
+    resp100 = build_trying_response(invite_reqp);
     resp200 = build_response_with_contact_routes(invite_reqp, &usipy_sip_res_ok, &ok_tag,
       &remote_contact, record_routes, sizeof(record_routes) / sizeof(record_routes[0]));
 
@@ -2100,7 +2105,6 @@ test_invite_error_ack_support(void)
     static const char scenario[] = "INVITE -> 100 -> 486 -> ACK -> 486 -> ACK";
     struct invite_cbarg carg = {0};
     struct invite_send_arg sarg = {0};
-    const struct usipy_str trying_tag = USIPY_2STR(";tag=uas100");
     const struct usipy_str busy_tag = USIPY_2STR(";tag=uas486");
     struct usipy_sip_tm_run_in rin = {0};
     struct usipy_sip_tm_run_out rout;
@@ -2126,7 +2130,7 @@ test_invite_error_ack_support(void)
     txp = usipy_sip_tm_get_transaction(tm, tx_index);
     assert(txp != NULL);
     invite_reqp = dup_tx_request(txp);
-    resp100 = build_basic_response(invite_reqp, &usipy_sip_res_trying, &trying_tag);
+    resp100 = build_trying_response(invite_reqp);
     resp486 = build_basic_response(invite_reqp, &usipy_sip_res_busy_here, &busy_tag);
 
     hin.tm = tm;
@@ -2289,7 +2293,7 @@ test_invite_cancel_pending(void)
     txp = usipy_sip_tm_get_transaction(tm, tx_index);
     assert(txp != NULL);
     invite_reqp = dup_tx_request(txp);
-    resp100 = build_basic_response(invite_reqp, &usipy_sip_res_trying, &trying_tag);
+    resp100 = build_trying_response(invite_reqp);
 
     assert(usipy_sip_tm_cancel(tm, tx_index) == USIPY_SIP_TM_OK);
 
@@ -2518,7 +2522,6 @@ test_invite_fr_timeout_auto_cancel(void)
     static const char scenario[] = "INVITE -> 100 -> FR timeout -> CANCEL";
     struct invite_cbarg carg = {0};
     struct invite_send_arg sarg = {0};
-    const struct usipy_str trying_tag = USIPY_2STR(";tag=uas100");
     struct usipy_sip_tm_run_in rin = {0};
     struct usipy_sip_tm_run_out rout;
     struct usipy_sip_tm_handle_incoming_in hin = {0};
@@ -2543,7 +2546,7 @@ test_invite_fr_timeout_auto_cancel(void)
     txp = usipy_sip_tm_get_transaction(tm, tx_index);
     assert(txp != NULL);
     invite_reqp = dup_tx_request(txp);
-    resp100 = build_basic_response(invite_reqp, &usipy_sip_res_trying, &trying_tag);
+    resp100 = build_trying_response(invite_reqp);
 
     hin.tm = tm;
     hin.peer = txp->common.peer;

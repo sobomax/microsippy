@@ -35,6 +35,54 @@ static int usipy_sip_tm_build_request(struct usipy_sip_tm_txi *, size_t,
   const struct usipy_sip_tm *, const struct usipy_sip_tm_build_request_params *);
 
 static int
+usipy_sip_tm_copy_target_addr(struct usipy_sip_tm_txi *tp,
+  struct usipy_sip_tm_addr *dstp, const struct usipy_sip_tm_addr *srcp)
+{
+    USIPY_DASSERT(tp != NULL);
+    USIPY_DASSERT(dstp != NULL);
+    USIPY_DASSERT(srcp != NULL);
+
+    *dstp = *srcp;
+    if (srcp->host.l == 0) {
+        return (USIPY_SIP_TM_OK);
+    }
+    if (usipy_msg_heap_append(&tp->scratch, &dstp->host, &srcp->host) != 0) {
+        return (USIPY_SIP_TM_ERR_NOSPC);
+    }
+    return (USIPY_SIP_TM_OK);
+}
+
+static int
+usipy_sip_tm_ensure_request_uri(struct usipy_sip_tm_txi *tp,
+  struct usipy_sip_tm_request_target *targetp)
+{
+    const uint16_t default_port =
+      (USIPY_PLATFORM.default_udp_port_i != 0) ?
+      USIPY_PLATFORM.default_udp_port_i : 5060;
+
+    USIPY_DASSERT(tp != NULL);
+    USIPY_DASSERT(targetp != NULL);
+
+    if (targetp->request_uri.l != 0) {
+        return (USIPY_SIP_TM_OK);
+    }
+    if (targetp->target.host.l == 0) {
+        return (USIPY_SIP_TM_ERR_INVAL);
+    }
+    if (targetp->target.port == 0 || targetp->target.port == default_port) {
+        if (usipy_msg_heap_sprintf(&tp->scratch, &targetp->request_uri, "sip:%.*s",
+              USIPY_SFMT(&targetp->target.host)) != 0) {
+            return (USIPY_SIP_TM_ERR_NOSPC);
+        }
+    } else if (usipy_msg_heap_sprintf(&tp->scratch, &targetp->request_uri,
+          "sip:%.*s:%u", USIPY_SFMT(&targetp->target.host),
+          (unsigned int)targetp->target.port) != 0) {
+        return (USIPY_SIP_TM_ERR_NOSPC);
+    }
+    return (USIPY_SIP_TM_OK);
+}
+
+static int
 usipy_sip_tm_transition_allowed(const struct usipy_sip_tm_txi *tp,
   enum usipy_sip_tm_state next_state)
 {
@@ -63,48 +111,49 @@ usipy_sip_tm_transition(struct usipy_sip_tm_txi *tp,
 }
 
 static int
-usipy_sip_tm_format_local_uri(struct usipy_sip_tm_txi *tp, const struct usipy_sip_tm *tm,
-  const struct usipy_str *userp, int include_port, struct usipy_str *urip)
+usipy_sip_tm_format_local_uri(struct usipy_sip_tm_txi *tp,
+  const struct usipy_sip_tm_addr *localp, const struct usipy_str *userp,
+  int include_port, struct usipy_str *urip)
 {
     if (userp->l == 0) {
-        switch (tm->laddr.af) {
+        switch (localp->af) {
         case AF_INET:
             if (include_port) {
                 return (usipy_msg_heap_sprintf(&tp->scratch, urip, "sip:%.*s:%u",
-                  USIPY_SFMT(&tm->laddr.host), tm->laddr.port));
+                  USIPY_SFMT(&localp->host), localp->port));
             }
             return (usipy_msg_heap_sprintf(&tp->scratch, urip, "sip:%.*s",
-              USIPY_SFMT(&tm->laddr.host)));
+              USIPY_SFMT(&localp->host)));
 #ifdef IPPROTO_IPV6
         case AF_INET6:
             if (include_port) {
                 return (usipy_msg_heap_sprintf(&tp->scratch, urip, "sip:[%.*s]:%u",
-                  USIPY_SFMT(&tm->laddr.host), tm->laddr.port));
+                  USIPY_SFMT(&localp->host), localp->port));
             }
             return (usipy_msg_heap_sprintf(&tp->scratch, urip, "sip:[%.*s]",
-              USIPY_SFMT(&tm->laddr.host)));
+              USIPY_SFMT(&localp->host)));
 #endif
         default:
             errno = EAFNOSUPPORT;
             return (-1);
         }
     }
-    switch (tm->laddr.af) {
+    switch (localp->af) {
     case AF_INET:
         if (include_port) {
             return (usipy_msg_heap_sprintf(&tp->scratch, urip, "sip:%.*s@%.*s:%u",
-              USIPY_SFMT(userp), USIPY_SFMT(&tm->laddr.host), tm->laddr.port));
+              USIPY_SFMT(userp), USIPY_SFMT(&localp->host), localp->port));
         }
         return (usipy_msg_heap_sprintf(&tp->scratch, urip, "sip:%.*s@%.*s",
-          USIPY_SFMT(userp), USIPY_SFMT(&tm->laddr.host)));
+          USIPY_SFMT(userp), USIPY_SFMT(&localp->host)));
 #ifdef IPPROTO_IPV6
     case AF_INET6:
         if (include_port) {
             return (usipy_msg_heap_sprintf(&tp->scratch, urip, "sip:%.*s@[%.*s]:%u",
-              USIPY_SFMT(userp), USIPY_SFMT(&tm->laddr.host), tm->laddr.port));
+              USIPY_SFMT(userp), USIPY_SFMT(&localp->host), localp->port));
         }
         return (usipy_msg_heap_sprintf(&tp->scratch, urip, "sip:%.*s@[%.*s]",
-          USIPY_SFMT(userp), USIPY_SFMT(&tm->laddr.host)));
+          USIPY_SFMT(userp), USIPY_SFMT(&localp->host)));
 #endif
     default:
         errno = EAFNOSUPPORT;
@@ -212,17 +261,18 @@ usipy_sip_tm_init_uac_request(struct usipy_sip_tm_txi *tp,
 
 static int
 usipy_sip_tm_init_uac_parties_by_username(struct usipy_sip_tm_txi *tp,
-  const struct usipy_sip_tm *tm, const struct usipy_sip_tm_request_parties *partiesp)
+  const struct usipy_sip_tm_addr *localp,
+  const struct usipy_sip_tm_request_parties *partiesp)
 {
     USIPY_DASSERT(tp != NULL);
-    USIPY_DASSERT(tm != NULL);
+    USIPY_DASSERT(localp != NULL);
     USIPY_DASSERT(partiesp != NULL);
 
-    if (usipy_sip_tm_format_local_uri(tp, tm, &partiesp->from, 0,
+    if (usipy_sip_tm_format_local_uri(tp, localp, &partiesp->from, 0,
       &tp->cache.uac.from_uri) != 0 ||
-      usipy_sip_tm_format_local_uri(tp, tm, &partiesp->to, 0,
+      usipy_sip_tm_format_local_uri(tp, localp, &partiesp->to, 0,
         &tp->cache.uac.to_uri) != 0 ||
-      usipy_sip_tm_format_local_uri(tp, tm, &partiesp->contact, 1,
+      usipy_sip_tm_format_local_uri(tp, localp, &partiesp->contact, 1,
         &tp->cache.uac.contact_uri) != 0) {
         return (USIPY_SIP_TM_ERR_NOSPC);
     }
@@ -261,14 +311,18 @@ usipy_sip_tm_set_route_set(struct usipy_sip_tm_txi *tp, struct usipy_str *routes
     tp->cache.uac.nroutes = nroutes;
 }
 
-static void
+static int
 usipy_sip_tm_activate_uac_slot(struct usipy_sip_tm *tm, struct usipy_sip_tm_txi *tp,
   enum usipy_sip_tm_state state,
   const struct usipy_sip_tm_request_id *request_idp,
+  const struct usipy_sip_tm_addr *localp,
   const struct usipy_sip_tm_request_target *request_targetp,
   const struct usipy_sip_tm_uac_callbacks *callbacksp,
   const struct usipy_sip_tm_timer_policy *timersp)
 {
+    struct usipy_sip_tm_addr local;
+    struct usipy_sip_tm_addr target;
+
     USIPY_DASSERT(tm != NULL);
     USIPY_DASSERT(tp != NULL);
     USIPY_DASSERT(request_idp != NULL);
@@ -276,6 +330,18 @@ usipy_sip_tm_activate_uac_slot(struct usipy_sip_tm *tm, struct usipy_sip_tm_txi 
     USIPY_DASSERT(callbacksp != NULL);
     USIPY_DASSERT(timersp != NULL);
 
+    if (usipy_sip_tm_copy_target_addr(tp, &target, &request_targetp->target) !=
+      USIPY_SIP_TM_OK) {
+        return (USIPY_SIP_TM_ERR_NOSPC);
+    }
+    if (localp != NULL && localp->host.l != 0) {
+        if (usipy_sip_tm_copy_target_addr(tp, &local, localp) !=
+          USIPY_SIP_TM_OK) {
+            return (USIPY_SIP_TM_ERR_NOSPC);
+        }
+    } else {
+        local = tm->laddr;
+    }
     tp->callbacks = *callbacksp;
     tp->outbound.checkpoint = usipy_msg_heap_checkpoint(&tp->scratch);
     tp->active = 1;
@@ -284,9 +350,9 @@ usipy_sip_tm_activate_uac_slot(struct usipy_sip_tm *tm, struct usipy_sip_tm_txi 
     tp->pub.state = state;
     tp->pub.common.flags = (tm->transport == USIPY_SIP_TM_TRANSPORT_UDP) ? 0 :
       USIPY_SIP_TM_F_RELIABLE_TRANSPORT;
-    tp->pub.common.peer = request_targetp->target;
-    tp->pub.common.local = tm->laddr;
-    tp->outbound.pub.target = request_targetp->target;
+    tp->pub.common.peer = target;
+    tp->pub.common.local = local;
+    tp->outbound.pub.target = target;
     tp->outbound.pub.raw = USIPY_STR_NULL;
     tp->outbound.pub.next_send_at_ms = 0;
     tp->pub.common.outbound = tp->outbound.pub;
@@ -299,6 +365,7 @@ usipy_sip_tm_activate_uac_slot(struct usipy_sip_tm *tm, struct usipy_sip_tm_txi 
     tp->pub.common.id.method_type = tp->cache.method_type;
     tp->pub.role_data.uac.last_status_code = 0;
     tp->pub.role_data.uac.response_class = 0;
+    return (USIPY_SIP_TM_OK);
 }
 
 static int
@@ -563,6 +630,26 @@ usipy_sip_tm_build_uri_cb(void *arg, char *buf, size_t len)
     return (usipy_sip_uri_build(uarg->urip, buf, len));
 }
 
+static int
+usipy_sip_tm_copy_parsed_uri(struct usipy_sip_tm_txi *tp,
+  const struct usipy_sip_uri *srcp, struct usipy_sip_uri **dstpp)
+{
+    struct usipy_sip_tm_build_uri_arg uarg;
+    struct usipy_str uris;
+
+    USIPY_DASSERT(tp != NULL);
+    USIPY_DASSERT(srcp != NULL);
+    USIPY_DASSERT(dstpp != NULL);
+
+    uarg.urip = srcp;
+    if (usipy_msg_heap_build(&tp->scratch, &uris, &uarg,
+      usipy_sip_tm_build_uri_cb) != 0) {
+        return (USIPY_SIP_TM_ERR_NOSPC);
+    }
+    *dstpp = usipy_sip_uri_parse(&tp->scratch, &uris);
+    return (*dstpp != NULL ? USIPY_SIP_TM_OK : USIPY_SIP_TM_ERR_NOSPC);
+}
+
 static void
 usipy_sip_tm_uac_arm_send_now(struct usipy_sip_tm_txi *tp, uint64_t now_ms)
 {
@@ -591,18 +678,23 @@ usipy_sip_tm_clone_uac_invite(struct usipy_sip_tm *tm, size_t parent_index,
     if (childp == NULL) {
         return (USIPY_SIP_TM_ERR_NOSPC);
     }
-    if (method_type == USIPY_SIP_METHOD_CANCEL && srcp->cache.call_id.l != 0 &&
+    if (srcp->cache.call_id.l != 0 &&
       usipy_msg_heap_append(&childp->scratch, &childp->cache.call_id,
         &srcp->cache.call_id) != 0) {
         usipy_sip_tm_tx_fini(childp);
         return (USIPY_SIP_TM_ERR_NOSPC);
-    } else if (method_type != USIPY_SIP_METHOD_CANCEL) {
-        childp->cache.call_id = srcp->cache.call_id;
     }
-    childp->cache.uac.request_uri = srcp->cache.uac.request_uri;
-    childp->cache.uac.from_uri = srcp->cache.uac.from_uri;
-    childp->cache.uac.to_uri = srcp->cache.uac.to_uri;
-    childp->cache.uac.contact_uri = srcp->cache.uac.contact_uri;
+    if (usipy_sip_tm_copy_parsed_uri(childp, srcp->cache.uac.request_uri,
+      &childp->cache.uac.request_uri) != USIPY_SIP_TM_OK ||
+      usipy_sip_tm_copy_uri(childp, &srcp->cache.uac.from_uri,
+        &childp->cache.uac.from_uri) != 0 ||
+      usipy_sip_tm_copy_uri(childp, &srcp->cache.uac.to_uri,
+        &childp->cache.uac.to_uri) != 0 ||
+      usipy_sip_tm_copy_uri(childp, &srcp->cache.uac.contact_uri,
+        &childp->cache.uac.contact_uri) != 0) {
+        usipy_sip_tm_tx_fini(childp);
+        return (USIPY_SIP_TM_ERR_NOSPC);
+    }
     childp->cache.method_type = method_type;
     if (srcp->cache.from_tag.l != 0 &&
       usipy_msg_heap_append(&childp->scratch, &childp->cache.from_tag,
@@ -620,7 +712,6 @@ usipy_sip_tm_clone_uac_invite(struct usipy_sip_tm *tm, size_t parent_index,
     childp->cache.cseq.val = srcp->cache.cseq.val;
     childp->cache.cseq.method = &usipy_method_db[method_type];
     childp->cache.uac.include_contact = 0;
-    childp->outbound.checkpoint = usipy_msg_heap_checkpoint(&childp->scratch);
     childp->active = 1;
     tm->nactive += 1;
     childp->parent_index = method_type == USIPY_SIP_METHOD_ACK ? parent_index :
@@ -629,11 +720,16 @@ usipy_sip_tm_clone_uac_invite(struct usipy_sip_tm *tm, size_t parent_index,
     childp->pub.state = method_type == USIPY_SIP_METHOD_ACK ?
       USIPY_SIP_TM_STATE_CALLING : USIPY_SIP_TM_STATE_TRYING;
     childp->pub.common.flags = srcp->pub.common.flags;
-    childp->pub.common.peer = srcp->pub.common.peer;
+    if (usipy_sip_tm_copy_target_addr(childp, &childp->pub.common.peer,
+      &srcp->pub.common.peer) != USIPY_SIP_TM_OK) {
+        usipy_sip_tm_tx_fini(childp);
+        return (USIPY_SIP_TM_ERR_NOSPC);
+    }
     childp->pub.common.local = srcp->pub.common.local;
-    childp->outbound.pub.target = srcp->outbound.pub.target;
+    childp->outbound.pub.target = childp->pub.common.peer;
     childp->outbound.pub.raw = USIPY_STR_NULL;
     childp->outbound.pub.next_send_at_ms = USIPY_SIP_TM_TIME_NONE;
+    childp->outbound.checkpoint = usipy_msg_heap_checkpoint(&childp->scratch);
     childp->pub.common.outbound = childp->outbound.pub;
     childp->pub.common.timers = srcp->pub.common.timers;
     childp->pub.common.id.call_id = childp->cache.call_id;
@@ -890,6 +986,8 @@ usipy_sip_tm_build_request(struct usipy_sip_tm_txi *tp, size_t tx_index,
     }
     memset(thdrs, '\0', sizeof(thdrs));
     via = tm->default_via;
+    via.via.sent_by.host = tp->pub.common.local.host;
+    via.via.sent_by.port = tp->pub.common.local.port;
     via.params[0].value = tp->cache.branch;
     from = tm->default_from;
     from.nameaddr.addr_spec = tp->cache.uac.from_uri;
@@ -1237,6 +1335,7 @@ usipy_sip_tm_new_uac_tr(struct usipy_sip_tm *tm,
   const struct usipy_sip_tm_new_uac_tr_params *tpp, size_t *indexp)
 {
     struct usipy_sip_tm_txi *tp;
+    struct usipy_sip_tm_request_target request_target;
     const struct usipy_method_db_entr *mdp;
     const struct usipy_sip_tm_timer_policy timers =
       USIPY_SIP_TM_TIMER_POLICY_RFC3261;
@@ -1248,9 +1347,6 @@ usipy_sip_tm_new_uac_tr(struct usipy_sip_tm *tm,
     USIPY_DASSERT(indexp != NULL);
 
     *indexp = USIPY_SIP_TM_TX_INDEX_NONE;
-    if (tpp->request_target.request_uri.l == 0) {
-        return (USIPY_SIP_TM_ERR_INVAL);
-    }
     rval = usipy_sip_tm_lookup_uac_method(tpp->request_id.method_type, 0, &mdp);
     if (rval != USIPY_SIP_TM_OK) {
         return (rval);
@@ -1259,26 +1355,36 @@ usipy_sip_tm_new_uac_tr(struct usipy_sip_tm *tm,
     if (tp == NULL) {
         return (USIPY_SIP_TM_ERR_NOSPC);
     }
-    rval = usipy_sip_tm_init_uac_request(tp, &tpp->request_id,
-      &tpp->request_target, mdp);
+    request_target = tpp->request_target;
+    rval = usipy_sip_tm_ensure_request_uri(tp, &request_target);
     if (rval != USIPY_SIP_TM_OK) {
-        goto nospc;
+        goto fail;
+    }
+    rval = usipy_sip_tm_init_uac_request(tp, &tpp->request_id,
+      &request_target, mdp);
+    if (rval != USIPY_SIP_TM_OK) {
+        goto fail;
     }
     rval = usipy_sip_tm_prepare_initial_call_id(tm, tp, tx_index);
     if (rval != USIPY_SIP_TM_OK) {
-        goto nospc;
+        goto fail;
     }
-    rval = usipy_sip_tm_init_uac_parties_by_username(tp, tm,
+    rval = usipy_sip_tm_init_uac_parties_by_username(tp,
+      tpp->local.host.l != 0 ? &tpp->local : &tm->laddr,
       &tpp->parties_by_username);
     if (rval != USIPY_SIP_TM_OK) {
-        goto nospc;
+        goto fail;
     }
     tp->cache.uac.contact_expires = tpp->contact_expires;
     tp->cache.uac.invite_expires = tpp->invite_expires != 0 ? tpp->invite_expires : 300u;
-    usipy_sip_tm_activate_uac_slot(tm, tp,
+    rval = usipy_sip_tm_activate_uac_slot(tm, tp,
       tpp->request_id.method_type == USIPY_SIP_METHOD_INVITE ?
       USIPY_SIP_TM_STATE_CALLING : USIPY_SIP_TM_STATE_TRYING,
-      &tpp->request_id, &tpp->request_target, &tpp->callbacks, &timers);
+      &tpp->request_id, &tpp->local, &request_target, &tpp->callbacks,
+      &timers);
+    if (rval != USIPY_SIP_TM_OK) {
+        goto fail;
+    }
     rval = usipy_sip_tm_build_request(tp, tx_index, tm,
       &(struct usipy_sip_tm_build_request_params){
         .payload = &(struct usipy_sip_tm_request_payload){
@@ -1287,14 +1393,14 @@ usipy_sip_tm_new_uac_tr(struct usipy_sip_tm *tm,
         },
       });
     if (rval != USIPY_SIP_TM_OK) {
-        goto nospc;
+        goto fail;
     }
     *indexp = tx_index;
     return (USIPY_SIP_TM_OK);
 
-nospc:
+fail:
     usipy_sip_tm_tx_fini(tp);
-    return (USIPY_SIP_TM_ERR_NOSPC);
+    return (rval);
 }
 
 int
@@ -1348,8 +1454,12 @@ usipy_sip_tm_new_in_dialog_transaction(struct usipy_sip_tm *tm,
     usipy_sip_tm_set_route_set(tp, tp->cache.uac.routes, tpp->route_set.nroutes);
     timers = tpp->timers.t1_ms != 0 ? tpp->timers :
       (struct usipy_sip_tm_timer_policy)USIPY_SIP_TM_TIMER_POLICY_RFC3261;
-    usipy_sip_tm_activate_uac_slot(tm, tp, USIPY_SIP_TM_STATE_TRYING,
-      &tpp->request_id, &tpp->request_target, &tpp->callbacks, &timers);
+    rval = usipy_sip_tm_activate_uac_slot(tm, tp, USIPY_SIP_TM_STATE_TRYING,
+      &tpp->request_id, &tpp->local, &tpp->request_target, &tpp->callbacks,
+      &timers);
+    if (rval != USIPY_SIP_TM_OK) {
+        goto nospc;
+    }
     rval = usipy_sip_tm_prepare_ids(tm, tp, tx_index);
     if (rval != USIPY_SIP_TM_OK) {
         goto nospc;

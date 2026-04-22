@@ -113,13 +113,11 @@ main(int argc, char **argv)
     struct usipy_sip_tm_tx const *txp;
     size_t tx_index = USIPY_SIP_TM_TX_INDEX_NONE;
     char uri_host[INET6_ADDRSTRLEN + 2];
-    char request_uri_buf[128];
     char debug_call_id[96];
     char rxbuf[2048];
     const char *server_ip;
     const char *username;
     const char *password;
-    struct usipy_str request_uri;
     struct usipy_str call_id;
     uint32_t expires = 300;
     uint32_t timeout_ms = 0;
@@ -192,15 +190,6 @@ main(int argc, char **argv)
         fprintf(stderr, "unable to format URI host\n");
         return (1);
     }
-    blen = (port == 5060 ?
-      snprintf(request_uri_buf, sizeof(request_uri_buf), "sip:%s", uri_host) :
-      snprintf(request_uri_buf, sizeof(request_uri_buf), "sip:%s:%u", uri_host, port));
-    if (blen < 0 || (size_t)blen >= sizeof(request_uri_buf)) {
-        fprintf(stderr, "unable to format request URI\n");
-        return (1);
-    }
-    request_uri = (struct usipy_str){.s.ro = request_uri_buf,
-      .l = (size_t)blen};
     ctx.username = (struct usipy_str){.s.ro = username, .l = strlen(username)};
     ctx.password = (struct usipy_str){.s.ro = password, .l = strlen(password)};
 
@@ -243,8 +232,13 @@ main(int argc, char **argv)
           &(const struct usipy_sip_register_start_params){
             .tm = ctx.tm,
             .call_id = call_id,
-            .request_uri = request_uri,
-            .target = ctx.peer,
+            .target = {
+              .af = ctx.peer.af,
+              .port = (uint16_t)port,
+              .transport = ctx.peer.transport,
+              .host = (struct usipy_str){.s.ro = uri_host,
+                .l = strlen(uri_host)},
+            },
             .username = ctx.username,
             .callbacks = {
               .arg = &ctx,

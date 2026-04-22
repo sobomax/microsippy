@@ -54,7 +54,6 @@ usipy_sip_register_start(struct usipy_sip_register_state *statep,
     tp.request_id.call_id = paramsp->call_id;
     tp.request_id.cseq = statep->next_cseq;
     tp.request_id.method_type = USIPY_SIP_METHOD_REGISTER;
-    tp.request_target.request_uri = paramsp->request_uri;
     tp.request_target.target = paramsp->target;
     tp.parties_by_username.from = paramsp->username;
     tp.parties_by_username.to = paramsp->username;
@@ -118,7 +117,7 @@ usipy_sip_register_handle_response(struct usipy_sip_register_state *statep,
     statep->auth_retry_started = 0;
     if (scode < 300) {
         if (usipy_tm_uac_extract_register_expires(msg, usernamep,
-              &statep->expires) != 0 ||
+              &statep->expires, NULL) != 0 ||
           usipy_sip_ua_schedule_refresh(statep->expires, now_ms,
             &statep->next_refresh_at_ms) != 0) {
             return (USIPY_SIP_TM_ERR_BADMSG);

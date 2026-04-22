@@ -21,6 +21,24 @@
 static void usipy_sip_tm_uas_run_out_consider(struct usipy_sip_tm_run_out *, uint64_t);
 static void usipy_sip_tm_uas_mark_terminated(struct usipy_sip_tm_txi *);
 
+static int
+usipy_sip_tm_uas_copy_addr(struct usipy_sip_tm_txi *tp,
+  struct usipy_sip_tm_addr *dstp, const struct usipy_sip_tm_addr *srcp)
+{
+    USIPY_DASSERT(tp != NULL);
+    USIPY_DASSERT(dstp != NULL);
+    USIPY_DASSERT(srcp != NULL);
+
+    *dstp = *srcp;
+    if (srcp->host.l == 0) {
+        return (USIPY_SIP_TM_OK);
+    }
+    if (usipy_msg_heap_append(&tp->scratch, &dstp->host, &srcp->host) != 0) {
+        return (USIPY_SIP_TM_ERR_NOSPC);
+    }
+    return (USIPY_SIP_TM_OK);
+}
+
 static uint32_t
 usipy_sip_tm_timer_j_ms(const struct usipy_sip_tm_timer_policy *tp)
 {
@@ -317,6 +335,35 @@ usipy_sip_tm_uas_scode2str(unsigned int scode, char *res)
 }
 
 static int
+usipy_sip_tm_uas_include_to_tag(const struct usipy_sip_tm_txi *tp,
+  const struct usipy_sip_status *slp)
+{
+    USIPY_DASSERT(tp != NULL);
+    USIPY_DASSERT(slp != NULL);
+
+    if (slp->code == 100) {
+        return (0);
+    }
+    return (tp->cache.to_tag.l != 0);
+}
+
+static int
+usipy_sip_tm_uas_copy_record_route(const struct usipy_sip_tm_txi *tp,
+  const struct usipy_sip_status *slp)
+{
+    USIPY_DASSERT(tp != NULL);
+    USIPY_DASSERT(slp != NULL);
+
+    if (tp->cache.method_type != USIPY_SIP_METHOD_INVITE) {
+        return (0);
+    }
+    if (slp->code > 100 && slp->code < 200) {
+        return (tp->cache.to_tag.l != 0);
+    }
+    return (slp->code >= 200 && slp->code < 300);
+}
+
+static int
 usipy_sip_tm_uas_copy_hdrs(struct usipy_msg_heap *mhp, struct usipy_str **dstpp,
   size_t *ndstp, const struct usipy_sip_hdr *const *srcp, size_t nsrc)
 {
@@ -342,6 +389,82 @@ usipy_sip_tm_uas_copy_hdrs(struct usipy_msg_heap *mhp, struct usipy_str **dstpp,
     }
     *dstpp = dstp;
     *ndstp = nsrc;
+    return (0);
+}
+
+struct usipy_sip_tm_uas_copy_nameaddr_build_arg {
+    const struct usipy_sip_hdr_nameaddr *src;
+    const struct usipy_str *skip_param;
+    struct usipy_sip_hdr_nameaddr *copy;
+};
+
+static int
+usipy_sip_tm_uas_copy_nameaddr_without_param_cb(void *arg, char *buf, size_t len)
+{
+    union usipy_sip_hdr_parsed up = {.contact = NULL};
+    const struct usipy_sip_tm_uas_copy_nameaddr_build_arg *barg = arg;
+    struct usipy_sip_hdr_nameaddr *copy;
+
+    USIPY_DASSERT(barg != NULL);
+    USIPY_DASSERT(barg->src != NULL);
+    USIPY_DASSERT(barg->skip_param != NULL);
+    USIPY_DASSERT(barg->copy != NULL);
+
+    copy = barg->copy;
+    up.contact = copy;
+    *copy = (struct usipy_sip_hdr_nameaddr){
+      .display_name = barg->src->display_name,
+      .addr_spec = barg->src->addr_spec,
+      .nparams = 0,
+    };
+    for (int i = 0; i < barg->src->nparams; i++) {
+        const struct usipy_tvpair *pp = &barg->src->params[i];
+
+        if (usipy_str_eq(&pp->token, barg->skip_param)) {
+            continue;
+        }
+        copy->params[copy->nparams++] = *pp;
+    }
+    return (usipy_sip_hdr_nameaddr_build(&up, buf, len));
+}
+
+static int
+usipy_sip_tm_uas_copy_nameaddr_without_param(struct usipy_msg_heap *mhp,
+  struct usipy_str *dstp, const struct usipy_sip_hdr_nameaddr *nap,
+  const struct usipy_str *skip_paramp)
+{
+    struct usipy_sip_tm_uas_copy_nameaddr_build_arg barg;
+    struct usipy_sip_hdr_nameaddr *copy;
+    size_t copy_size;
+    void *heap_copy;
+
+    USIPY_DASSERT(mhp != NULL);
+    USIPY_DASSERT(dstp != NULL);
+    USIPY_DASSERT(nap != NULL);
+    USIPY_DASSERT(skip_paramp != NULL);
+
+    copy_size = sizeof(*copy) + sizeof(copy->params[0]) * nap->nparams;
+    copy = __builtin_alloca(copy_size);
+    if (copy == NULL) {
+        *dstp = USIPY_STR_NULL;
+        return (-1);
+    }
+    barg = (struct usipy_sip_tm_uas_copy_nameaddr_build_arg){
+      .src = nap,
+      .skip_param = skip_paramp,
+      .copy = copy,
+    };
+    if (usipy_msg_heap_build(mhp, dstp, &barg,
+      usipy_sip_tm_uas_copy_nameaddr_without_param_cb) != 0) {
+        *dstp = USIPY_STR_NULL;
+        return (-1);
+    }
+    heap_copy = usipy_msg_heap_alloc(mhp, copy_size);
+    if (heap_copy == NULL) {
+        *dstp = USIPY_STR_NULL;
+        return (-1);
+    }
+    memcpy(heap_copy, copy, copy_size);
     return (0);
 }
 
@@ -444,7 +567,9 @@ usipy_sip_tm_uas_cache_request(const struct usipy_msg *reqp,
       &fromp->onwire.value) != 0) {
         return (-1);
     }
-    if (usipy_msg_heap_append(&tp->scratch, &tp->cache.uas.to, &top->onwire.value) != 0) {
+    if (usipy_sip_tm_uas_copy_nameaddr_without_param(&tp->scratch,
+      &tp->cache.uas.to, top->parsed.to,
+      &USIPY_2STRC("tag")) != 0) {
         return (-1);
     }
     if (usipy_msg_heap_append(&tp->scratch, &tp->cache.uas.request_uri,
@@ -575,7 +700,7 @@ usipy_sip_tm_uas_build_response_cb(void *arg, char *buf, size_t len)
     APPEND_STR(&to_hfp->name);
     APPEND_STR(&colon_sp);
     APPEND_STR(&tp->cache.uas.to);
-    if (tp->cache.to_tag.l != 0) {
+    if (usipy_sip_tm_uas_include_to_tag(tp, slp)) {
         APPEND_STR(&tag_param);
         APPEND_STR(&tp->cache.to_tag);
     }
@@ -593,11 +718,13 @@ usipy_sip_tm_uas_build_response_cb(void *arg, char *buf, size_t len)
     }
     off += (size_t)rval;
     APPEND_MEM(USIPY_CRLF, USIPY_CRLF_LEN);
-    for (size_t i = 0; i < tp->cache.uas.nrecord_routes; i++) {
-        APPEND_STR(&rr_hfp->name);
-        APPEND_STR(&colon_sp);
-        APPEND_STR(&tp->cache.uas.record_routes[i]);
-        APPEND_MEM(USIPY_CRLF, USIPY_CRLF_LEN);
+    if (usipy_sip_tm_uas_copy_record_route(tp, slp)) {
+        for (size_t i = 0; i < tp->cache.uas.nrecord_routes; i++) {
+            APPEND_STR(&rr_hfp->name);
+            APPEND_STR(&colon_sp);
+            APPEND_STR(&tp->cache.uas.record_routes[i]);
+            APPEND_MEM(USIPY_CRLF, USIPY_CRLF_LEN);
+        }
     }
     if (tp->cache.method_type == USIPY_SIP_METHOD_INVITE &&
       slp->code >= 200 && slp->code < 300) {
@@ -811,6 +938,13 @@ usipy_sip_tm_new_uas_tr(struct usipy_sip_tm *tm,
         usipy_sip_tm_tx_fini(tp);
         return (USIPY_SIP_TM_ERR_NOSPC);
     }
+    if (usipy_sip_tm_uas_copy_addr(tp, &tp->pub.common.peer, &tpp->peer) !=
+      USIPY_SIP_TM_OK ||
+      usipy_sip_tm_uas_copy_addr(tp, &tp->pub.common.local, &tpp->local) !=
+      USIPY_SIP_TM_OK) {
+        usipy_sip_tm_tx_fini(tp);
+        return (USIPY_SIP_TM_ERR_NOSPC);
+    }
     tp->outbound.checkpoint = usipy_msg_heap_checkpoint(&tp->scratch);
     tp->active = 1;
     tm->nactive += 1;
@@ -818,9 +952,7 @@ usipy_sip_tm_new_uas_tr(struct usipy_sip_tm *tm,
     tp->pub.state = USIPY_SIP_TM_STATE_TRYING;
     tp->pub.common.flags = (tm->transport == USIPY_SIP_TM_TRANSPORT_UDP) ? 0 :
       USIPY_SIP_TM_F_RELIABLE_TRANSPORT;
-    tp->pub.common.peer = tpp->peer;
-    tp->pub.common.local = tpp->local;
-    tp->outbound.pub.target = tpp->peer;
+    tp->outbound.pub.target = tp->pub.common.peer;
     tp->outbound.pub.raw = USIPY_STR_NULL;
     tp->outbound.pub.next_send_at_ms = USIPY_SIP_TM_TIME_NONE;
     tp->pub.common.outbound = tp->outbound.pub;

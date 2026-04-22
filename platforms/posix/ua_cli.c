@@ -43,7 +43,6 @@ struct ua_cli_ctx {
     struct usipy_str username;
     struct usipy_str password;
     struct usipy_str qop;
-    struct usipy_str request_uri;
     struct usipy_str call_id;
     struct usipy_str sdp;
     int ua_reset_needed;
@@ -544,8 +543,13 @@ start_register(struct ua_cli_ctx *ctx, size_t *indexp)
       &(const struct usipy_sip_register_start_params){
         .tm = ctx->tm,
         .call_id = ctx->call_id,
-        .request_uri = ctx->request_uri,
-        .target = ctx->peer,
+        .target = {
+          .af = ctx->peer.af,
+          .port = ctx->server_port,
+          .transport = ctx->peer.transport,
+          .host = (struct usipy_str){.s.ro = ctx->server_uri_host,
+            .l = strlen(ctx->server_uri_host)},
+        },
         .username = ctx->username,
         .callbacks = {
           .arg = ctx,
@@ -791,7 +795,6 @@ main(int argc, char **argv)
     const struct usipy_sip_tm_tx *txp;
     size_t reg_index;
     char uri_host[INET6_ADDRSTRLEN + 2];
-    char request_uri_buf[128];
     char debug_call_id[96];
     char rxbuf[2048];
     const char *server_ip;
@@ -881,14 +884,6 @@ main(int argc, char **argv)
     }
     memcpy(ctx.server_uri_host, uri_host, strlen(uri_host) + 1);
     ctx.server_port = (uint16_t)port;
-    blen = (port == 5060 ?
-      snprintf(request_uri_buf, sizeof(request_uri_buf), "sip:%s", uri_host) :
-      snprintf(request_uri_buf, sizeof(request_uri_buf), "sip:%s:%u", uri_host, port));
-    if (blen < 0 || (size_t)blen >= sizeof(request_uri_buf)) {
-        fprintf(stderr, "unable to format request URI\n");
-        return (1);
-    }
-    ctx.request_uri = (struct usipy_str){.s.ro = request_uri_buf, .l = (size_t)blen};
     ctx.sock = socket(ctx.peer.af, SOCK_DGRAM, 0);
     if (ctx.sock < 0) {
         perror("socket");

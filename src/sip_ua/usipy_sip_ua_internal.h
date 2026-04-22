@@ -15,6 +15,8 @@ struct usipy_sip_ua {
     struct usipy_sip_ua_dialing_request *dialingp;
     usipy_sip_ua_emit_cb emit;
     void *emit_arg;
+    struct usipy_sip_tm_addr default_target;
+    int have_default_target;
 };
 
 struct usipy_sip_ua_dialing_request {

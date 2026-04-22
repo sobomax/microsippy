@@ -40,11 +40,46 @@ usipy_sip_ua_clear_dialing_request(struct usipy_sip_ua *uap)
     uap->dialingp = NULL;
 }
 
+static int
+usipy_sip_ua_build_request_target(struct usipy_sip_ua *uap,
+  struct usipy_sip_tm_request_target *dstp,
+  const struct usipy_sip_tm_addr *targetp, const struct usipy_str *to_userp)
+{
+    USIPY_DASSERT(uap != NULL);
+    USIPY_DASSERT(dstp != NULL);
+    USIPY_DASSERT(targetp != NULL);
+    USIPY_DASSERT(to_userp != NULL);
+
+    *dstp = (struct usipy_sip_tm_request_target){
+      .target = *targetp,
+    };
+    usipy_sip_ua_heap_str_dup(uap, &dstp->target.host, &targetp->host);
+    if (targetp->host.l != 0 && dstp->target.host.l == 0) {
+        return (USIPY_SIP_TM_ERR_NOSPC);
+    }
+    if (targetp->port == 0 || targetp->port == 5060) {
+        if (usipy_msg_heap_sprintf(&uap->heap, &dstp->request_uri, "sip:%.*s@%.*s",
+              USIPY_SFMT(to_userp), USIPY_SFMT(&targetp->host)) != 0) {
+            return (USIPY_SIP_TM_ERR_NOSPC);
+        }
+    } else {
+        if (usipy_msg_heap_sprintf(&uap->heap, &dstp->request_uri,
+              "sip:%.*s@%.*s:%d", USIPY_SFMT(to_userp),
+              USIPY_SFMT(&targetp->host), targetp->port) != 0) {
+            return (USIPY_SIP_TM_ERR_NOSPC);
+        }
+    }
+    return (USIPY_SIP_TM_OK);
+}
+
 int
 usipy_sip_ua_store_dialing_request(struct usipy_sip_ua *uap,
   const struct usipy_sip_ua_dial_params *dialp)
 {
     struct usipy_sip_ua_dialing_request *dp;
+    const struct usipy_sip_tm_addr *targetp;
+    const struct usipy_str *to_userp, *party_top;
+    int rval;
 
     USIPY_DASSERT(uap != NULL);
     USIPY_DASSERT(dialp != NULL);
@@ -57,18 +92,37 @@ usipy_sip_ua_store_dialing_request(struct usipy_sip_ua *uap,
     *dp = (struct usipy_sip_ua_dialing_request){0};
     dp->params.request = dialp->request;
     dp->params.auth = dialp->auth;
+    to_userp = dialp->to_user.l != 0 ? &dialp->to_user :
+      &dialp->request.parties_by_username.to;
+    party_top = dialp->request.parties_by_username.to.l != 0 ?
+      &dialp->request.parties_by_username.to : to_userp;
     usipy_sip_ua_heap_str_dup(uap, &dp->params.request.request_id.call_id,
       &dialp->request.request_id.call_id);
-    usipy_sip_ua_heap_str_dup(uap, &dp->params.request.request_target.request_uri,
-      &dialp->request.request_target.request_uri);
-    usipy_sip_ua_heap_str_dup(uap, &dp->params.request.request_target.target.host,
-      &dialp->request.request_target.target.host);
+    if (dialp->request.request_target.request_uri.l != 0 ||
+      dialp->request.request_target.target.host.l != 0) {
+        usipy_sip_ua_heap_str_dup(uap, &dp->params.request.request_target.request_uri,
+          &dialp->request.request_target.request_uri);
+        usipy_sip_ua_heap_str_dup(uap, &dp->params.request.request_target.target.host,
+          &dialp->request.request_target.target.host);
+    } else {
+        targetp = uap->have_default_target ? &uap->default_target : NULL;
+        if (targetp == NULL || to_userp->l == 0) {
+            usipy_sip_ua_clear_dialing_request(uap);
+            return (USIPY_SIP_TM_ERR_INVAL);
+        }
+        rval = usipy_sip_ua_build_request_target(uap,
+          &dp->params.request.request_target, targetp, to_userp);
+        if (rval != USIPY_SIP_TM_OK) {
+            usipy_sip_ua_clear_dialing_request(uap);
+            return (rval);
+        }
+    }
     usipy_sip_ua_heap_str_dup(uap, &dp->params.request.parties_by_username.contact,
       &dialp->request.parties_by_username.contact);
     usipy_sip_ua_heap_str_dup(uap, &dp->params.request.parties_by_username.from,
       &dialp->request.parties_by_username.from);
     usipy_sip_ua_heap_str_dup(uap, &dp->params.request.parties_by_username.to,
-      &dialp->request.parties_by_username.to);
+      party_top);
     usipy_sip_ua_heap_str_dup(uap, &dp->params.request.content_type,
       &dialp->request.content_type);
     usipy_sip_ua_heap_str_dup(uap, &dp->params.request.body, &dialp->request.body);
@@ -190,6 +244,10 @@ usipy_sip_ua_ctor(const struct usipy_sip_ua_ctor_params *ipp)
     uap->tx_index = USIPY_SIP_TM_TX_INDEX_NONE;
     uap->emit = ipp->emit;
     uap->emit_arg = ipp->emit_arg;
+    if (ipp->default_target != NULL) {
+        uap->default_target = *ipp->default_target;
+        uap->have_default_target = 1;
+    }
     return (uap);
 }
 
