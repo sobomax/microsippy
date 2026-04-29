@@ -1,4 +1,5 @@
 #include <sys/socket.h>
+#include <arpa/inet.h>
 #include <netinet/in.h>
 #include <unistd.h>
 
@@ -41,9 +42,12 @@ bind_loopback_udp(void)
     sock = socket(AF_INET, SOCK_DGRAM, 0);
     assert(sock >= 0);
     sin.sin_family = AF_INET;
-    sin.sin_addr.s_addr = htonl(INADDR_LOOPBACK);
+    assert(inet_pton(AF_INET, "127.0.0.1", &sin.sin_addr) == 1);
     sin.sin_port = 0;
-    assert(bind(sock, (struct sockaddr *)&sin, sizeof(sin)) == 0);
+    if (bind(sock, (struct sockaddr *)&sin, sizeof(sin)) != 0) {
+        perror("bind_loopback_udp bind");
+        assert(0);
+    }
     return (sock);
 }
 
