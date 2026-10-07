@@ -1,3 +1,4 @@
+#include <stddef.h>
 #include <stdint.h>
 #include <stdlib.h>
 #include <string.h>
@@ -17,12 +18,13 @@ ROTL32(uint32_t x, int8_t r)
     return (x << r) | (x >> ((sizeof(x) * 8) - r));
 }
 
+/* Block <i> of p, which may be anywhere: not a uint32_t pointer then */
 static inline uint32_t
-getblock32(const uint32_t *p, int i)
+getblock32(const uint8_t *p, int i)
 {
     uint32_t r;
 
-    memcpy(&r, &p[i], sizeof(r));
+    memcpy(&r, p + i * (ptrdiff_t)sizeof(r), sizeof(r));
     return (r);
 }
 
@@ -52,7 +54,7 @@ MurmurHash3_32(const void *key, size_t len, uint32_t seed, uint32_t *out)
   //----------
   // body
 
-  const uint32_t * blocks = (const uint32_t *)(data + nblocks*4);
+  const uint8_t * blocks = data + nblocks*4;
 
   for(int i = -nblocks; i; i++)
   {
