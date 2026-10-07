@@ -18,8 +18,8 @@
 #include "public/usipy_msg_heap.h"
 #include "usipy_msg_heap_rb.h"
 #include "usipy_msg_heap_inl.h"
-#include "public/usipy_sip_sline.h"
 #include "public/usipy_sip_msg.h"
+#include "public/usipy_sip_sline.h"
 #include "usipy_sip_hdr.h"
 #include "public/usipy_sip_hdr_types.h"
 #include "usipy_sip_hdr_db.h"
@@ -234,13 +234,13 @@ usipy_sip_msg_dump(const struct usipy_msg *msg, const char *log_tag)
     switch (msg->kind) {
     case USIPY_SIP_MSG_RES:
         USIPY_LOGI(log_tag, "Message[%p] is SIP RESPONSE: status_code = %u, "
-          "reason_phrase = \"%.*s\"", msg,
+          "reason_phrase = \"%.*s\"", (const void *)msg,
           msg->sline.parsed.sl.status.code, USIPY_SFMT(&msg->sline.parsed.sl.status.reason_phrase));
         break;
 
     case USIPY_SIP_MSG_REQ:
         USIPY_LOGI(log_tag, "Message[%p] is SIP REQUEST: method(onwire) = \"%.*s\", "
-          "method(canonic) = \"%.*s\", ruri = \"%.*s\"", msg,
+          "method(canonic) = \"%.*s\", ruri = \"%.*s\"", (const void *)msg,
           USIPY_SFMT(&msg->sline.parsed.rl.onwire.method),
           USIPY_SFMT(&msg->sline.parsed.rl.method->name),
           USIPY_SFMT(&msg->sline.parsed.rl.onwire.ruri));
@@ -257,7 +257,8 @@ usipy_sip_msg_dump(const struct usipy_msg *msg, const char *log_tag)
     for (unsigned int i = 0; i < msg->nhdrs; i++) {
         const struct usipy_sip_hdr *shp = &msg->hdrs[i];
         USIPY_LOGI(log_tag, "header[%u @ %p], .hf_type = %p, .onwire.hf_type = %p", i,
-          shp, shp->hf_type, shp->onwire.hf_type);
+          (const void *)shp, (const void *)shp->hf_type,
+          (const void *)shp->onwire.hf_type);
         USIPY_LOGI(log_tag, "  .onwire.type = %u", shp->onwire.hf_type->cantype);
 	USIPY_LOGI(log_tag, "  .name = \"%.*s\"", USIPY_SFMT(&shp->onwire.name));
 	USIPY_LOGI(log_tag, "  .value = \"%.*s\"", USIPY_SFMT(&shp->onwire.value));
