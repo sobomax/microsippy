@@ -391,7 +391,7 @@ usipy_sip_res_build_fromreq_tagged(struct usipy_msg_heap *hp,
   const struct usipy_msg *reqp, const struct usipy_sip_status *slp,
   const struct usipy_str *tagp)
 {
-    struct usipy_msg_heap_cnt cnt = {};
+    struct usipy_msg_heap_cnt cnt = {0};
     struct usipy_msg *rp;
     const size_t tlen = usipy_sip_res_alloc_size_build(reqp, tagp);
 
