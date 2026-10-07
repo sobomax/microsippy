@@ -197,7 +197,7 @@ next_line:
     }
     if (cp.l > 0) {
         rp->body = cp;
-        if (mit.i < len) {
+        if ((size_t)mit.i < len) {
             memcpy(rp->onwire.s.rw + mit.i, buf + mit.i, len - mit.i);
         }
     }
@@ -254,9 +254,9 @@ usipy_sip_msg_dump(const struct usipy_msg *msg, const char *log_tag)
         abort();
     }
 
-    for (int i = 0; i < msg->nhdrs; i++) {
+    for (unsigned int i = 0; i < msg->nhdrs; i++) {
         const struct usipy_sip_hdr *shp = &msg->hdrs[i];
-        USIPY_LOGI(log_tag, "header[%d @ %p], .hf_type = %p, .onwire.hf_type = %p", i,
+        USIPY_LOGI(log_tag, "header[%u @ %p], .hf_type = %p, .onwire.hf_type = %p", i,
           shp, shp->hf_type, shp->onwire.hf_type);
         USIPY_LOGI(log_tag, "  .onwire.type = %u", shp->onwire.hf_type->cantype);
 	USIPY_LOGI(log_tag, "  .name = \"%.*s\"", USIPY_SFMT(&shp->onwire.name));
@@ -300,7 +300,7 @@ usipy_sip_msg_parse_hdrs_impl(struct usipy_msg *mp, uint64_t parsemask, int topo
         matchp->nhdrs = 0;
     }
     parsemask &= ~(mp->hdr_masks.parsed);
-    for (int i = 0; i < mp->nhdrs; i++) {
+    for (unsigned int i = 0; i < mp->nhdrs; i++) {
         struct usipy_sip_hdr *shp = &mp->hdrs[i];
         uint64_t hmask = USIPY_HFT_MASK(shp->hf_type->cantype);
 
@@ -346,7 +346,7 @@ usipy_sip_msg_get_tid(struct usipy_msg *mp, struct usipy_sip_tid *tp)
 
     if (usipy_sip_msg_parse_hdrs(mp, USIPY_HF_TID_MASK, 1) != 0)
         return (-1);
-    for (int i = 0; i < mp->nhdrs; i++) {
+    for (unsigned int i = 0; i < mp->nhdrs; i++) {
         struct usipy_sip_hdr *shp = &mp->hdrs[i];
         int j;
 
@@ -411,7 +411,7 @@ usipy_sip_msg_build_cb(void *arg, char *buf, size_t len)
     if (rval < 0)
         return (-1);
     off += rval;
-    for (int i = 0; i < mp->nhdrs; i++) {
+    for (unsigned int i = 0; i < mp->nhdrs; i++) {
         if (mp->hdrs[i].hf_type->cantype == USIPY_HF_CONTENTLENGTH) {
             clidx = i;
             continue;
@@ -557,7 +557,7 @@ crlfcompr(uintptr_t cval, bool carry)
      * The outer for() loop is just our way to hint compiler as to how many iterations
      * we have, so it can unroll.
      */
-    for (int i = 0; i < (sizeof(mvalA) / 2); i++) {
+    for (int i = 0; i < (int)(sizeof(mvalA) / 2); i++) {
         int nbit = ffsl(mvalA);
         if (nbit == 0)
             break;
@@ -587,8 +587,8 @@ gotresult:
     }
 
     struct crlfres ms = {.carry = mip->carry};
-    for (; mip->i < mip->msg_onwire.l; mip->i += sizeof(val)) {
-        int remain = mip->msg_onwire.l - mip->i;
+    for (; (size_t)mip->i < mip->msg_onwire.l; mip->i += sizeof(val)) {
+        size_t remain = mip->msg_onwire.l - mip->i;
         if (remain < sizeof(val)) {
             val = 0;
             memcpy(&val, mip->msg_onwire.s.ro + mip->i, remain);

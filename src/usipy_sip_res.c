@@ -279,7 +279,7 @@ usipy_sip_res_build_fromreq_tagged_sz(void *arg, char *buf, size_t len)
     slout->status.reason_phrase.l = slp->reason_phrase.l;
     APPEND_MEM(USIPY_CRLF, USIPY_CRLF_LEN);
 
-    for (int i = 0; i < reqp->nhdrs; i++) {
+    for (unsigned int i = 0; i < reqp->nhdrs; i++) {
         const struct usipy_sip_hdr *shp = &reqp->hdrs[i];
 
         if (USIPY_HF_ISMSET(copyfirst, shp->hf_type->cantype)) {
