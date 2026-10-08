@@ -360,10 +360,12 @@ test_ua_outgoing_connect_disconnect(void)
     txp = usipy_sip_tm_get_transaction(tm, invite_index);
     assert(txp != NULL);
     reqp = dup_tx_request(txp);
-    struct usipy_sip_hdr_match ctype_match = {.hdrslen = 1};
+    struct usipy_sip_hdr_match *ctype_match =
+      __builtin_alloca(USIPY_SIP_HDR_MATCH_SIZE(1));
+    *ctype_match = (struct usipy_sip_hdr_match){.hdrslen = 1};
     ASSERT_CALL_EQ(usipy_sip_msg_parse_hdrs_get(reqp,
-      USIPY_HFT_MASK(USIPY_HF_CONTENTTYPE), 0, &ctype_match), 0);
-    assert(ctype_match.nhdrs == 1);
+      USIPY_HFT_MASK(USIPY_HF_CONTENTTYPE), 0, ctype_match), 0);
+    assert(ctype_match->nhdrs == 1);
     assert(reqp->body.l == 5);
     assert(memcmp(reqp->body.s.ro, "v=0\r\n", 5) == 0);
     assert(find_header(reqp, USIPY_HF_CONTENTTYPE)->onwire.value.l == 15);
