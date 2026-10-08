@@ -155,6 +155,10 @@ usipy_sip_ua_dialing_request_fill(struct usipy_sip_ua *uap,
     if (requestp->callbacks != NULL) {
         dp->callbacks = *requestp->callbacks;
     }
+    dp->have_timers = requestp->timers != NULL;
+    if (dp->have_timers) {
+        dp->timers = *requestp->timers;
+    }
     CHECK_HEAP_STR_DUP(&dp->request_call_id, call_idp);
     CHECK_HEAP_STR_DUP(&dp->local.host, GET_HOST_OR_NULL(requestp->local));
     if ((request_urip != NULL && request_urip->l != 0) ||
@@ -213,6 +217,7 @@ usipy_sip_ua_fill_new_uac_tr_params(const struct usipy_sip_ua_dialing_request *d
       .invite_expires = dp->invite_expires,
       .payload = &dp->payload,
       .callbacks = &dp->callbacks,
+      .timers = dp->have_timers ? &dp->timers : NULL,
     };
 }
 

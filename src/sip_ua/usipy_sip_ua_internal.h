@@ -28,6 +28,8 @@ struct usipy_sip_ua_dialing_request {
     uint32_t contact_expires;
     uint32_t invite_expires;
     struct usipy_sip_tm_uac_callbacks callbacks;
+    struct usipy_sip_tm_timer_policy timers;
+    int have_timers;
     struct usipy_sip_tm_request_payload payload;
     struct usipy_str request_call_id;
     struct usipy_str request_uri;

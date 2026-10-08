@@ -832,7 +832,8 @@ assert_invite_ack_request(const struct usipy_msg *invite_reqp,
 }
 
 static void
-init_invite_tx(struct usipy_sip_tm *tm, struct invite_cbarg *carg, size_t *tx_indexp)
+init_invite_tx_with(struct usipy_sip_tm *tm, struct invite_cbarg *carg,
+  size_t *tx_indexp, const struct usipy_sip_tm_timer_policy *timersp)
 {
     struct usipy_sip_tm_new_uac_tr_params tp = {
       .request_id = &(struct usipy_sip_tm_request_id){
@@ -860,11 +861,19 @@ init_invite_tx(struct usipy_sip_tm *tm, struct invite_cbarg *carg, size_t *tx_in
         .response = invite_response,
         .timeout = invite_timeout,
       },
+      .timers = timersp,
     };
-    struct usipy_sip_tm_tx *txp;
 
     ASSERT_CALL_EQ(usipy_sip_tm_new_uac_tr(tm, &tp, tx_indexp),
       USIPY_SIP_TM_OK);
+}
+
+static void
+init_invite_tx(struct usipy_sip_tm *tm, struct invite_cbarg *carg, size_t *tx_indexp)
+{
+    struct usipy_sip_tm_tx *txp;
+
+    init_invite_tx_with(tm, carg, tx_indexp, NULL);
     txp = (struct usipy_sip_tm_tx *)usipy_sip_tm_get_transaction(tm, *tx_indexp);
     assert(txp != NULL);
     txp->common.timers.t1_ms = 10;
@@ -1953,6 +1962,44 @@ test_invite_pr_timeout(void)
     close(sock);
 }
 
+/* A policy given with the INVITE: just its Timer B, the rest RFC 3261's */
+static void
+test_invite_timer_b_policy(void)
+{
+    static const char scenario[] = "INVITE (Timer B 300ms) -> PR timeout";
+    struct invite_cbarg carg = {0};
+    struct invite_send_arg sarg = {0};
+    struct usipy_sip_tm_run_in rin = {0};
+    struct usipy_sip_tm_run_out rout;
+    const struct usipy_sip_tm_tx *txp;
+    struct usipy_sip_tm *tm;
+    size_t tx_index;
+    int sock;
+
+    tm = invite_tm_ctor(&sock);
+    carg.scenario = scenario;
+    sarg.scenario = scenario;
+    invite_print_banner(scenario);
+    init_invite_tx_with(tm, &carg, &tx_index,
+      &(struct usipy_sip_tm_timer_policy){.timer_b_ms = 300});
+    txp = usipy_sip_tm_get_transaction(tm, tx_index);
+    assert(txp != NULL);
+    assert(txp->common.timers.t1_ms == 500 && txp->common.timers.timer_b_ms == 300);
+    rin.tm = tm;
+    rin.send_to = invite_send_to;
+    rin.send_to_arg = &sarg;
+    invite_run_step(&sarg, &rin, &rout, 0);
+    carg.now_ms = 299;
+    invite_run_step(&sarg, &rin, &rout, 299);
+    assert(carg.ntimeouts == 0);
+    carg.now_ms = 300;
+    invite_run_step(&sarg, &rin, &rout, 300);
+    assert(carg.ntimeouts == 1);
+    assert(carg.timeout_ids[0] == USIPY_SIP_TM_TIMEOUT_PR);
+    usipy_sip_tm_dtor(tm);
+    close(sock);
+}
+
 static void
 test_invite_fr_timeout_single_100(void)
 {
@@ -2702,6 +2749,7 @@ main(void)
     test_gen_auth_hf();
     test_register_expires_helpers();
     test_invite_pr_timeout();
+    test_invite_timer_b_policy();
     test_invite_fr_timeout_single_100();
     test_invite_fr_timeout_repeated_100();
     test_invite_ack_support();

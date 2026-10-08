@@ -303,6 +303,8 @@ struct usipy_sip_tm_new_uac_tr_params {
     uint32_t invite_expires;
     const struct usipy_sip_tm_request_payload *payload;
     const struct usipy_sip_tm_uac_callbacks *callbacks;
+    /* NULL, or fields left 0, for RFC 3261's */
+    const struct usipy_sip_tm_timer_policy *timers;
 };
 
 struct usipy_sip_tm_new_uas_tr_params {

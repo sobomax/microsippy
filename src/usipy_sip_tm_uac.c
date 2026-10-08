@@ -1454,7 +1454,7 @@ usipy_sip_tm_new_uac_tr(struct usipy_sip_tm *tm,
     }
     tp->cache.uac.contact_expires = tpp->contact_expires;
     tp->cache.uac.invite_expires = tpp->invite_expires != 0 ? tpp->invite_expires : 300u;
-    usipy_sip_tm_timer_policy_resolve(&timers, NULL);
+    usipy_sip_tm_timer_policy_resolve(&timers, tpp->timers);
     rval = usipy_sip_tm_activate_uac_slot(tm, tp,
       tpp->request_id->method_type == USIPY_SIP_METHOD_INVITE ?
       USIPY_SIP_TM_STATE_CALLING : USIPY_SIP_TM_STATE_TRYING,
