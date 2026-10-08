@@ -935,6 +935,13 @@ usipy_sip_tm_handle_incoming_response(const struct usipy_sip_tm_handle_incoming_
         tp->pub.role_data.uac.response_class = sclass;
         if (usipy_sip_tm_tx_is_invite(tp) && sclass == 1) {
             tp->pub.state = USIPY_SIP_TM_STATE_PROCEEDING;
+            /* Ringing: no more Timer B, but the INVITE's Expires, counted
+               from when it was first sent, after which it's CANCELed */
+            if (tp->invite_provisional_seen == 0 &&
+              tp->invite_timeout_at_ms != USIPY_SIP_TM_TIME_NONE) {
+                tp->invite_timeout_at_ms = tp->pub.common.created_at_ms +
+                  (uint64_t)tp->cache.uac.invite_expires * 1000u;
+            }
             tp->invite_provisional_seen = 1;
             tp->invite_timeout_id = USIPY_SIP_TM_TIMEOUT_FR;
             if (tp->invite_cancel_state ==
@@ -1254,6 +1261,21 @@ usipy_sip_tm_uac_post_send_ack(struct usipy_sip_tm_txi *tp)
     tp->outbound.pub.next_send_at_ms = USIPY_SIP_TM_TIME_NONE;
 }
 
+/* How long an INVITE waits for any response at all (Timer B) */
+static uint32_t
+usipy_sip_tm_timer_b_ms(const struct usipy_sip_tm_timer_policy *tp)
+{
+    uint64_t bms;
+
+    USIPY_DASSERT(tp != NULL);
+    if (tp->timer_b_ms != 0) {
+        return (tp->timer_b_ms);
+    }
+    bms = (uint64_t)tp->t1_ms * 64u;
+    USIPY_DASSERT(bms <= UINT32_MAX);
+    return ((uint32_t)bms);
+}
+
 static void
 usipy_sip_tm_uac_post_send_invite(struct usipy_sip_tm_txi *tp, uint64_t now_ms)
 {
@@ -1263,8 +1285,11 @@ usipy_sip_tm_uac_post_send_invite(struct usipy_sip_tm_txi *tp, uint64_t now_ms)
         tp->outbound.pub.next_send_at_ms = USIPY_SIP_TM_TIME_NONE;
         return;
     }
+    /* Timer B: no response at all by then and it's over, see the first
+     * provisional for after that */
     if (tp->invite_timeout_at_ms == USIPY_SIP_TM_TIME_NONE) {
-        tp->invite_timeout_at_ms = now_ms + ((uint64_t)tp->cache.uac.invite_expires * 1000u);
+        tp->invite_timeout_at_ms = now_ms +
+          usipy_sip_tm_timer_b_ms(&tp->pub.common.timers);
         tp->invite_timeout_id = USIPY_SIP_TM_TIMEOUT_PR;
     }
     if (tp->invite_provisional_seen != 0 ||

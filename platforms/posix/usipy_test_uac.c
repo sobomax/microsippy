@@ -1935,8 +1935,13 @@ test_invite_pr_timeout(void)
     assert(sarg.nsent == 1);
     assert_request_expires(txp, "1");
 
-    carg.now_ms = 1000;
-    invite_run_step(&sarg, &rin, &rout, 1000);
+    /* No response at all: over at Timer B (64*T1, T1 being 10ms here),
+     * before the 1s the INVITE Expires in */
+    carg.now_ms = 639;
+    invite_run_step(&sarg, &rin, &rout, 639);
+    assert(carg.ntimeouts == 0);
+    carg.now_ms = 640;
+    invite_run_step(&sarg, &rin, &rout, 640);
     txp = usipy_sip_tm_get_transaction(tm, tx_index);
     assert(txp != NULL);
     assert(txp->state == USIPY_SIP_TM_STATE_TERMINATED);
@@ -1987,6 +1992,10 @@ test_invite_fr_timeout_single_100(void)
     assert(carg.nresponses == 1);
     assert(carg.status_codes[0] == 100);
 
+    /* Ringing: Timer B (640ms) is no more, the INVITE Expires (1s) is */
+    carg.now_ms = 640;
+    invite_run_step(&sarg, &rin, &rout, 640);
+    assert(carg.ntimeouts == 0);
     carg.now_ms = 1000;
     invite_run_step(&sarg, &rin, &rout, 1000);
     txp = usipy_sip_tm_get_transaction(tm, tx_index);

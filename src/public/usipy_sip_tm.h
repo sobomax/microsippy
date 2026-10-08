@@ -298,6 +298,8 @@ struct usipy_sip_tm_new_uac_tr_params {
     const struct usipy_sip_tm_addr *local;
     const struct usipy_sip_tm_request_parties *parties_by_username;
     uint32_t contact_expires;
+    /* An INVITE's Expires (s, 300 if 0): how long it may ring before it's
+     * CANCELed; with no response at all it's over at Timer B before that */
     uint32_t invite_expires;
     const struct usipy_sip_tm_request_payload *payload;
     const struct usipy_sip_tm_uac_callbacks *callbacks;
