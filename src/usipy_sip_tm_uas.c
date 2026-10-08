@@ -915,16 +915,12 @@ int
 usipy_sip_tm_new_uas_tr(struct usipy_sip_tm *tm,
   const struct usipy_sip_tm_new_uas_tr_params *tpp, size_t *indexp)
 {
-    static const struct usipy_sip_tm_timer_policy default_timers =
-      USIPY_SIP_TM_TIMER_POLICY_RFC3261;
     static const struct usipy_sip_tm_uas_callbacks empty_callbacks;
-    const struct usipy_sip_tm_timer_policy *timersp;
     const struct usipy_sip_tm_addr *peerp;
     const struct usipy_sip_tm_addr *localp;
     const struct usipy_sip_tm_uas_callbacks *callbacksp;
     struct usipy_sip_tid tid;
     struct usipy_sip_tm_txi *tp;
-    struct usipy_sip_tm_timer_policy timers;
     uint8_t method_type;
     size_t tx_index;
 
@@ -937,7 +933,6 @@ usipy_sip_tm_new_uas_tr(struct usipy_sip_tm *tm,
     USIPY_DASSERT(tpp->local != NULL);
 
     *indexp = USIPY_SIP_TM_TX_INDEX_NONE;
-    timersp = tpp->timers != NULL ? tpp->timers : &default_timers;
     peerp = tpp->peer;
     localp = tpp->local;
     callbacksp = tpp->callbacks != NULL ? tpp->callbacks : &empty_callbacks;
@@ -991,8 +986,7 @@ usipy_sip_tm_new_uas_tr(struct usipy_sip_tm *tm,
     tp->outbound.pub.raw = USIPY_STR_NULL;
     tp->outbound.pub.next_send_at_ms = USIPY_SIP_TM_TIME_NONE;
     tp->pub.common.outbound = tp->outbound.pub;
-    timers = timersp->t1_ms != 0 ? *timersp : default_timers;
-    tp->pub.common.timers = timers;
+    usipy_sip_tm_timer_policy_resolve(&tp->pub.common.timers, tpp->timers);
     tp->pub.common.id.hash = tid.hash;
     tp->pub.common.id.branch = tp->cache.branch;
     tp->pub.common.id.call_id = tp->cache.call_id;

@@ -1051,6 +1051,82 @@ test_ua_accepted_owner(void)
     accepted_fini(&call);
 }
 
+/* Timer policies are taken field by field: base timers left 0 are RFC
+ * 3261's, other timers left 0 are derived from them. */
+static void
+test_tm_timer_policy(void)
+{
+    static const struct usipy_sip_tm_timer_policy rfc3261 =
+      USIPY_SIP_TM_TIMER_POLICY_RFC3261;
+    struct usipy_sip_tm_timer_policy p;
+    struct accepted_call call;
+    const struct usipy_sip_tm_tx *tx;
+
+    usipy_sip_tm_timer_policy_resolve(&p, NULL);
+    assert(memcmp(&p, &rfc3261, sizeof(p)) == 0);
+    usipy_sip_tm_timer_policy_resolve(&p,
+      &(struct usipy_sip_tm_timer_policy){.timer_l_ms = 200});
+    assert(p.t1_ms == rfc3261.t1_ms && p.t2_ms == rfc3261.t2_ms &&
+      p.t4_ms == rfc3261.t4_ms && p.timer_l_ms == 200);
+    assert(p.timer_f_ms == 0 && p.timer_j_ms == 0 && p.timer_k_ms == 0);
+    usipy_sip_tm_timer_policy_resolve(&p,
+      &(struct usipy_sip_tm_timer_policy){.t1_ms = 50});
+    assert(p.t1_ms == 50 && p.t2_ms == rfc3261.t2_ms &&
+      p.t4_ms == rfc3261.t4_ms);
+
+    /* Set on a transaction: all of it 0 is RFC 3261's */
+    accepted_init(&call, USIPY_SIP_TM_TRANSPORT_UDP, 0);
+    tx = usipy_sip_tm_get_transaction(call.tm, call.invite_index);
+    ASSERT_CALL_EQ(usipy_sip_tm_set_timer_policy(call.tm, call.invite_index,
+      &(struct usipy_sip_tm_timer_policy){0}), USIPY_SIP_TM_OK);
+    assert(memcmp(&tx->common.timers, &rfc3261, sizeof(rfc3261)) == 0);
+    accepted_fini(&call);
+}
+
+/* An accepted INVITE whose policy only has Timer L in it: the other
+ * timers are RFC 3261's, Timer L that. */
+static void
+test_ua_accepted_timer_l_only(void)
+{
+    struct usipy_sip_tm *tm;
+    struct usipy_msg *invite;
+    size_t tx_index;
+    const struct usipy_sip_tm_tx *tx;
+    const int sock = bind_loopback_udp();
+
+    tm = usipy_sip_tm_ctor(&(struct usipy_sip_tm_ctor_params){
+      .sock = sock, .transport = USIPY_SIP_TM_TRANSPORT_UDP,
+      .max_transactions = 4,
+    });
+    assert(tm != NULL);
+    invite = build_uas_invite_request();
+    assert(invite != NULL);
+    ASSERT_CALL_EQ(usipy_sip_tm_new_uas_tr(tm,
+      &(struct usipy_sip_tm_new_uas_tr_params){
+        .request = invite,
+        .timers = &(struct usipy_sip_tm_timer_policy){.timer_l_ms = 1234},
+        .peer = &(struct usipy_sip_tm_addr){
+          .af = AF_INET, .port = 5060, .transport = USIPY_SIP_TM_TRANSPORT_UDP,
+          .host = USIPY_2STR("198.51.100.10"),
+        },
+        .local = &(struct usipy_sip_tm_addr){
+          .af = AF_INET, .port = 5060, .transport = USIPY_SIP_TM_TRANSPORT_UDP,
+          .host = USIPY_2STR("192.0.2.55"),
+        },
+      }, &tx_index), USIPY_SIP_TM_OK);
+    tx = usipy_sip_tm_get_transaction(tm, tx_index);
+    assert(tx->common.timers.t1_ms == 500 && tx->common.timers.t2_ms == 4000);
+    ASSERT_CALL_EQ(usipy_sip_tm_send_uas_response(tm, tx_index,
+      &(struct usipy_sip_tm_uas_response_params){.status = &usipy_sip_res_ok}),
+      USIPY_SIP_TM_OK);
+    assert(tx->state == USIPY_SIP_TM_STATE_ACCEPTED);
+    assert(tx->common.timer.type == USIPY_SIP_TM_TIMER_L);
+    assert(tx->common.timer.value_ms == 1234);
+    usipy_sip_tm_dtor(tm);
+    usipy_sip_msg_dtor(invite);
+    close(sock);
+}
+
 int
 main(void)
 {
@@ -1068,5 +1144,7 @@ main(void)
     test_ua_accepted_send_fails();
     test_ua_accepted_no_ack_not_connected();
     test_ua_accepted_owner();
+    test_tm_timer_policy();
+    test_ua_accepted_timer_l_only();
     return (0);
 }

@@ -37,6 +37,8 @@ int usipy_sip_tm_apply_uac_2xx_ack_dialog(const struct usipy_sip_tm *, size_t,
 int usipy_sip_tm_tid_matches_tx(const struct usipy_sip_tid *,
   const struct usipy_sip_tm_tx *);
 struct usipy_sip_tm_txi *usipy_sip_tm_alloc_slot(struct usipy_sip_tm *, size_t *);
+void usipy_sip_tm_timer_policy_resolve(struct usipy_sip_tm_timer_policy *,
+  const struct usipy_sip_tm_timer_policy *);
 void usipy_sip_tm_tx_fini(struct usipy_sip_tm_txi *);
 int usipy_sip_tm_uac_run(struct usipy_sip_tm_txi *, size_t,
   const struct usipy_sip_tm *, const struct usipy_sip_tm_run_in *,

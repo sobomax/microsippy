@@ -359,6 +359,32 @@ usipy_sip_tm_drop_transaction(struct usipy_sip_tm *tm, size_t index)
     return (USIPY_SIP_TM_OK);
 }
 
+/*
+ * A timer policy as the transactions use it, field by field: its base
+ * timers (T1, T2, T4) left 0 are RFC 3261's, and the other timers left 0
+ * stay so, for them to be derived from the base ones. No policy at all is
+ * RFC 3261's.
+ */
+void
+usipy_sip_tm_timer_policy_resolve(struct usipy_sip_tm_timer_policy *dstp,
+  const struct usipy_sip_tm_timer_policy *srcp)
+{
+    static const struct usipy_sip_tm_timer_policy rfc3261 =
+      USIPY_SIP_TM_TIMER_POLICY_RFC3261;
+
+    USIPY_DASSERT(dstp != NULL);
+    *dstp = srcp != NULL ? *srcp : rfc3261;
+    if (dstp->t1_ms == 0) {
+        dstp->t1_ms = rfc3261.t1_ms;
+    }
+    if (dstp->t2_ms == 0) {
+        dstp->t2_ms = rfc3261.t2_ms;
+    }
+    if (dstp->t4_ms == 0) {
+        dstp->t4_ms = rfc3261.t4_ms;
+    }
+}
+
 int
 usipy_sip_tm_set_timer_policy(struct usipy_sip_tm *tm, size_t index,
   const struct usipy_sip_tm_timer_policy *policy)
@@ -369,7 +395,8 @@ usipy_sip_tm_set_timer_policy(struct usipy_sip_tm *tm, size_t index,
     if (!tm->transactions[index].active) {
         return (USIPY_SIP_TM_ERR_NOT_FOUND);
     }
-    tm->transactions[index].pub.common.timers = *policy;
+    usipy_sip_tm_timer_policy_resolve(&tm->transactions[index].pub.common.timers,
+      policy);
     return (USIPY_SIP_TM_OK);
 }
 

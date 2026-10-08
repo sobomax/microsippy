@@ -807,16 +807,13 @@ usipy_sip_tm_uac_start_cancel(struct usipy_sip_tm *tm, size_t parent_index)
 static uint32_t
 usipy_sip_tm_timer_d_ms(const struct usipy_sip_tm_timer_policy *tp)
 {
-    uint32_t dms;
+    USIPY_DASSERT(tp != NULL);
+    USIPY_DASSERT(tp->timer_d_ms != 0 || tp->t4_ms != 0);
 
     if (tp->timer_d_ms != 0) {
         return (tp->timer_d_ms);
     }
-    dms = tp->t4_ms;
-    if (dms != 0) {
-        return (dms);
-    }
-    return (5000u);
+    return (tp->t4_ms);
 }
 
 static uint32_t
@@ -1390,8 +1387,7 @@ usipy_sip_tm_new_uac_tr(struct usipy_sip_tm *tm,
     const struct usipy_method_db_entr *mdp;
     const struct usipy_sip_tm_addr *localp;
     const struct usipy_sip_tm_uac_callbacks *callbacksp;
-    const struct usipy_sip_tm_timer_policy timers =
-      USIPY_SIP_TM_TIMER_POLICY_RFC3261;
+    struct usipy_sip_tm_timer_policy timers;
     int rval;
     size_t tx_index;
 
@@ -1433,6 +1429,7 @@ usipy_sip_tm_new_uac_tr(struct usipy_sip_tm *tm,
     }
     tp->cache.uac.contact_expires = tpp->contact_expires;
     tp->cache.uac.invite_expires = tpp->invite_expires != 0 ? tpp->invite_expires : 300u;
+    usipy_sip_tm_timer_policy_resolve(&timers, NULL);
     rval = usipy_sip_tm_activate_uac_slot(tm, tp,
       tpp->request_id->method_type == USIPY_SIP_METHOD_INVITE ?
       USIPY_SIP_TM_STATE_CALLING : USIPY_SIP_TM_STATE_TRYING,
@@ -1464,13 +1461,10 @@ usipy_sip_tm_new_in_dialog_transaction(struct usipy_sip_tm *tm,
     const struct usipy_method_db_entr *mdp;
     static const struct usipy_sip_tm_addr empty_local;
     static const struct usipy_sip_tm_route_set empty_route_set;
-    static const struct usipy_sip_tm_timer_policy default_timers =
-      USIPY_SIP_TM_TIMER_POLICY_RFC3261;
     static const struct usipy_sip_tm_uac_callbacks empty_callbacks;
     const struct usipy_sip_tm_addr *localp;
     const struct usipy_sip_tm_route_set *route_setp;
     const struct usipy_sip_tm_dialog_tags *dialog_tagsp;
-    const struct usipy_sip_tm_timer_policy *timersp;
     const struct usipy_sip_tm_uac_callbacks *callbacksp;
     struct usipy_sip_tm_timer_policy timers;
     int rval;
@@ -1504,7 +1498,6 @@ usipy_sip_tm_new_in_dialog_transaction(struct usipy_sip_tm *tm,
     }
     route_setp = tpp->route_set != NULL ? tpp->route_set : &empty_route_set;
     localp = tpp->local != NULL ? tpp->local : &empty_local;
-    timersp = tpp->timers != NULL ? tpp->timers : &default_timers;
     callbacksp = tpp->callbacks != NULL ? tpp->callbacks : &empty_callbacks;
     dialog_tagsp = tpp->dialog_tags;
     USIPY_DASSERT(route_setp->nroutes == 0 || route_setp->routes != NULL);
@@ -1532,7 +1525,7 @@ usipy_sip_tm_new_in_dialog_transaction(struct usipy_sip_tm *tm,
         goto nospc;
     }
     usipy_sip_tm_set_route_set(tp, tp->cache.uac.routes, route_setp->nroutes);
-    timers = timersp->t1_ms != 0 ? *timersp : default_timers;
+    usipy_sip_tm_timer_policy_resolve(&timers, tpp->timers);
     rval = usipy_sip_tm_activate_uac_slot(tm, tp, USIPY_SIP_TM_STATE_TRYING,
       tpp->request_id, localp, tpp->request_target->target, callbacksp,
       &timers);
