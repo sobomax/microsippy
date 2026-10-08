@@ -50,3 +50,26 @@ int usipy_sip_tm_handle_incoming_response(
 int usipy_sip_tm_handle_incoming_request(
   const struct usipy_sip_tm_handle_incoming_in *, struct usipy_msg *,
   const struct usipy_sip_tid *, struct usipy_sip_tm_handle_incoming_out *);
+
+/* UAS core reliability for accepted INVITEs (RFC 3261, 13.3.1.4).
+ * The transaction retains the 2xx until Timer L, but its owner (the dialog)
+ * schedules the retransmissions, and is told of each send, of the ACK, and
+ * of Timer L (timeout() returns 1 if it ended the session for want of ACK).
+ * The owner is known by its arg; the calls taking one fail with
+ * USIPY_SIP_TM_ERR_NOT_FOUND for an index that isn't an active transaction
+ * of that owner (reaped, reused). */
+struct usipy_sip_tm_uas_owner {
+    void (*sent)(void *, uint64_t);
+    void (*acked)(void *);
+    int (*timeout)(void *);
+};
+
+int usipy_sip_tm_uas_get_callbacks(const struct usipy_sip_tm *, size_t,
+  struct usipy_sip_tm_uas_callbacks *);
+int usipy_sip_tm_uas_set_owner(struct usipy_sip_tm *, size_t,
+  const struct usipy_sip_tm_uas_owner *, void *);
+int usipy_sip_tm_uas_clear_owner(struct usipy_sip_tm *, size_t, const void *);
+int usipy_sip_tm_uas_send_at(struct usipy_sip_tm *, size_t, const void *,
+  uint64_t);
+const struct usipy_sip_tm_tx *usipy_sip_tm_uas_owned_tx(
+  const struct usipy_sip_tm *, size_t, const void *);

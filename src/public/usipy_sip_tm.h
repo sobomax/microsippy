@@ -25,7 +25,8 @@ enum usipy_sip_tm_state {
     USIPY_SIP_TM_STATE_PROCEEDING,
     USIPY_SIP_TM_STATE_COMPLETED,
     USIPY_SIP_TM_STATE_CONFIRMED,
-    USIPY_SIP_TM_STATE_TERMINATED
+    USIPY_SIP_TM_STATE_TERMINATED,
+    USIPY_SIP_TM_STATE_ACCEPTED
 };
 
 enum usipy_sip_tm_transport {
@@ -81,7 +82,8 @@ enum usipy_sip_tm_timer_kind {
     USIPY_SIP_TM_TIMER_H,
     USIPY_SIP_TM_TIMER_I,
     USIPY_SIP_TM_TIMER_J,
-    USIPY_SIP_TM_TIMER_K
+    USIPY_SIP_TM_TIMER_K,
+    USIPY_SIP_TM_TIMER_L
 };
 
 struct usipy_sip_tm_addr {
@@ -116,6 +118,7 @@ struct usipy_sip_tm_timer_policy {
     uint32_t timer_f_ms;
     uint32_t timer_j_ms;
     uint32_t timer_k_ms;
+    uint32_t timer_l_ms;
 };
 
 #define USIPY_SIP_TM_TIMER_POLICY_RFC3261 \
@@ -129,7 +132,8 @@ struct usipy_sip_tm_timer_policy {
       .timer_e_ms = 0, \
       .timer_f_ms = 0, \
       .timer_j_ms = 0, \
-      .timer_k_ms = 0 \
+      .timer_k_ms = 0, \
+      .timer_l_ms = 0 \
     })
 
 #define USIPY_SIP_TM_TIMER_POLICY_DEFAULT USIPY_SIP_TM_TIMER_POLICY_RFC3261
@@ -195,7 +199,7 @@ typedef void (*usipy_sip_tm_uac_timeout_cb)(void *, size_t,
   const struct usipy_sip_tm_tx *, enum usipy_sip_tm_uac_timeout_id);
 typedef void (*usipy_sip_tm_uas_cancel_cb)(void *, size_t,
   const struct usipy_sip_tm_tx *, const struct usipy_msg *);
-typedef void (*usipy_sip_tm_uas_no_ack_cb)(void *, size_t,
+typedef int (*usipy_sip_tm_uas_no_ack_cb)(void *, size_t,
   const struct usipy_sip_tm_tx *);
 typedef void (*usipy_sip_tm_incoming_request_cb)(void *,
   const struct usipy_sip_tm_handle_incoming_in *, const struct usipy_msg *);
@@ -209,6 +213,9 @@ struct usipy_sip_tm_uac_callbacks {
 struct usipy_sip_tm_uas_callbacks {
     void *arg;
     usipy_sip_tm_uas_cancel_cb cancel;
+    /* No ACK: by Timer H for an error answer (the return is ignored), or
+     * by Timer L for a 2xx, where non-zero keeps the call, rather than it
+     * being ended with BYE (and the UA told) as RFC 3261 13.3.1.4 has it. */
     usipy_sip_tm_uas_no_ack_cb no_ack;
 };
 

@@ -65,6 +65,10 @@ struct usipy_sip_tm_txi {
     struct usipy_sip_tm_uac_callbacks callbacks;
     struct usipy_sip_tm_uas_callbacks uas_callbacks;
     struct {
+        const struct usipy_sip_tm_uas_owner *ops;
+        void *arg;
+    } uas_owner;
+    struct {
         size_t checkpoint;
         struct usipy_sip_tm_outbound pub;
     } outbound;

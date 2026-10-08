@@ -1041,7 +1041,7 @@ build_uas_invite_cancel(const struct usipy_msg *invite_reqp)
     return (usipy_sip_msg_ctor_fromwire(raw, (size_t)blen, &perr));
 }
 
-static void
+static int
 uas_no_ack(void *arg, size_t tx_index, const struct usipy_sip_tm_tx *txp)
 {
     struct uas_cbarg *carg = arg;
@@ -1050,6 +1050,7 @@ uas_no_ack(void *arg, size_t tx_index, const struct usipy_sip_tm_tx *txp)
     assert(txp != NULL);
     assert(tx_index == carg->tx_index);
     carg->nnoacks += 1;
+    return (0);
 }
 
 static void
@@ -2539,7 +2540,7 @@ test_uas_invite_2xx_ack(void)
     assert(sarg.nsent == 1);
     txp = usipy_sip_tm_get_transaction(tm, tx_index);
     assert(txp != NULL);
-    assert(txp->state == USIPY_SIP_TM_STATE_COMPLETED);
+    assert(txp->state == USIPY_SIP_TM_STATE_ACCEPTED);
     respp = usipy_sip_msg_ctor_fromwire(txp->common.outbound.raw.s.ro,
       txp->common.outbound.raw.l, &perr);
     assert(respp != NULL);
@@ -2558,7 +2559,7 @@ test_uas_invite_2xx_ack(void)
 
     txp = usipy_sip_tm_get_transaction(tm, tx_index);
     assert(txp != NULL);
-    assert(txp->state == USIPY_SIP_TM_STATE_COMPLETED);
+    assert(txp->state == USIPY_SIP_TM_STATE_ACCEPTED);
 
     usipy_sip_msg_dtor(ackp);
     usipy_sip_msg_dtor(respp);

@@ -216,6 +216,7 @@ usipy_sip_tm_tx_reset(struct usipy_sip_tm_txi *tp)
     tp->pub.common.timer.due_at_ms = 0;
     memset(&tp->callbacks, '\0', sizeof(tp->callbacks));
     memset(&tp->uas_callbacks, '\0', sizeof(tp->uas_callbacks));
+    memset(&tp->uas_owner, '\0', sizeof(tp->uas_owner));
     memset(&tp->outbound, '\0', sizeof(tp->outbound));
     tp->outbound.checkpoint = USIPY_MSG_HEAP_CHECKPOINT_NONE;
     tp->outbound.pub.raw = USIPY_STR_NULL;
