@@ -2814,12 +2814,18 @@ test_abandoned_invite(int deadline, int provisional, int success)
         assert_bye_request(request, bye, "late", "sip:bob@127.0.0.1:5070", NULL, 0);
         usipy_sip_msg_dtor(bye);
     }
-    struct usipy_sip_tm_tx final;
-
-    memcpy(&final, txp, sizeof(final));
+    const struct usipy_sip_tm_tx final = *txp;
     trying = build_trying_response(request);
     invite_handle_step(&carg, &hin, &hout, trying, 13);
-    assert(memcmp(&final, txp, sizeof(final)) == 0);
+    /* Compare fields, not the struct's uninitialized padding. */
+    assert(txp->state == final.state);
+    assert(txp->role_data.uac.last_status_code == final.role_data.uac.last_status_code);
+    assert(txp->role_data.uac.response_class == final.role_data.uac.response_class);
+    assert(txp->common.updated_at_ms == final.common.updated_at_ms);
+    assert(txp->common.outbound.next_send_at_ms == final.common.outbound.next_send_at_ms);
+    assert(txp->common.outbound.raw.s.ro == final.common.outbound.raw.s.ro);
+    assert(txp->common.outbound.raw.l == final.common.outbound.raw.l);
+    assert(txp->common.timer.due_at_ms == final.common.timer.due_at_ms);
     usipy_sip_msg_dtor(trying);
     before = sarg.nsent;
     invite_handle_step(&carg, &hin, &hout, response, 13);
