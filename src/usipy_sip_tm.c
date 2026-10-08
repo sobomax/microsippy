@@ -223,11 +223,8 @@ usipy_sip_tm_tx_reset(struct usipy_sip_tm_txi *tp)
     tp->outbound.pub.next_send_at_ms = USIPY_SIP_TM_TIME_NONE;
     tp->parent_index = USIPY_SIP_TM_TX_INDEX_NONE;
     tp->child_index = USIPY_SIP_TM_TX_INDEX_NONE;
-    tp->invite_timeout_at_ms = USIPY_SIP_TM_TIME_NONE;
+    tp->invite = NULL;
     tp->final_reported = 0;
-    tp->invite_provisional_seen = 0;
-    tp->invite_cancel_state = USIPY_SIP_TM_INVITE_CANCEL_NONE;
-    tp->invite_timeout_id = USIPY_SIP_TM_TIMEOUT_NONE;
     tp->pub.common.outbound = tp->outbound.pub;
     usipy_msg_heap_init(&tp->scratch, tp->scratch_buf, tp->scratch_capacity,
       tp->scratch_checkpoints, USIPY_SIP_TM_TX_NCHECKPOINTS);

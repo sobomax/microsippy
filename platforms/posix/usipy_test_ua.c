@@ -1065,10 +1065,12 @@ test_tm_timer_policy(void)
     usipy_sip_tm_timer_policy_resolve(&p, NULL);
     assert(memcmp(&p, &rfc3261, sizeof(p)) == 0);
     usipy_sip_tm_timer_policy_resolve(&p,
-      &(struct usipy_sip_tm_timer_policy){.timer_l_ms = 200});
+      &(struct usipy_sip_tm_timer_policy){.timer_l_ms = 200,
+        .timer_b_ms = 25});
     assert(p.t1_ms == rfc3261.t1_ms && p.t2_ms == rfc3261.t2_ms &&
       p.t4_ms == rfc3261.t4_ms && p.timer_l_ms == 200);
     assert(p.timer_f_ms == 0 && p.timer_j_ms == 0 && p.timer_k_ms == 0);
+    assert(p.timer_b_ms == 25);
     usipy_sip_tm_timer_policy_resolve(&p,
       &(struct usipy_sip_tm_timer_policy){.t1_ms = 50});
     assert(p.t1_ms == 50 && p.t2_ms == rfc3261.t2_ms &&
@@ -1127,12 +1129,118 @@ test_ua_accepted_timer_l_only(void)
     close(sock);
 }
 
+static void
+test_ua_disconnect_after_abandon(int deadline, int gone)
+{
+    struct usipy_sip_ua_ctor_params ucp = {0};
+    struct usipy_sip_ua_event ev = {0};
+    struct emit_log elog = {0};
+    struct usipy_sip_tm *tm;
+    struct usipy_sip_ua *uap;
+    const struct usipy_sip_tm_tx *txp;
+    struct usipy_msg *reqp, *respp;
+    size_t invite_index;
+    int sock;
+
+    tm = make_tm(&sock);
+    elog.tm = tm;
+    ucp.tm = tm;
+    ucp.emit = capture_emit;
+    ucp.emit_arg = &elog;
+    uap = usipy_sip_ua_ctor(&ucp);
+    assert(uap != NULL);
+
+    ev.type = USIPY_SIP_UA_EVENT_DIAL;
+    ev.data.dial = (struct usipy_sip_ua_dial_params){
+      .request = &(struct usipy_sip_tm_new_uac_tr_params){
+        .request_id = &(struct usipy_sip_tm_request_id){
+        .call_id = &(struct usipy_str)USIPY_2STR("ua-out-2@example.test"),
+        .cseq = 1,
+        .method_type = USIPY_SIP_METHOD_INVITE,
+        },
+        .request_target = &(struct usipy_sip_tm_request_target){
+        .request_uri = &(struct usipy_str)USIPY_2STR("sip:bob@example.test"),
+        .target = &(struct usipy_sip_tm_addr){
+          .af = AF_INET,
+          .port = 5060,
+          .transport = USIPY_SIP_TM_TRANSPORT_UDP,
+          .host = USIPY_2STR("198.51.100.10"),
+        },
+        },
+        .parties_by_username = &(struct usipy_sip_tm_request_parties){
+        .from = &(struct usipy_str)USIPY_2STR("alice"),
+        .to = &(struct usipy_str)USIPY_2STR("bob"),
+        .contact = &(struct usipy_str)USIPY_2STR("alice"),
+        },
+        .invite_expires = 1,
+        .timers = &(struct usipy_sip_tm_timer_policy){
+          .timer_b_ms = deadline ? 5 : 0,
+        },
+        .callbacks = &(struct usipy_sip_tm_uac_callbacks){0},
+      },
+    };
+    ASSERT_CALL_EQ(usipy_sip_ua_on_event(uap, &ev, &invite_index),
+      USIPY_SIP_TM_OK);
+    txp = usipy_sip_tm_get_transaction(tm, invite_index);
+    assert(txp != NULL);
+    run_tm_once(tm, 0);
+    txp = usipy_sip_tm_get_transaction(tm, invite_index);
+    assert(txp != NULL);
+    reqp = dup_tx_request(txp);
+    respp = build_response(reqp, &usipy_sip_res_trying, "uas100", NULL);
+    if (!deadline) {
+        handle_incoming_msg(tm, txp, respp, 1);
+    }
+    run_tm_once(tm, deadline ? 5 : 1000);
+    assert((txp->common.flags & USIPY_SIP_TM_F_ABANDONED) != 0);
+    assert(usipy_sip_ua_get_state(uap) == USIPY_SIP_UA_STATE_DIALING);
+    if (gone) {
+        /* Reaped, and with gone > 1 its slot taken by someone else's INVITE */
+        ASSERT_CALL_EQ(usipy_sip_tm_drop_transaction(tm, invite_index),
+          USIPY_SIP_TM_OK);
+        if (gone > 1) {
+            size_t other_index;
+
+            ASSERT_CALL_EQ(usipy_sip_tm_new_uac_tr(tm,
+              &(struct usipy_sip_tm_new_uac_tr_params){
+                .request_id = &(struct usipy_sip_tm_request_id){
+                  .call_id = &(struct usipy_str)USIPY_2STR("other@example.test"),
+                  .cseq = 1,
+                  .method_type = USIPY_SIP_METHOD_INVITE,
+                },
+                .request_target = ev.data.dial.request->request_target,
+                .parties_by_username = ev.data.dial.request->parties_by_username,
+                .callbacks = &(struct usipy_sip_tm_uac_callbacks){0},
+              }, &other_index), USIPY_SIP_TM_OK);
+            assert(other_index == invite_index);
+        }
+    }
+    ev.type = USIPY_SIP_UA_EVENT_DISCONNECT;
+    ASSERT_CALL_EQ(usipy_sip_ua_on_event(uap, &ev, &invite_index), USIPY_SIP_TM_OK);
+    assert(usipy_sip_ua_get_state(uap) == USIPY_SIP_UA_STATE_DISCONNECTED);
+    if (gone > 1) {
+        txp = usipy_sip_tm_get_transaction(tm, invite_index);
+        assert(txp != NULL && (txp->common.flags & USIPY_SIP_TM_F_ABANDONED) == 0);
+    }
+    assert(elog.count == 1 && elog.emits[0].type == USIPY_SIP_UA_EMIT_DISCONNECT);
+
+    usipy_sip_msg_dtor(respp);
+    usipy_sip_msg_dtor(reqp);
+    usipy_sip_ua_dtor(uap);
+    usipy_sip_tm_dtor(tm);
+    close(sock);
+}
+
 int
 main(void)
 {
     test_ua_outgoing_connect_disconnect();
     test_ua_outgoing_auth_retry();
     test_ua_outgoing_reject();
+    test_ua_disconnect_after_abandon(0, 0);
+    test_ua_disconnect_after_abandon(1, 0);
+    test_ua_disconnect_after_abandon(1, 1);
+    test_ua_disconnect_after_abandon(1, 2);
     test_ua_incoming_connect_bye();
     test_ua_accepted_ack(USIPY_SIP_TM_TRANSPORT_UDP);
     test_ua_accepted_ack(USIPY_SIP_TM_TRANSPORT_TCP);
