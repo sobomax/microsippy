@@ -337,14 +337,10 @@ usipy_sip_dialog_matches_uas_transaction(const struct usipy_sip_dialog *dp,
 }
 
 int
-usipy_sip_dialog_handle_uas_transaction(struct usipy_sip_dialog *dp, size_t tx_index,
+usipy_sip_dialog_accept_uas_bye(struct usipy_sip_dialog *dp, size_t tx_index,
   const struct usipy_msg *msg)
 {
     const struct usipy_sip_tm_tx *txp;
-    const struct usipy_sip_tm_uas_response_params ok = {
-      .status = &usipy_sip_res_ok,
-    };
-    int rval;
 
     USIPY_DASSERT(dp != NULL);
     USIPY_DASSERT(msg != NULL);
@@ -360,13 +356,25 @@ usipy_sip_dialog_handle_uas_transaction(struct usipy_sip_dialog *dp, size_t tx_i
       msg->sline.parsed.rl.method->cantype != USIPY_SIP_METHOD_BYE) {
         return (USIPY_SIP_TM_ERR_UNSUPPORTED);
     }
-    rval = usipy_sip_tm_send_uas_response(dp->tm, tx_index, &ok);
-    if (rval != USIPY_SIP_TM_OK) {
-        return (rval);
-    }
     dp->ended = 1;
     usipy_sip_dialog_uas_acked(dp);
     return (USIPY_SIP_TM_OK);
+}
+
+int
+usipy_sip_dialog_handle_uas_transaction(struct usipy_sip_dialog *dp, size_t tx_index,
+  const struct usipy_msg *msg)
+{
+    const struct usipy_sip_tm_uas_response_params ok = {
+      .status = &usipy_sip_res_ok,
+    };
+    int rval;
+
+    rval = usipy_sip_dialog_accept_uas_bye(dp, tx_index, msg);
+    if (rval != USIPY_SIP_TM_OK) {
+        return (rval);
+    }
+    return (usipy_sip_tm_send_uas_response(dp->tm, tx_index, &ok));
 }
 
 int

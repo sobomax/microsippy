@@ -292,6 +292,14 @@ void
 usipy_sip_ua_emit_event(struct usipy_sip_ua *uap, enum usipy_sip_ua_emit_type type,
   size_t tx_index, const struct usipy_msg *msg)
 {
+    usipy_sip_ua_emit_response_event(uap, type, tx_index, msg, NULL);
+}
+
+void
+usipy_sip_ua_emit_response_event(struct usipy_sip_ua *uap,
+  enum usipy_sip_ua_emit_type type, size_t tx_index, const struct usipy_msg *msg,
+  struct usipy_sip_tm_uas_response_params *response)
+{
     struct usipy_sip_ua_emit emitp;
 
     USIPY_DASSERT(uap != NULL);
@@ -305,6 +313,7 @@ usipy_sip_ua_emit_event(struct usipy_sip_ua *uap, enum usipy_sip_ua_emit_type ty
       .transaction_index = tx_index,
       .message = msg,
       .body = (msg != NULL ? msg->body : USIPY_STR_NULL),
+      .response = response,
     };
     uap->emit(uap->emit_arg, &emitp);
 }

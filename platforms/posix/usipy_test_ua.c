@@ -25,6 +25,8 @@
 struct emit_log {
     struct usipy_sip_tm *tm;
     size_t count;
+    int check_peer_bye;
+    int custom_bye_response;
     struct usipy_sip_ua_emit emits[8];
 };
 
@@ -72,6 +74,34 @@ capture_emit(void *arg, const struct usipy_sip_ua_emit *emitp)
     elog->emits[elog->count++] = *emitp;
     if (elog->tm != NULL) {
         run_tm_once(elog->tm, 0);
+    }
+}
+
+/* Pumping the TM from the callback must not send the default BYE response. */
+static void
+capture_bye_emit(void *arg, const struct usipy_sip_ua_emit *emitp)
+{
+    struct emit_log *elog = arg;
+    const struct usipy_sip_tm_tx *txp;
+    static const struct usipy_str content_type = USIPY_2STR("text/plain");
+    static const struct usipy_str body = USIPY_2STR("application BYE response");
+
+    capture_emit(arg, emitp);
+    if (!elog->check_peer_bye || emitp->type != USIPY_SIP_UA_EMIT_DISCONNECT) {
+        return;
+    }
+    assert(emitp->state == USIPY_SIP_UA_STATE_DISCONNECTED);
+    assert(emitp->message != NULL);
+    assert(emitp->response != NULL);
+    assert(emitp->response->status == &usipy_sip_res_ok);
+    txp = usipy_sip_tm_get_transaction(elog->tm, emitp->transaction_index);
+    assert(txp != NULL);
+    assert(txp->role_data.uas.last_status_code < 200);
+    if (elog->custom_bye_response) {
+        emitp->response->content_type = &content_type;
+        emitp->response->body = &body;
+        run_tm_once(elog->tm, 0);
+        assert(txp->role_data.uas.last_status_code < 200);
     }
 }
 
@@ -569,7 +599,7 @@ test_ua_outgoing_auth_retry(void)
 }
 
 static void
-test_ua_incoming_connect_bye(void)
+test_ua_incoming_connect_bye(int custom_response)
 {
     struct usipy_sip_ua_ctor_params ucp = {0};
     struct usipy_sip_tm_new_uas_tr_params tpp;
@@ -579,14 +609,16 @@ test_ua_incoming_connect_bye(void)
     struct usipy_sip_tm *tm;
     struct usipy_sip_ua *uap;
     const struct usipy_sip_tm_tx *txp;
-    struct usipy_msg *invp, *respp, *byep;
+    struct usipy_msg *invp, *respp, *byep, *bye_response;
     size_t invite_index, bye_index;
     int sock;
 
     tm = make_tm(&sock);
     elog.tm = tm;
+    elog.check_peer_bye = 1;
+    elog.custom_bye_response = custom_response;
     ucp.tm = tm;
-    ucp.emit = capture_emit;
+    ucp.emit = capture_bye_emit;
     ucp.emit_arg = &elog;
     uap = usipy_sip_ua_ctor(&ucp);
     assert(uap != NULL);
@@ -652,6 +684,17 @@ test_ua_incoming_connect_bye(void)
     txp = usipy_sip_tm_get_transaction(tm, bye_index);
     assert(txp != NULL);
     assert(txp->role_data.uas.last_status_code == 200);
+    bye_response = usipy_sip_msg_ctor_fromwire(txp->common.outbound.raw.s.ro,
+      txp->common.outbound.raw.l, &perr);
+    assert(bye_response != NULL);
+    if (custom_response) {
+        assert(bye_response->body.l == strlen("application BYE response"));
+        assert(memcmp(bye_response->body.s.ro, "application BYE response",
+          bye_response->body.l) == 0);
+    } else {
+        assert(bye_response->body.l == 0);
+    }
+    usipy_sip_msg_dtor(bye_response);
 
     run_tm_once(tm, 3300);
     assert(elog.count == 3);
@@ -1243,7 +1286,8 @@ main(void)
     test_ua_disconnect_after_abandon(1, 0);
     test_ua_disconnect_after_abandon(1, 1);
     test_ua_disconnect_after_abandon(1, 2);
-    test_ua_incoming_connect_bye();
+    test_ua_incoming_connect_bye(0);
+    test_ua_incoming_connect_bye(1);
     test_ua_accepted_ack(USIPY_SIP_TM_TRANSPORT_UDP);
     test_ua_accepted_ack(USIPY_SIP_TM_TRANSPORT_TCP);
     test_ua_accepted_no_ack(USIPY_SIP_TM_TRANSPORT_UDP);

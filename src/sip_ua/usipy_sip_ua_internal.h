@@ -60,6 +60,9 @@ const struct usipy_sip_ua_state_ops *usipy_sip_ua_state_ops_get(enum usipy_sip_u
 void usipy_sip_ua_transition(struct usipy_sip_ua *, enum usipy_sip_ua_state);
 void usipy_sip_ua_emit_event(struct usipy_sip_ua *, enum usipy_sip_ua_emit_type, size_t,
   const struct usipy_msg *);
+void usipy_sip_ua_emit_response_event(struct usipy_sip_ua *,
+  enum usipy_sip_ua_emit_type, size_t, const struct usipy_msg *,
+  struct usipy_sip_tm_uas_response_params *);
 int usipy_sip_ua_expect_transaction(const struct usipy_sip_ua *, size_t,
   enum usipy_sip_tm_role, uint8_t, const struct usipy_sip_tm_tx **);
 int usipy_sip_ua_store_dialing_request(struct usipy_sip_ua *,
