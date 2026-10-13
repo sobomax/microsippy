@@ -1126,6 +1126,25 @@ usipy_sip_tm_uas_tr_cancelled(struct usipy_sip_tm *tm,
     return (usipy_sip_tm_send_uas_response(tm, index, rpp));
 }
 
+/* Its final response through, and only absorbing retransmissions of the
+   request (Timer J) or of the ACK (Timer I, or L once a 2xx is ACKed) */
+int
+usipy_sip_tm_uas_evictable(const struct usipy_sip_tm_txi *tp)
+{
+    const struct usipy_sip_tm_tx *txp = &tp->pub;
+
+    switch (txp->state) {
+    case USIPY_SIP_TM_STATE_COMPLETED:
+        return (txp->common.timer.type == USIPY_SIP_TM_TIMER_J);
+    case USIPY_SIP_TM_STATE_CONFIRMED:
+        return (txp->common.timer.type == USIPY_SIP_TM_TIMER_I);
+    case USIPY_SIP_TM_STATE_ACCEPTED:
+        return ((txp->common.flags & USIPY_SIP_TM_F_ACKED) != 0);
+    default:
+        return (0);
+    }
+}
+
 int
 usipy_sip_tm_uas_run(struct usipy_sip_tm_txi *tp, size_t index,
   const struct usipy_sip_tm *tm, const struct usipy_sip_tm_run_in *inp,
@@ -1230,6 +1249,7 @@ usipy_sip_tm_handle_incoming_request(const struct usipy_sip_tm_handle_incoming_i
 
         if (tp->pub.role_data.uas.last_status_code >= 200 &&
           tp->pub.role_data.uas.last_status_code < 300) {
+            tp->pub.common.flags |= USIPY_SIP_TM_F_ACKED;
             if (tp->uas_owner.ops != NULL) {
                 tp->uas_owner.ops->acked(tp->uas_owner.arg);
             }

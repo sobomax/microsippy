@@ -144,6 +144,8 @@ struct usipy_sip_tm_timer_policy {
 #define USIPY_SIP_TM_F_RELIABLE_TRANSPORT 0x00000001u
 #define USIPY_SIP_TM_F_TERMINATED         0x00000002u
 #define USIPY_SIP_TM_F_ABANDONED          0x00000004u
+/* A UAS INVITE's 2xx ACKed: it's only there for retransmissions then */
+#define USIPY_SIP_TM_F_ACKED              0x00000008u
 
 #define USIPY_SIP_TM_TX_INDEX_NONE  ((size_t)-1)
 #define USIPY_SIP_TM_TIME_NONE      UINT64_MAX

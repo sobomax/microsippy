@@ -71,23 +71,78 @@ usipy_sip_tm_transport_name(enum usipy_sip_tm_transport transport)
     }
 }
 
+/*
+ * Whether a transaction is done but for absorbing the peer's retransmissions
+ * (Timers D, I, J, K, and L of a 2xx ACKed), or done altogether: one that
+ * can go early when the slots run out, as if its timer had fired. A child
+ * goes with its parent only, and an abandoned INVITE still has its BYE to
+ * see through.
+ */
+static int
+usipy_sip_tm_tx_evictable(const struct usipy_sip_tm_txi *tp)
+{
+    const struct usipy_sip_tm_tx *txp = &tp->pub;
+
+    if (!tp->active || tp->parent_index != USIPY_SIP_TM_TX_INDEX_NONE) {
+        return (0);
+    }
+    if (txp->state == USIPY_SIP_TM_STATE_TERMINATED) {
+        return (1);
+    }
+    if ((txp->common.flags & USIPY_SIP_TM_F_ABANDONED) != 0) {
+        return (0);
+    }
+    switch (txp->role) {
+    case USIPY_SIP_TM_ROLE_UAC:
+        return (usipy_sip_tm_uac_evictable(tp));
+    case USIPY_SIP_TM_ROLE_UAS:
+        return (usipy_sip_tm_uas_evictable(tp));
+    default:
+        return (0);
+    }
+}
+
+/*
+ * A free slot, or failing that one made free: of the evictable transaction
+ * that would go first anyway (along with its children)
+ */
 struct usipy_sip_tm_txi *
 usipy_sip_tm_alloc_slot(struct usipy_sip_tm *tm, size_t *indexp)
 {
-    for (size_t i = 0; i < tm->max_transactions; i++) {
-        if (tm->transactions[i].active) {
+    size_t i, victim = USIPY_SIP_TM_TX_INDEX_NONE;
+    uint64_t due, victim_due = 0;
+
+    for (i = 0; i < tm->max_transactions; i++) {
+        const struct usipy_sip_tm_txi *tp = &tm->transactions[i];
+
+        if (!tp->active) {
+            break;
+        }
+        if (!usipy_sip_tm_tx_evictable(tp)) {
             continue;
         }
-        usipy_sip_tm_tx_reset(&tm->transactions[i]);
-        if (indexp != NULL) {
-            *indexp = i;
+        due = tp->pub.state == USIPY_SIP_TM_STATE_TERMINATED ? 0 :
+          tp->pub.common.timer.due_at_ms;
+        if (victim == USIPY_SIP_TM_TX_INDEX_NONE || due < victim_due) {
+            victim = i;
+            victim_due = due;
         }
-        return (&tm->transactions[i]);
     }
+    if (i == tm->max_transactions) {
+        if (victim == USIPY_SIP_TM_TX_INDEX_NONE ||
+          usipy_sip_tm_drop_transaction(tm, victim) != USIPY_SIP_TM_OK) {
+            if (indexp != NULL) {
+                *indexp = USIPY_SIP_TM_TX_INDEX_NONE;
+            }
+            return (NULL);
+        }
+        i = victim;
+    }
+    usipy_sip_tm_tx_reset(&tm->transactions[i]);
     if (indexp != NULL) {
-        *indexp = USIPY_SIP_TM_TX_INDEX_NONE;
+        *indexp = i;
     }
-    return (NULL);
+    return (&tm->transactions[i]);
 }
 
 static int

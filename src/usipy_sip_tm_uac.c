@@ -1531,6 +1531,25 @@ usipy_sip_tm_uac_consider_invite(struct usipy_sip_tm_run_out *outp,
     usipy_sip_tm_run_out_consider(outp, invite->timeout_at_ms);
 }
 
+/* Its final response reported, and only waiting for its retransmissions
+   (Timer D, re-ACKing them, or Timer K) */
+int
+usipy_sip_tm_uac_evictable(const struct usipy_sip_tm_txi *tp)
+{
+    const struct usipy_sip_tm_tx *txp = &tp->pub;
+
+    if (txp->state != USIPY_SIP_TM_STATE_COMPLETED || tp->final_reported == 0) {
+        return (0);
+    }
+    switch (txp->common.timer.type) {
+    case USIPY_SIP_TM_TIMER_D:
+    case USIPY_SIP_TM_TIMER_K:
+        return (1);
+    default:
+        return (0);
+    }
+}
+
 int
 usipy_sip_tm_uac_run(struct usipy_sip_tm_txi *tp, size_t index, const struct usipy_sip_tm *tm,
   const struct usipy_sip_tm_run_in *inp, struct usipy_sip_tm_run_out *outp)
